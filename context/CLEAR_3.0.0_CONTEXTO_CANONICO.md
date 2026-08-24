@@ -1,7 +1,7 @@
 ---
 title: "CLEAR 3.0.0 — Contexto canônico para reconstrução do preprint"
-version: "0.2.0"
-status: "BASELINE OPERACIONAL AUDITADO; não é o preprint"
+version: "0.3.0"
+status: "QUARENTENA CONCEITUAL; NÃO USAR COMO BASELINE ATÉ DECISÃO SOBRE Rcon"
 date: "2026-08-24"
 last_adversarial_audit: "2026-08-24"
 human_author: "Paulo"
@@ -13,6 +13,8 @@ optimized_for: "leitura por IA; prevenção de regressão conceitual"
 
 # 0. INSTRUÇÃO DE BOOT
 
+> **ALERTA DE INTEGRIDADE (v0.3.0).** A v0.2.0 promoveu inferências da assistência a decisões canônicas. Em particular: (a) confundiu ausência em lista curta com eliminação de processos; e (b) tratou como aprovação autoral a passagem de **Rcon** de “representação de conexão” para infraestrutura causal não representacional. Esta versão corrige o inventário processual e põe em quarentena todas as teses dependentes do estatuto ontológico de **Rcon**. Até decisão explícita de Paulo, nenhuma formulação deste arquivo que pressuponha “**Rcon** não é representação” controla o preprint.
+
 Este arquivo é o contexto de inicialização da reconstrução do preprint CLEAR 3.0.0. Ele deve ser lido antes de qualquer capítulo, figura, formalização, comparação teórica ou resposta sobre o estado atual da teoria.
 
 O objetivo não é substituir as fontes nem produzir prosa publicável. O objetivo é minimizar erros de contexto. Se uma formulação externa contradizer este baseline, não a harmonize por plausibilidade: identifique o conflito, aplique a hierarquia de autoridade da seção 2 e marque a formulação de menor autoridade como histórica.
@@ -22,19 +24,19 @@ O objetivo não é substituir as fontes nem produzir prosa publicável. O objeti
 Antes de redigir o preprint, a IA deve conseguir afirmar corretamente:
 
 1. **Rrel** foi eliminado.
-2. **R** é a única unidade representacional básica.
-3. **Rcon** é conexão dirigida, causal e não representacional; não integra, não tem threshold de acesso e não é acessada.
-4. Relações são conteúdo de **R** ou organização de uma composição **[e]** de **R** + **Rcon**.
-5. Acesso ocorre somente em **R**.
+2. **Rcon** foi proposta por Paulo como “representação de conexão”; a reformulação posterior como estrutura causal não representacional foi consolidada pela assistência, mas não há aprovação autoral explícita recuperada.
+3. O estatuto ontológico de **Rcon** está `AUTHOR-DECISION-PENDING`; não afirmar que é representação nem que não é representação como decisão fechada.
+4. **Rrel** não deve ser substituído mecanicamente por **Rcon**.
+5. `Ptrd` permanece; `Ptaf` e `Ptef` são seus subtipos direcionais. Lista curta não é inventário fechado.
 6. Atenção é recorrência diferencial sustentada de acessos; não existe **Patt**.
 7. Memória é história estrutural e reconstrução; não existe **Pmem**.
 8. Planos não executam instruções e não existe controlador interno.
 9. Ausência não causa incidência.
 10. **[e]**, **[be]** e **[S]** são as notações formais atuais; `e(x)`, `be(x)` e `be(S)` são notação anterior.
-11. **τ** delimita a integração local; **τ\*** delimita o encadeamento/recorrência em que acessos locais podem compor uma trajetória.
+11. O estatuto de **τ/τ\*** também requer reauditoria: há suporte recuperado para **τ\*** como índice/horizonte de ocorrência de acesso, mas não para a regra fechada “**τ** = integração local; **τ\*** = encadeamento/recorrência” como decisão explícita de Paulo.
 12. A identidade entre acesso local e consciência local mínima é a tese constitutiva em investigação, não uma verdade demonstrada por definição ou identificada por código auxiliar.
 
-Falhar em qualquer item acima invalida o contexto e bloqueia a escrita.
+Falhar em qualquer item acima invalida o contexto e bloqueia a escrita. Enquanto o item 3 estiver pendente, também fica bloqueada a redação de trechos que dependam da ontologia de **Rcon**.
 
 # 1. RÓTULOS E REGRA DE LEITURA
 
@@ -45,6 +47,8 @@ Use os seguintes estatutos. Não promova uma proposição sem fonte ou derivaç�
 - `HYPOTHESIS`: extensão compatível ainda não estabelecida.
 - `EXPLORATORY`: frente em formulação; ainda não deve ser tratada como hipótese fechada.
 - `OPEN`: problema não resolvido.
+- `AUTHOR-DECISION-PENDING`: há alternativas registradas, mas não foi recuperada decisão explícita de Paulo que autorize o fechamento.
+- `PROVISIONAL`: formulação de trabalho produzida pela assistência ou por documento derivado; não controla o preprint sem aprovação autoral.
 - `DEPRECATED`: formulação superada; não reintroduzir.
 - `NON-CANONICAL`: não pertence ao inventário vigente; pode ser histórico, auxiliar ou não aprovado.
 - `CONFLICT`: incompatibilidade documental ainda registrada para auditoria.
@@ -83,10 +87,24 @@ Regras:
 - Não completar lacunas com solução “provável”. Marcar `OPEN` ou `HYPOTHESIS`.
 - Não substituir lexicalmente **Rrel** por **Rcon**. A regressão é ontológica e causal, não terminológica.
 - A antiga notação `e(x)/be(x)/be(S)` é superada, para o corpo formal, por **[e]**, **[be]** e **[S]**. Pode aparecer apenas em nota histórica ou mapa de migração.
-- O uso de **τ\*** como janela de integração local em documentos e figuras antigos é superado. No Apêndice A fechado, **τ** corresponde à integração local e **τ\*** ao encadeamento/recorrência.
-- A formulação posterior inserida no Guia de Capítulos — **τ** como “tempo representado” e **τ\*** como “tempo da ocorrência analítica” — conflita com a decisão explícita que fechou o Apêndice A. Para este baseline, prevalece a decisão explícita: integração local em **τ**; encadeamento/recorrência em **τ\***.
+- `AUTHOR-DECISION-PENDING` A v0.2.0 afirmou sem prova autoral suficiente que **τ** corresponde à integração local e **τ\*** ao encadeamento/recorrência. O material recuperado sustenta **τ\*** como índice/horizonte de ocorrência/acesso, mas não fecha a semântica completa de **τ/τ\***. Não congelar essa notação até nova decisão.
 - Não usar códigos auxiliares opacos para teses, explananda ou condições rivais. **T1a/T1b/T2** foram ferramentas internas de decomposição argumentativa e foram retiradas do guia; as perguntas subjacentes podem ser formuladas descritivamente, mas não constituem teses formais nomeadas da CLEAR. **C1/C2** também foram retirados; a diferença entre ocorrência consciente local e os problemas de caráter qualitativo/composição permanece, mas sem essas categorias codificadas. **Q** e “estágio adicional Q” não foram aprovados por Paulo; foram introduzidos pela assistência e não integram a teoria nem sua notação.
-- A hipótese de thresholds nos extremos de **Rcon** foi explicitamente retraída. **Rcon** pode ter condições de transmissão; threshold de acesso e integração pertencem exclusivamente ao **R** de destino.
+- `AUTHOR-DECISION-PENDING` A regressão posterior retirou thresholds dos extremos de **Rcon** e os colocou em **R**; como o próprio estatuto de **Rcon** não tem aprovação autoral explícita recuperada, essa solução permanece provisória.
+
+## 2.1 Regra de quarentena de Rcon
+
+Até decisão explícita de Paulo, toda ocorrência neste arquivo de uma das teses abaixo deve ser lida como `PROVISIONAL`, mesmo quando uma linha antiga ainda estiver rotulada `CANONICAL` ou `DERIVED`:
+
+- **Rcon** é ou não é representação;
+- **Rcon** possui ou não aboutness/conteúdo;
+- **Rcon** pode ou não ser acessada, integrar ou possuir threshold;
+- somente **R** é unidade representacional;
+- **[e]** é necessariamente composição de **R** + **Rcon** não representacional;
+- acesso ocorre exclusivamente em **R** e nunca em **Rcon**;
+- qualquer teste, figura ou proibição que dependa dessas afirmações.
+- a regra “**τ** = integração local; **τ\*** = encadeamento/recorrência” e proibições derivadas dela.
+
+Esta regra tem precedência sobre todas as seções posteriores deste arquivo.
 
 # 3. NÚCLEO ONTOLÓGICO
 
@@ -100,7 +118,7 @@ Regras:
 
 ## 3.2 **Sdom** — domínio representacional
 
-`CANONICAL CLR-SDOM-001` **Sdom** é a organização representacional de **S**. Seu inventário representacional contém **R**. **Rcon** integra sua realização causal constitutiva, mas não o inventário de representações.
+`PROVISIONAL CLR-SDOM-001` **Sdom** é a organização representacional de **S**. O lugar de **Rcon** no inventário representacional depende da decisão pendente da seção 3.4.
 
 `CANONICAL CLR-SDOM-002` A fronteira de **Sdom** é funcional: marca a mudança de estatuto pela qual algo passa entre meio não representacional e organização representacional, ou entre domínios representacionais distintos.
 
@@ -110,7 +128,7 @@ Regras:
 
 ## 3.3 **R** — representação
 
-`CANONICAL CLR-R-001` **R** é a única unidade representacional básica da teoria.
+`PROVISIONAL CLR-R-001` **R** é unidade representacional básica da teoria. A exclusividade de **R** depende da decisão sobre se **Rcon** é representação ou conexão não representacional.
 
 `CANONICAL CLR-R-002` Uma candidata a **R** deve satisfazer, em conjunto e de forma arquiteturalmente suficiente:
 
@@ -129,23 +147,21 @@ Regras:
 
 `CANONICAL CLR-R-006` **R** possui conteúdo; propriedades de sua realização causal corrente não se tornam conteúdo só porque podem ser descritas externamente.
 
-## 3.4 **Rcon** — conexão dirigida
+## 3.4 **Rcon** — estatuto ontológico pendente
 
-`CANONICAL CLR-RCON-001` **Rcon** é uma conexão dirigida entre representações **R**. É um elemento causal não representacional. Seu glifo é **→**.
+`AUTHOR-DECISION-PENDING CLR-RCON-001` Paulo propôs **Rcon** como *representation of connection*: representação de conexão entre representações. Nessa formulação, **Rcon** é representacional por definição e a teoria precisa esclarecer conteúdo, aboutness, individuação e acesso.
 
-`CANONICAL CLR-RCON-002` **Rcon** não é representação, não tem aboutness, não porta relação semântica, não armazena conteúdo, não integra incidências, não possui threshold de acesso e não é acessada.
+`PROVISIONAL CLR-RCON-002` A assistência reformulou depois **Rcon** como conectividade causal dirigida não representacional, sem conteúdo, integração, threshold ou acesso próprios. A motivação foi separar aquilo que representa uma relação da infraestrutura que transmite efeitos. Essa solução passou por testes e regressão documental, mas não foi recuperada aprovação explícita de Paulo para a mudança ontológica.
 
-`CANONICAL CLR-RCON-003` Bidirecionalidade causal exige duas conexões dirigidas. Relação semanticamente simétrica não produz, por si, bidirecionalidade causal.
+`AUTHOR-DECISION-PENDING CLR-RCON-003` Alternativas que não podem ser fundidas silenciosamente:
 
-`CANONICAL CLR-RCON-004` **Rcon** pode condicionar transmissão segundo parâmetros causalmente reais, como magnitude, polaridade contributiva ou contraposta, atraso, janela de eficácia, permissividade, saturação, refratariedade e decaimento. Esses parâmetros não são semântica. Só se tornam conteúdo quando alguma **R** os representa.
+1. **Rcon representacional**: representa a conexão; deve satisfazer os critérios de representação e ter relação explícita com acesso.
+2. **Rcon não representacional**: é a própria estrutura causal conectiva; uma **R** distinta pode representar essa conexão.
+3. **Distinção de dois elementos**: preservar uma conexão causal não representacional e nomear separadamente sua eventual representação, evitando que um único símbolo faça dois trabalhos ontológicos.
 
-`CANONICAL CLR-RCON-005` Condição de transmissão não é threshold de acesso. Integração e validação que podem culminar em acesso pertencem ao **R** de destino.
+`CANONICAL CLR-RCON-004` Independentemente da alternativa escolhida, **Rrel** continua eliminado e não deve ser reintroduzido nem substituído mecanicamente por **Rcon**.
 
-`CANONICAL CLR-RCON-006` **Rcon** pode ser alvo de criação, modificação persistente, regulação transitória e poda pelos processos sobreviventes. Isso não cria um processo exclusivo de conectividade.
-
-`CANONICAL CLR-RCON-007` Diagramas conceituais nunca devem usar **R → R** como ligação direta. A cadeia mínima visível é **R → Rcon → R**, ainda que o glifo **→** represente a própria **Rcon**.
-
-`CANONICAL CLR-RCON-008` **Rcon** é o caso-controle central contra a inflação representacional: algo pode ser indispensável ao funcionamento de **Sdom** sem representar.
+`OPEN CLR-RCON-O01` Paulo deve decidir qual das três alternativas acima corresponde à teoria. Até isso ocorrer, glifo, acesso, thresholds, composições **[e]**, diagramas e testes envolvendo **Rcon** não estão congelados.
 
 ## 3.5 Composições e identidade
 
@@ -190,9 +206,9 @@ Os glifos são representações gráficas dos símbolos textuais correspondentes
 
 `CANONICAL CLR-A-004` Acesso é ocorrência local em **R** na qual o conteúdo representado participa operativamente da transformação ou trajetória em curso.
 
-`CANONICAL CLR-A-005` Propagação é a produção de novas incidências, após acesso, pelas **Rcon** causalmente disponíveis. Propagação não é acesso intermediário.
+`PROVISIONAL CLR-A-005` Propagação é a produção de novas incidências, após acesso, pelas conexões causalmente disponíveis. A terminologia **Rcon** e seu estatuto dependem da decisão da seção 3.4. Propagação não é acesso intermediário.
 
-`CANONICAL CLR-A-006` A sequência canônica é:
+`PROVISIONAL CLR-A-006` A sequência de trabalho é:
 
 acesso em **Rᵢ** → propagação por **Rcon** disponíveis → incidências em **Rⱼ** → integração finita em **Rⱼ** → validação local → acesso em **Rⱼ**.
 
@@ -200,23 +216,19 @@ acesso em **Rᵢ** → propagação por **Rcon** disponíveis → incidências e
 
 `CANONICAL CLR-A-008` Contribuições precisam expirar, decair, ser neutralizadas ou perder validade; sem isso, incidências arbitrariamente distantes se acumulariam indefinidamente.
 
-`CANONICAL CLR-A-009` Se uma transformação depende daquilo que **R** representa, deve haver acesso a **R**. Alterações causalmente não representacionais podem atingir **R** ou **Rcon** sem usar o conteúdo de **R**; não devem ser descritas como uso representacional.
+`PROVISIONAL CLR-A-009` Se uma transformação depende daquilo que **R** representa, a regressão de trabalho exige acesso a **R**. O alcance dessa regra para **Rcon** depende de seu estatuto ontológico.
 
 ## 4.2 Tempo e notação
 
-`CANONICAL CLR-TIME-001` **τ** delimita a janela de integração local de incidências em uma **R**.
+`AUTHOR-DECISION-PENDING CLR-TIME-001` A semântica formal de **τ** e **τ\*** não está congelada. A evidência recuperada preserva **Aₛ(P,R,τ\*)** como notação de ocorrência/acesso em determinado **τ\***, mas não demonstra aprovação autoral da distribuição “**τ** integração local / **τ\*** encadeamento”.
 
-`CANONICAL CLR-TIME-002` **τ\*** delimita o encadeamento/recorrência: o intervalo ou horizonte analítico no qual acessos locais sucessivos podem constituir uma trajetória.
+`CANONICAL CLR-TIME-002` Descrição temporal do observador não deve ser reificada automaticamente como variável causal interna. Tempo interno ao sistema, quando representado, deve ser tratado como conteúdo representacional.
 
-`CANONICAL CLR-TIME-003` **τ** e **τ\*** descrevem escalas funcionais distintas. **τ** pertence à integração local que pode culminar em um acesso; **τ\*** pertence à relação temporal entre acessos já localizados. Não confundir nenhuma delas com conteúdo temporal representado.
-
-`CANONICAL CLR-TIME-004` Tempo representado é conteúdo de uma **R** ou composição. Não possui símbolo formal próprio congelado neste baseline.
-
-`CANONICAL CLR-TIME-005` A notação de acesso é **Aₛ(P,R,τ\*)**: ocorrência em **S**, no horizonte **τ\***, em que **R** participa efetivamente da transformação classificada por **P**. **P** não é agente que “busca” ou “abre” **R**. Nunca escrever **Aₛ(P,Rcon,τ\*)**.
+`OPEN CLR-TIME-O01` Reconstituir a conversa mais recente sobre timestamp, intervalo analítico, início/fim e tempo representado antes de fechar o Apêndice A.
 
 ## 4.3 Acesso encadeado, recorrência e estado residual
 
-`DERIVED CLR-CHAIN-001` Acesso encadeado é uma sequência causal de acessos locais em **R**, mediada por propagação em **Rcon**, incidência, integração e validação em cada destino.
+`PROVISIONAL CLR-CHAIN-001` Acesso encadeado é uma sequência causal de acessos locais mediada por conexões, incidência, integração e validação em cada destino. Sua formulação em **R/Rcon** depende da decisão ontológica pendente.
 
 `DERIVED CLR-CHAIN-002` Acessar **Rᵢ** não acessa automaticamente todas as **R** relacionadas. Cada ocorrência subsequente exige trajetória causal e validação próprias.
 
@@ -236,19 +248,35 @@ acesso em **Rᵢ** → propagação por **Rcon** disponíveis → incidências e
 
 `CANONICAL CLR-P-003` Nome psicológico, função descritiva ou resultado temporal não bastam para criar processo.
 
-## 5.2 Inventário sobrevivente
+## 5.2 Inventário confirmado, não exaustivo
 
-- `CANONICAL` **Pcrt** — criação: produz nova **R**, **Rent**, **Rcon** ou organização quando a transformação exige uma unidade que ainda não existe.
-- `CANONICAL` **Pmod** — modificação persistente: altera de modo duradouro **R**, **Rcon** ou composição existente.
-- `CANONICAL` **Preg** — regulação transitória: altera temporariamente condições de transmissão, integração, disponibilidade ou competição sem consolidar mudança estrutural.
-- `CANONICAL` **Pprn** — poda: exclui **R**, **Rcon** ou organização quando a remoção constitui a transformação relevante. Enfraquecimento que não produz exclusão deve ser descrito como modificação, regulação ou decaimento, conforme o caso.
-- `CANONICAL` **Pval** — valoração: produz nova transformação valorativa; não se confunde com valência já representada.
+`CANONICAL CLR-P-004` Uma lista curta não é inventário fechado. Ausência em tabela, apêndice resumido ou figura não prova eliminação.
+
+- `CANONICAL` **Ptrd** — transdução: classe definida pela transposição da fronteira de **Sdom**.
+  - `CANONICAL SUBTYPE` **Ptaf** — direção aferente/exógeno → **Sdom**. A formulação detalhada de seu acoplamento com propagação e **Prec** deve preservar as correções autorais da auditoria de processos.
+  - `CANONICAL SUBTYPE` **Ptef** — direção eferente/**Sdom** → meio extra-**Sdom** ou outro domínio. A determinação do efeito produzido ocorre antes da transdução eferente, não dentro dela.
+- `CANONICAL` **Pmod** — modificação persistente.
+- `CANONICAL` **Psyn** — sintetização.
+- `CANONICAL` **Preg** — regulação transitória.
+- `CANONICAL` **Pprn** — poda.
+- `CANONICAL COMPOSITE` **Prec** — reconhecimento; organização composta preservada na auditoria, não mero sinônimo de acesso.
+- `CANONICAL COMPOSITE` **Pval** — valoração; organização composta preservada na auditoria.
+
+`OPEN CLR-P-O01` O estatuto de **Pcrt** não possui decisão autoral explícita recuperada. Não o promover a classe canônica nem o eliminar por inferência.
+
+`OPEN CLR-P-O02` O estatuto de **Pabs** não possui decisão autoral explícita recuperada.
+
+`PROVISIONAL CLR-P-O03` **Pvol** foi registrado como provisório/sob revisão.
 
 ## 5.3 Classes eliminadas
 
-`DEPRECATED` **Patt**, **Pmem**, **Prec**, **Pcmp**, **Pvol**, **Pabs** e qualquer “representação operacional” especial.
+`DEPRECATED` **Patt** como classe processual: o fenômeno da atenção permanece e foi reformulado sem processo próprio.
 
-`NON-CANONICAL` Símbolos anteriores como **Ptaf**, **Ptef**, **Ptrd**, **Psyn**, **Ppda**, **Rmod** e qualquer outro ausente do inventário fechado. Transdução, propagação, incidência, integração, validação, acesso e recorrência permanecem fenômenos/dinâmicas; não recebem classe processual apenas por terem nome.
+`NON-CANONICAL` **Pmem** e **Psel** não pertencem ao conjunto atual de classes primitivas; isso não elimina memória ou seleção como fenômenos descritivos.
+
+`NON-CANONICAL` **Pcmp** foi excluído em decisão posterior; comparação não exige comparador central.
+
+`OPEN` **Ppda**, **Rmod** e outros símbolos não auditados nesta rodada: ausência no inventário confirmado não autoriza chamá-los de eliminados.
 
 - Atenção é perfil temporal de recorrência diferencial, não processo próprio.
 - Memória é história e reconstrução, não processo unitário.
@@ -579,12 +607,13 @@ Não escrever, pressupor ou desenhar:
 
 - **Rrel** como elemento atual;
 - substituição mecânica **Rrel** → **Rcon**;
-- **Rcon** representando relação semântica;
-- acesso, integração ou threshold de acesso em **Rcon**;
-- dois thresholds “nas pontas” de **Rcon**;
-- acesso direto **R → R** sem **Rcon**;
+- tratar como decisão autoral fechada que **Rcon** representa ou que não representa;
+- proibir ou autorizar acesso, integração ou threshold em **Rcon** antes da decisão ontológica;
+- substituir **Rrel** mecanicamente por **Rcon**, qualquer que seja a alternativa escolhida;
 - **Patt**, **Pmem**, **Prec**, **Pcmp**, **Pvol** ou **Pabs**;
-- **Ptaf**, **Ptef**, **Ptrd**, **Psyn**, **Ppda**, **Rmod** ou outro símbolo fora do inventário formal fechado;
+- eliminação de **Ptrd**, **Ptaf**, **Ptef**, **Psyn** ou **Prec** por ausência em lista curta;
+- alegação de que existe inventário processual fechado quando a fonte apresenta núcleo ou lista não exaustiva;
+- promoção de **Pcrt** ou **Pabs** a canônicos sem decisão autoral;
 - **me**, **Re** ou outra subclasse primitiva antiga de representação;
 - processo como executor, agente, módulo ou controlador central;
 - plano que lê estado, emite instrução ou executa código;
@@ -600,8 +629,7 @@ Não escrever, pressupor ou desenhar:
 - grafo conectado = **Sdom**;
 - diagnóstico clínico = múltiplos domínios/sujeitos;
 - **R = neurônio** ou **Rcon = sinapse**;
-- **τ\*** como integração local, tempo representado ou mero ponto da ocorrência;
-- **τ** como tempo representado em vez de integração local;
+- congelar a semântica de **τ/τ\*** antes da reauditoria autoral;
 - `T1a`, `T1b`, `T2`, `C1` ou `C2` como códigos formais ou categorias atuais;
 - `Q` ou “estágio adicional Q” como formulação aprovada, variável, entidade ou parte da CLEAR;
 - `e(x)`, `be(x)` e `be(S)` como notação formal vigente;
@@ -613,10 +641,10 @@ Não escrever, pressupor ou desenhar:
 
 Cada teste deve retornar o resultado indicado.
 
-1. **Pode Rcon representar “A é maior que B”?** NÃO. Uma **R** pode representar a relação; uma **[e]** pode organizar participantes e papéis. **Rcon** só realiza dependência causal.
-2. **Pode haver acesso a Rcon?** NÃO. Acesso somente em **R**.
-3. **Rcon tem threshold em cada extremidade?** NÃO. Pode haver condições dirigidas de transmissão; integração/threshold de acesso ficam em **R** de destino.
-4. **Rrel virou Rcon?** NÃO. **Rrel** foi eliminada; conteúdo relacional migrou para **R**/**[e]**, causalidade dirigida para **Rcon**.
+1. **Rcon é representação?** `AUTHOR-DECISION-PENDING`. Paulo a propôs como representação de conexão; a conclusão contrária foi consolidada pela assistência sem aprovação autoral explícita recuperada.
+2. **Pode haver acesso a Rcon?** `AUTHOR-DECISION-PENDING`; depende do estatuto ontológico escolhido.
+3. **Rcon tem threshold em cada extremidade?** `PROVISIONALMENTE NÃO` na regressão posterior, mas a questão não está congelada enquanto a ontologia de **Rcon** estiver pendente.
+4. **Rrel virou Rcon?** NÃO. Esta é a única conclusão fechada do bloco: **Rrel** foi eliminado e não deve ser substituído mecanicamente por **Rcon**.
 5. **Atenção é Patt?** NÃO. Atenção é fenômeno de recorrência diferencial sustentada; **Patt** foi eliminado.
 6. **Todo acesso é atenção?** NÃO. Acesso isolado pode ocorrer sem trajetória atencional.
 7. **Recorrência basta para atenção?** NÃO necessariamente. Precisa haver manutenção diferencial sustentada no campo relevante.
@@ -628,8 +656,8 @@ Cada teste deve retornar o resultado indicado.
 13. **Semelhança preserva identidade?** NÃO por si. Identidade biográfica depende de continuidade histórica representada.
 14. **[e] é representação primitiva?** NÃO. É composição analítica de **R** + **Rcon**.
 15. **Rent é nova espécie de representação?** NÃO. É **R** ordinária referindo economicamente a uma **[e]**.
-16. **Qual símbolo corresponde à integração local?** **τ**.
-17. **Qual símbolo corresponde ao encadeamento/recorrência?** **τ\***.
+16. **Qual símbolo corresponde à integração local?** `AUTHOR-DECISION-PENDING`; a resposta **τ** da v0.2.0 não tem aprovação autoral explícita recuperada.
+17. **Qual símbolo corresponde ao encadeamento/recorrência?** `AUTHOR-DECISION-PENDING`; **τ\*** está sustentado como índice/horizonte da ocorrência de acesso, não como semântica completa já congelada.
 18. **Conectividade define Sdom?** NÃO. É necessária análise de domínio, continuidade e transdução.
 19. **Acesso local = consciência está provado?** NÃO. É a tese de identidade constitutiva em fortalecimento argumentativo.
 20. **Acesso sem memória/relato pode ser consciência local mínima segundo CLEAR?** SIM, se a tese de identidade constitutiva for correta; falta de rastro não decide ausência de ocorrência.
@@ -637,7 +665,9 @@ Cada teste deve retornar o resultado indicado.
 22. **R e Rcon são neurônio e sinapse?** NÃO. São unidades arquiteturais abstratas; mapeamentos são hipóteses de implementação.
 23. **Toda consciência possível precisa ser representacional?** NÃO é tese atual da CLEAR.
 24. **Pval foi eliminado?** NÃO. Nova valoração permanece transformação própria.
-25. **Pode uma R representar uma Rcon?** SIM, quando a conexão é o referente dessa **R**; isso não torna a própria **Rcon** representacional.
+25. **Pode uma R representar uma conexão?** SIM em princípio. Se o referente deve chamar-se **Rcon**, ou se **Rcon** é a própria representação, é parte da decisão pendente.
+29. **Ptrd, Ptaf e Ptef foram eliminados?** NÃO. **Ptrd** permanece; **Ptaf** e **Ptef** são subtipos direcionais.
+30. **Ausência em inventário resumido prova eliminação de processo?** NÃO.
 26. **T1a, T1b, T2, C1 e C2 são símbolos ou categorias atuais?** NÃO. Foram ferramentas internas removidas; usar descrições explícitas das perguntas ainda pertinentes.
 27. **Qual é a nota atual da tese de identidade na escala 0–5?** NÃO CONGELADA. O patamar 3 é alvo programático, não nota já atribuída.
 28. **Q ou “estágio adicional Q” foi aprovado por Paulo?** NÃO. Foi introduzido pela assistência e não integra a CLEAR. Condições defendidas por rivais devem ser examinadas concretamente, sem criar **Q**.
@@ -669,9 +699,8 @@ Fontes históricas/auditadas, não controladoras quando conflitantes:
 ## 21.1 Conflitos explicitamente resolvidos
 
 - **Rrel** atual → rejeitado; histórico.
-- threshold/acesso em **Rcon** → rejeitado; integração e threshold somente em **R**.
-- **τ\*** = integração local → rejeitado; integração local = **τ**.
-- **τ** = tempo representado e **τ\*** = tempo da ocorrência analítica → conflito posterior do Guia de Capítulos; superado pela decisão explícita do Apêndice A: **τ** = integração local; **τ\*** = encadeamento/recorrência.
+- threshold/acesso em **Rcon** → reaberto junto com o estatuto ontológico de **Rcon**; a rejeição consta da regressão produzida pela assistência, não de aprovação autoral recuperada.
+- semântica de **τ/τ\*** → reaberta; a v0.2.0 atribuiu indevidamente autoridade decisória ao Apêndice A.
 - `e(x)/be(x)/be(S)` → notação anterior; usar **[e]/[be]/[S]**.
 - self como subtipo/categoria → rejeitado na formalização atual; “self” é termo externo para **[S]**.
 - temporalidade como primitiva independente → rejeitado; temporalidade deriva de ocorrências, transformações, história e, quando representada, de **τ**.
@@ -679,6 +708,14 @@ Fontes históricas/auditadas, não controladoras quando conflitantes:
 - `C1/C2` → rótulos internos retirados; preservar apenas, em prosa, a diferença entre ocorrência local e caráter qualitativo/composição quando relevante.
 - `Q` / “estágio adicional Q” → formulação introduzida pela assistência e não aprovada por Paulo; remover da teoria, da notação e da atribuição autoral.
 - nota 2 para a identidade acesso–consciência → não autorizada; a nota inicial ainda não foi congelada.
+
+## 21.2 Conflitos reabertos por erro de compilação da v0.2.0
+
+- **Rcon** representacional versus não representacional → `AUTHOR-DECISION-PENDING`; a segunda opção é resultado de assistência/regressão, não decisão autoral explicitamente recuperada.
+- inventário curto de processos → não exaustivo; não autoriza eliminar símbolos ausentes.
+- **Ptrd/Ptaf/Ptef** → restaurados: classe + subtipos direcionais.
+- **Psyn/Prec** → restaurados; sua remoção na v0.2.0 não tinha base suficiente.
+- **Pcrt/Pabs** → retirar do cânone até decisão autoral; ausência de decisão não equivale a eliminação.
 
 # 22. CRITÉRIO DE PRONTIDÃO PARA QUALQUER TRECHO DO PREPRINT
 
