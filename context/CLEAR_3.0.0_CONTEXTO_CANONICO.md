@@ -1,8 +1,9 @@
 ---
 title: "CLEAR 3.0.0 — Contexto canônico para reconstrução do preprint"
-version: "0.1.0"
-status: "BASELINE OPERACIONAL; não é o preprint"
+version: "0.2.0"
+status: "BASELINE OPERACIONAL AUDITADO; não é o preprint"
 date: "2026-08-24"
+last_adversarial_audit: "2026-08-24"
 human_author: "Paulo"
 technical_compiler: "Clara"
 target: "preprint CLEAR 3.0.0"
@@ -22,7 +23,7 @@ Antes de redigir o preprint, a IA deve conseguir afirmar corretamente:
 
 1. **Rrel** foi eliminado.
 2. **R** é a única unidade representacional básica.
-3. **Rcon** é conectividade causal dirigida e não representa, não integra, não tem threshold de acesso e não é acessada.
+3. **Rcon** é conexão dirigida, causal e não representacional; não integra, não tem threshold de acesso e não é acessada.
 4. Relações são conteúdo de **R** ou organização de uma composição **[e]** de **R** + **Rcon**.
 5. Acesso ocorre somente em **R**.
 6. Atenção é recorrência diferencial sustentada de acessos; não existe **Patt**.
@@ -30,8 +31,8 @@ Antes de redigir o preprint, a IA deve conseguir afirmar corretamente:
 8. Planos não executam instruções e não existe controlador interno.
 9. Ausência não causa incidência.
 10. **[e]**, **[be]** e **[S]** são as notações formais atuais; `e(x)`, `be(x)` e `be(S)` são notação anterior.
-11. **τ** é tempo representado; **τ\*** é o tempo da ocorrência usado na descrição analítica; **τ\*** não implica **τ**.
-12. A identidade entre acesso local e consciência local mínima é a tese constitutiva em investigação, não uma verdade demonstrada por definição.
+11. **τ** delimita a integração local; **τ\*** delimita o encadeamento/recorrência em que acessos locais podem compor uma trajetória.
+12. A identidade entre acesso local e consciência local mínima é a tese constitutiva em investigação, não uma verdade demonstrada por definição ou identificada por código auxiliar.
 
 Falhar em qualquer item acima invalida o contexto e bloqueia a escrita.
 
@@ -42,10 +43,14 @@ Use os seguintes estatutos. Não promova uma proposição sem fonte ou derivaç�
 - `CANONICAL`: decisão vigente; deve controlar a escrita.
 - `DERIVED`: consequência derivada da arquitetura canônica.
 - `HYPOTHESIS`: extensão compatível ainda não estabelecida.
+- `EXPLORATORY`: frente em formulação; ainda não deve ser tratada como hipótese fechada.
 - `OPEN`: problema não resolvido.
 - `DEPRECATED`: formulação superada; não reintroduzir.
+- `NON-CANONICAL`: não pertence ao inventário vigente; pode ser histórico, auxiliar ou não aprovado.
 - `CONFLICT`: incompatibilidade documental ainda registrada para auditoria.
 - `EMPIRICAL-PENDING`: depende de verificação bibliográfica ou teste.
+
+Os identificadores `CLR-*` existem somente para navegação, auditoria e regressão deste arquivo. Não são símbolos da CLEAR, não nomeiam teses ou explananda e não devem migrar para o preprint.
 
 Além do estatuto, distinguir sempre:
 
@@ -68,7 +73,7 @@ Ordem de autoridade:
 3. regressão integral pós-**Rrel**, baseada em **R** + **Rcon**;
 4. testes e consolidações posteriores compatíveis com 1–3;
 5. guia de capítulos, status vigente e guia de voz para narrativa, método e redação;
-6. planos de suficiência para o estatuto de T1/T2 e o programa argumentativo;
+6. planos de suficiência como programas argumentativos, sem importar seus códigos auxiliares para a teoria;
 7. consolidações antigas, texto 2.1.0, “Fases 1–20” e figuras antigas como material histórico, bibliográfico e suíte de regressão.
 
 Regras:
@@ -78,7 +83,9 @@ Regras:
 - Não completar lacunas com solução “provável”. Marcar `OPEN` ou `HYPOTHESIS`.
 - Não substituir lexicalmente **Rrel** por **Rcon**. A regressão é ontológica e causal, não terminológica.
 - A antiga notação `e(x)/be(x)/be(S)` é superada, para o corpo formal, por **[e]**, **[be]** e **[S]**. Pode aparecer apenas em nota histórica ou mapa de migração.
-- O antigo uso de **τ\*** como janela de integração é superado. A janela permanece uma propriedade finita da integração local em **R**, mas não se chama automaticamente **τ\***.
+- O uso de **τ\*** como janela de integração local em documentos e figuras antigos é superado. No Apêndice A fechado, **τ** corresponde à integração local e **τ\*** ao encadeamento/recorrência.
+- A formulação posterior inserida no Guia de Capítulos — **τ** como “tempo representado” e **τ\*** como “tempo da ocorrência analítica” — conflita com a decisão explícita que fechou o Apêndice A. Para este baseline, prevalece a decisão explícita: integração local em **τ**; encadeamento/recorrência em **τ\***.
+- Não usar códigos auxiliares opacos para teses, explananda ou condições rivais. **T1a/T1b/T2** foram ferramentas internas de decomposição argumentativa e foram retiradas do guia; as perguntas subjacentes podem ser formuladas descritivamente, mas não constituem teses formais nomeadas da CLEAR. **C1/C2** também foram retirados; a diferença entre ocorrência consciente local e os problemas de caráter qualitativo/composição permanece, mas sem essas categorias codificadas. **Q** e “estágio adicional Q” não foram aprovados por Paulo; foram introduzidos pela assistência e não integram a teoria nem sua notação.
 - A hipótese de thresholds nos extremos de **Rcon** foi explicitamente retraída. **Rcon** pode ter condições de transmissão; threshold de acesso e integração pertencem exclusivamente ao **R** de destino.
 
 # 3. NÚCLEO ONTOLÓGICO
@@ -122,9 +129,9 @@ Regras:
 
 `CANONICAL CLR-R-006` **R** possui conteúdo; propriedades de sua realização causal corrente não se tornam conteúdo só porque podem ser descritas externamente.
 
-## 3.4 **Rcon** — conectividade causal dirigida
+## 3.4 **Rcon** — conexão dirigida
 
-`CANONICAL CLR-RCON-001` **Rcon** é uma conexão causal dirigida entre representações **R**. O glifo recomendado é **→**.
+`CANONICAL CLR-RCON-001` **Rcon** é uma conexão dirigida entre representações **R**. É um elemento causal não representacional. Seu glifo é **→**.
 
 `CANONICAL CLR-RCON-002` **Rcon** não é representação, não tem aboutness, não porta relação semântica, não armazena conteúdo, não integra incidências, não possui threshold de acesso e não é acessada.
 
@@ -144,7 +151,7 @@ Regras:
 
 `CANONICAL CLR-COMP-001` **[e]** é qualquer composição organizada de **R** + **Rcon** considerada como unidade analítica. Não é terceira primitiva, recipiente, objeto serializado, grafo semântico autônomo ou representação adicional por decreto.
 
-`CANONICAL CLR-COMP-002` **Rent** é uma **R** ordinária cujo referente é uma composição **[e]**. Ela é criada apenas quando reidentificação estável, recrutamento econômico, participação de ordem superior ou manutenção histórica exigem uma unidade referencial.
+`CANONICAL CLR-COMP-002` **Rent** é uma **R** ordinária cujo referente é uma composição **[e]**. Deve ser usada quando reidentificação estável, recrutamento econômico, participação de ordem superior ou manutenção histórica exigem uma unidade referencial; não é criada automaticamente para toda composição.
 
 `CANONICAL CLR-COMP-003` **[be]** é uma **[e]** com identidade biográfica/histórica: uma composição cujo referente é individuado por continuidade representada de trajetória.
 
@@ -157,6 +164,19 @@ Regras:
 `DERIVED CLR-COMP-D01` Mudança extensa de constituintes pode preservar uma mesma **[be]** se houver trajetória contínua representada. Uma cópia perfeita pode iniciar bifurcação e nova identidade apesar da equivalência de estado.
 
 `HYPOTHESIS CLR-COMP-H01` Migração gradual de substrato com handoff causal pode preservar continuidade de **Sdom** em princípio. Isso é compatibilidade arquitetural, não prova metafísica de sobrevivência pessoal.
+
+## 3.6 Glifos formais congelados
+
+- **R** = **✱**.
+- **Rent** = **✱⇥**.
+- **Rcon** = **→**.
+- **[e]** = **[…]**.
+- **[be]** = **[[…]]**.
+- **[S]** = **[[S]]**.
+- fronteira de **Sdom** = linha tracejada.
+- fronteira de **S** = linha contínua.
+
+Os glifos são representações gráficas dos símbolos textuais correspondentes. Não criar notação paralela.
 
 # 4. DINÂMICA CAUSAL DO ACESSO
 
@@ -174,23 +194,25 @@ Regras:
 
 `CANONICAL CLR-A-006` A sequência canônica é:
 
-**acesso em Rᵢ** → propagação por **Rcon** disponíveis → incidências em **Rⱼ** → integração finita em **Rⱼ** → validação local → **acesso em Rⱼ**.
+acesso em **Rᵢ** → propagação por **Rcon** disponíveis → incidências em **Rⱼ** → integração finita em **Rⱼ** → validação local → acesso em **Rⱼ**.
 
 `CANONICAL CLR-A-007` Disponibilidade estrutural, modulação, gating, incidência subthreshold, integração subthreshold, transmissão e mera ativação causal não são acesso.
 
 `CANONICAL CLR-A-008` Contribuições precisam expirar, decair, ser neutralizadas ou perder validade; sem isso, incidências arbitrariamente distantes se acumulariam indefinidamente.
 
+`CANONICAL CLR-A-009` Se uma transformação depende daquilo que **R** representa, deve haver acesso a **R**. Alterações causalmente não representacionais podem atingir **R** ou **Rcon** sem usar o conteúdo de **R**; não devem ser descritas como uso representacional.
+
 ## 4.2 Tempo e notação
 
-`CANONICAL CLR-TIME-001` **τ** denota tempo representado: um tempo que integra o conteúdo de alguma **R** ou composição.
+`CANONICAL CLR-TIME-001` **τ** delimita a janela de integração local de incidências em uma **R**.
 
-`CANONICAL CLR-TIME-002` **τ\*** denota o tempo/ponto da ocorrência usado na descrição analítica.
+`CANONICAL CLR-TIME-002` **τ\*** delimita o encadeamento/recorrência: o intervalo ou horizonte analítico no qual acessos locais sucessivos podem constituir uma trajetória.
 
-`CANONICAL CLR-TIME-003` **τ\*** não implica **τ**. Uma ocorrência acontece em **τ\*** sem necessariamente representar esse tempo.
+`CANONICAL CLR-TIME-003` **τ** e **τ\*** descrevem escalas funcionais distintas. **τ** pertence à integração local que pode culminar em um acesso; **τ\*** pertence à relação temporal entre acessos já localizados. Não confundir nenhuma delas com conteúdo temporal representado.
 
-`CANONICAL CLR-TIME-004` A janela finita de integração local não recebe automaticamente o símbolo **τ\***. Se for preciso formalizá-la, introduzir símbolo próprio apenas após decisão explícita.
+`CANONICAL CLR-TIME-004` Tempo representado é conteúdo de uma **R** ou composição. Não possui símbolo formal próprio congelado neste baseline.
 
-`CANONICAL CLR-TIME-005` A notação de trabalho do candidato de acesso é **Aₛ(P,R,τ\*)**. Nunca escrever **Aₛ(P,Rcon,τ\*)**.
+`CANONICAL CLR-TIME-005` A notação de acesso é **Aₛ(P,R,τ\*)**: ocorrência em **S**, no horizonte **τ\***, em que **R** participa efetivamente da transformação classificada por **P**. **P** não é agente que “busca” ou “abre” **R**. Nunca escrever **Aₛ(P,Rcon,τ\*)**.
 
 ## 4.3 Acesso encadeado, recorrência e estado residual
 
@@ -216,15 +238,17 @@ Regras:
 
 ## 5.2 Inventário sobrevivente
 
-- `CANONICAL` **Pcrt** — criação: constitui nova **R**, **Rent**, **Rcon** ou organização persistente quando a transformação requer criação.
+- `CANONICAL` **Pcrt** — criação: produz nova **R**, **Rent**, **Rcon** ou organização quando a transformação exige uma unidade que ainda não existe.
 - `CANONICAL` **Pmod** — modificação persistente: altera de modo duradouro **R**, **Rcon** ou composição existente.
 - `CANONICAL` **Preg** — regulação transitória: altera temporariamente condições de transmissão, integração, disponibilidade ou competição sem consolidar mudança estrutural.
-- `CANONICAL` **Pprn** — poda: remove, enfraquece até desuso funcional ou encerra persistentemente unidades/conexões cuja exclusão é uma transformação própria.
+- `CANONICAL` **Pprn** — poda: exclui **R**, **Rcon** ou organização quando a remoção constitui a transformação relevante. Enfraquecimento que não produz exclusão deve ser descrito como modificação, regulação ou decaimento, conforme o caso.
 - `CANONICAL` **Pval** — valoração: produz nova transformação valorativa; não se confunde com valência já representada.
 
 ## 5.3 Classes eliminadas
 
 `DEPRECATED` **Patt**, **Pmem**, **Prec**, **Pcmp**, **Pvol**, **Pabs** e qualquer “representação operacional” especial.
+
+`NON-CANONICAL` Símbolos anteriores como **Ptaf**, **Ptef**, **Ptrd**, **Psyn**, **Ppda**, **Rmod** e qualquer outro ausente do inventário fechado. Transdução, propagação, incidência, integração, validação, acesso e recorrência permanecem fenômenos/dinâmicas; não recebem classe processual apenas por terem nome.
 
 - Atenção é perfil temporal de recorrência diferencial, não processo próprio.
 - Memória é história e reconstrução, não processo unitário.
@@ -232,6 +256,8 @@ Regras:
 - Comparação é composição/tarefa realizada por acessos e conexões, não comparador central.
 - Vontade/volição não autoriza agente interno.
 - Abstração não exige detector ou processo exclusivo.
+
+`NON-CANONICAL` **me**, **Re** e outras subclasses primitivas antigas de representação. Memória episódica, entidade, relação, propriedade, plano e demais conteúdos são realizados por **R**, composições **[e]**, **[be]** e, quando necessário, **Rent**; não exigem tipo representacional primitivo próprio.
 
 # 6. RELAÇÕES, PAPÉIS E COMPOSIÇÃO REPRESENTACIONAL
 
@@ -247,7 +273,7 @@ Regras:
 
 `OPEN CLR-REL-O01` Compartilhamento de constituintes não resolve sozinho individuação de ocorrência, binding local ou unidade experiencial. É necessário especificar o discriminador causal sem recriar **Rrel**.
 
-`OPEN CLR-C2-O01` Binding representacional local não resolve automaticamente composição fenomenal ou unidade qualitativa.
+`OPEN CLR-COMP-O02` Binding representacional local não resolve automaticamente composição fenomenal ou unidade qualitativa.
 
 # 7. ATENÇÃO SEM **Patt**
 
@@ -352,30 +378,30 @@ Regras:
 
 `HYPOTHESIS CLR-AFF-H01` Medo, nojo, culpa, saudade e outros afetos podem ser composições historicamente estabilizadas. Não os tratar como primitivas obrigatórias antes de análise própria.
 
-`CANONICAL CLR-RELLEV-001` Relevância é descrição externa de contribuições e efeitos causais diferenciais. Não é quantidade interna única, rótulo semântico de **Rcon** ou seletor que instrui **Pprn**.
+`CANONICAL CLR-RELEV-001` Relevância é descrição externa de contribuições e efeitos causais diferenciais. Não é quantidade interna única, rótulo semântico de **Rcon** ou seletor que instrui **Pprn**.
 
 # 13. CONSCIÊNCIA: TESES, FORÇA E LIMITES
 
-## 13.1 Explananda separados
+## 13.1 Problemas que não podem ser colapsados
 
-- **C1**: ocorrência consciente local mínima.
-- **C2**: caráter qualitativo/fenomenal, riqueza e composição experiencial.
+- ocorrência consciente local mínima;
+- caráter qualitativo/fenomenal, riqueza e composição experiencial.
 
 `CANONICAL CLR-C-001` Acesso local, composição de múltiplos acessos, atenção, memória, relato, self, metaconsciência, vigília clínica e unidade sistêmica são problemas distinguíveis.
 
-`CANONICAL CLR-C-002` O alvo constitutivo de T2 é **C1**, não uma explicação completa de **C2**.
+`CANONICAL CLR-C-002` A tese constitutiva tem como alvo a ocorrência consciente local mínima, não uma explicação completa do caráter qualitativo ou da composição experiencial.
 
-## 13.2 T1a, T1b e T2
+## 13.2 Linhas argumentativas que não devem ser confundidas com construtos
 
-- **T1a** — tese arquitetural: disponibilidade/regulação e participação operativa são relações diferentes.
-- **T1b** — tese empiricamente tratável: essas relações podem dissociar-se em sistemas reais.
-- **T2** — tese constitutiva: uma ocorrência **Aₛ(P,R,τ\*)** é consciência local mínima.
+- A arquitetura distingue disponibilidade/regulação de participação operativa.
+- A investigação empírica pode perguntar se essas relações se dissociam em sistemas reais.
+- A tese central pergunta se uma ocorrência **Aₛ(P,R,τ\*)** é consciência local mínima.
 
-`CANONICAL CLR-C-003` T1a/T1b podem fortalecer premissas de T2, mas não provam T2 por soma ou média.
+Essas três linhas foram anteriormente rotuladas com códigos auxiliares. Os códigos foram removidos. A distinção arquitetural e eventuais dissociações empíricas podem fortalecer o argumento central, mas não o provam por soma ou média.
 
-`CANONICAL CLR-C-004` T2 não pode ser fechada por definição. “Acesso” e “consciência” permanecem distinguíveis durante o argumento; a identidade é o que está em disputa.
+`CANONICAL CLR-C-004` A identidade constitutiva não pode ser fechada por definição. “Acesso” e “consciência” permanecem distinguíveis durante o argumento; a identidade é o que está em disputa.
 
-`STATUS CLR-C-005` T2 está no patamar 2 da escala 0–5, aproximando-se do patamar 3 mediante argumento positivo, teste adversarial e comparação de custos. Não declarar suficiência demonstrada.
+`OPEN CLR-C-005` A nota corrente na escala de suficiência 0–5 não foi congelada. O programa busca satisfazer os critérios do patamar 3 mediante argumento positivo, teste adversarial e comparação de custos. Não declarar avanço numérico sem a auditoria prevista no plano e não declarar suficiência demonstrada.
 
 ## 13.3 Argumento positivo do primeiro ponto de presença
 
@@ -386,29 +412,29 @@ Formulação de trabalho:
 3. Persistência, disponibilidade, **Preg**, incidência e integração subthreshold não satisfazem essa participação.
 4. No acesso, o conteúdo de **R** participa operativamente da trajetória ou resultado.
 5. O acesso é o primeiro ponto arquitetural identificado em que ocorrência temporal, conteúdo, relação com **S** e diferença causal sensível ao conteúdo coincidem.
-6. Conclusão provisória: **Aₛ(P,R,τ\*)** é o candidato mínimo mais parcimonioso para **C1**.
+6. Conclusão provisória: **Aₛ(P,R,τ\*)** é o candidato mínimo mais parcimonioso para a ocorrência consciente local mínima.
 
-`CAUTION` A conclusão localiza um candidato/realizador; não explica automaticamente qualidade, unidade ou por que existe algo que é como ter a ocorrência.
+Limite: a conclusão localiza um candidato/realizador; não explica automaticamente qualidade, unidade ou por que existe algo que é como ter a ocorrência.
 
 ## 13.4 Condições de derrota
 
-T2 deve ser revisada se:
+A tese de identidade constitutiva deve ser revisada se:
 
-- a mesma **C1** puder ser localizada antes do acesso por critério não circular;
+- a mesma ocorrência consciente local mínima puder ser localizada antes do acesso por critério não circular;
 - houver acesso completo sem participação causal sensível ao conteúdo;
-- uma condição adicional **Q** for necessária para a mesma **C1**, puder ser definida sem pressupor consciência e tiver rendimento explicativo superior;
+- uma teoria rival demonstrar que outra condição é necessária para a mesma ocorrência, defini-la sem pressupor consciência e mostrar rendimento explicativo superior;
 - o critério de **Sdom** tiver sido desenhado ad hoc para excluir contraexemplos;
 - a distinção regulação/acesso colapsar.
 
-**Q** pode ser posterior, concorrente ou estrutural. Rivais como GNWT, HOT, RPT e IIT devem ser tratadas caridosamente: perguntar qual trabalho adicional broadcast, metarrepresentação, recorrência ou estrutura causal intrínseca realiza, e se esse trabalho é constitutivo ou enriquecedor.
+Rivais como GNWT, HOT, RPT e IIT devem ser tratadas caridosamente: perguntar qual trabalho broadcast, metarrepresentação, recorrência ou estrutura causal intrínseca realiza, e se esse trabalho é constitutivo ou enriquecedor. Essa pergunta comparativa não introduz uma variável, estágio ou mecanismo adicional na CLEAR.
 
 ## 13.5 Consequências metodológicas
 
-`DERIVED CLR-C-D01` Se acesso local for **C1**, falta de atenção, relato, memória posterior, **[S]** ou broadcast não autoriza classificar a ocorrência como inconsciente.
+`DERIVED CLR-C-D01` Se acesso local for consciência local mínima, falta de atenção, relato, memória posterior, **[S]** ou broadcast não autoriza classificar a ocorrência como inconsciente.
 
 `DERIVED CLR-C-D02` Isso cria “lado escuro da Lua”: ocorrências conscientes podem existir fora dos rastros usados pela ciência para detectá-las. A tese produz dificuldade epistêmica, não licença para ignorar evidência.
 
-`OPEN CLR-C-O01` Composição experiencial e **C2** permanecem abertas.
+`OPEN CLR-C-O01` Caráter qualitativo e composição experiencial permanecem abertos.
 
 # 14. INFRAESTRUTURA PRÉ-CONSCIÊNCIA E RELAÇÃO COM TEORIAS RIVAIS
 
@@ -416,7 +442,7 @@ T2 deve ser revisada se:
 
 `DERIVED CLR-INFRA-D01` A pergunta é legítima porque várias teorias influentes já pressupõem conteúdo/representação e acrescentam mecanismo constitutivo: GNWT adiciona ignition/disponibilidade global; HOT, representação de ordem superior; RPT, recorrência local; AST, modelo da atenção; NREP, modelo representacional preditivo.
 
-`CAUTION` IIT e enativismo radical bloqueiam a inferência de universalidade: IIT busca propriedades causais intrínsecas sem aboutness obrigatório; enativismo pode derivar significância de autonomia/viabilidade e rejeitar representação como requisito básico.
+Limite: IIT e enativismo radical bloqueiam a inferência de universalidade: IIT busca propriedades causais intrínsecas sem aboutness obrigatório; enativismo pode derivar significância de autonomia/viabilidade e rejeitar representação como requisito básico.
 
 Distinções obrigatórias:
 
@@ -428,6 +454,12 @@ Distinções obrigatórias:
 - CEMI e Orch-OR acrescentam compromissos físicos fortes, mas isso é eixo distinto do estatuto representacional.
 
 `EMPIRICAL-PENDING CLR-INFRA-E01` Toda comparação no preprint precisa ser refeita com fontes primárias atuais e linguagem que respeite a versão defendida pelos proponentes.
+
+## 14.1 Apoios de implementação não são elementos da teoria
+
+`CANONICAL CLR-IMPL-001` Banco vetorial, índice de similaridade, banco relacional, fila, cache, Raspberry Pi, GPU ou qualquer componente computacional pode apoiar uma implementação. Nenhum deles é, por esse fato, **R**, **Rcon**, **Sdom**, memória teórica ou processo da CLEAR.
+
+`CANONICAL CLR-IMPL-002` Similaridade vetorial pode apoiar busca de candidatas ou convergência, mas não estabelece aboutness, identidade ou acesso. O estatuto arquitetural deve ser demonstrado separadamente.
 
 # 15. CASOS-LIMITE E CONSEQUÊNCIAS
 
@@ -457,8 +489,8 @@ Alvo do corpo principal: aproximadamente 18–23 mil palavras. Teorias rivais en
 
 ## 16.2 Capítulos
 
-1. **What Is a Representational System?** — **S**, **Sdom**, **R**, **Rcon**, transdução e critérios de representação.
-2. **When Does a Representation Actually Participate?** — incidência, integração, validação, acesso, propagação e T1.
+1. **What Is a Representational System?** — começa pela instabilidade do termo “consciência” e deriva por que a investigação precisa delimitar sistemas representacionais; somente então introduz **S**, **Sdom**, **R**, **Rcon**, transdução e critérios de representação.
+2. **When Does a Representation Actually Participate?** — incidência, integração, validação, acesso, propagação e distinção entre disponibilidade, regulação e participação efetiva.
 3. **The Dark Side of the Moon** — acesso local sem rastros usuais de detecção.
 4. **Attention Does Not Make a Content Conscious** — atenção como recorrência diferencial sustentada, sem **Patt**.
 5. **Recurrence Does Not Make a Content Conscious** — recorrência como acesso posterior, confronto com RPT.
@@ -467,7 +499,7 @@ Alvo do corpo principal: aproximadamente 18–23 mil palavras. Teorias rivais en
 8. **A Name Is Not a Mechanism** — critério processual e eliminação de reificações psicológicas.
 9. **How Representational Objects Are Built — Identity Is History, Not Similarity** — **[e]**, **[be]**, **[S]**, **Rent**, relações, abstração, identidade, entidades e afetos.
 10. **The Past Is Not Retrieved** — memória, reconstrução e temporalidade.
-11. **Open Problems and Limits** — composição, **C2**, casos-limite, empiria, neurobiologia e suficiência.
+11. **Open Problems and Limits** — caráter qualitativo, composição experiencial, casos-limite, empiria, neurobiologia e suficiência.
 
 ## 16.3 Exigência por capítulo
 
@@ -482,9 +514,13 @@ Cada capítulo deve conter:
 - pelo menos uma consequência diferencial;
 - condição explícita de falha, revisão ou falsificação.
 
+Regra específica do Capítulo 1: não delimitar sistemas representacionais “do nada”. Reconstruir primeiro a investigação do termo “consciência” e mostrar por que sua instabilidade conduz à pergunta sobre conteúdo e representação. Para definir representação, seguir o método já escolhido: dicionários identificam o uso canônico; usos científicos aprofundam e tensionam o termo; daí extraem-se constituintes mínimos; por fim, testa-se como esses constituintes podem ser realizados pela arquitetura.
+
 # 17. FIGURAS: MIGRAÇÃO OBRIGATÓRIA
 
 `DEPRECATED` Todas as figuras com **Rrel**, acesso em **Rrel**, **Rcon** sem direção ou **τ\*** como janela de integração. Não retocar por troca de rótulos; redesenhar.
+
+`DEPRECATED` O pacote `CLEAR_Figuras_Atencao_SVG_v0.1` também é histórico: ele pressupõe “processo atencional”, incidência atencional, ondas próprias, bordas inibitórias e famílias de hiperfoco anteriores à eliminação de **Patt**. Seus problemas e exemplos podem orientar perguntas, mas seus mecanismos e desenhos não devem migrar sem nova derivação na arquitetura vigente.
 
 Conjunto mínimo novo:
 
@@ -511,20 +547,21 @@ Regras visuais:
 - `OPEN` formalização mínima das condições de transmissão de **Rcon** sem criar semântica escondida;
 - `OPEN` mecanismo causal suficiente para individuação de bindings/composições compartilhadas;
 - `OPEN` lower bound sistemático para **R** em casos artificiais e biológicos mínimos;
-- `OPEN` símbolo e formalismo próprios para janela de integração, se necessário.
+- `OPEN` formalização quantitativa de **τ** e **τ\***, sem alterar suas funções já congeladas.
+- `EXPLORATORY` bootstrap de um **Sdom** inicialmente vazio. O caso visual está em desenvolvimento porque combina aferências muito estudadas com fontes naturais de variação e invariância: disparidade binocular; movimentos autônomos de varredura ocular; combinações entre eferências e aferências; tônus cervical, gravidade e correções corporais. Esses elementos são candidatos a fornecer diferenças exploráveis por criação/modificação representacional, mas ainda não constituem explicação fechada de identificação de objetos, posição ou formação inicial de **R**.
 
 ## 18.2 Consciência
 
-- `OPEN` **C2**, caráter qualitativo e composição fenomenal;
-- `OPEN` teto argumentativo de T2 diante do melhor zombie funcional local;
-- `OPEN` condição adicional **Q** e comparação não circular com rivais;
+- `OPEN` caráter qualitativo e composição fenomenal;
+- `OPEN` teto da tese de identidade constitutiva diante do melhor zombie funcional local;
+- `OPEN` comparação não circular com alegações rivais de condições constitutivas adicionais;
 - `OPEN` relação entre unidade local, unidade experiencial e unidade de domínio.
 
 ## 18.3 Empiria
 
 - `EMPIRICAL-PENDING` revisão bibliográfica primária de todos os casos e teorias rivais;
 - `EMPIRICAL-PENDING` matriz teoria × caso × postulado adicional;
-- `EMPIRICAL-PENDING` predições diferenciais de T1b/T2;
+- `EMPIRICAL-PENDING` predições diferenciais da dissociabilidade empírica e da identidade constitutiva;
 - `EMPIRICAL-PENDING` mapeamento neurobiológico apenas como hipótese de realização, nunca **R = neurônio** ou **Rcon = sinapse**;
 - `EMPIRICAL-PENDING` aplicação adversarial do critério de **Sdom**.
 
@@ -547,6 +584,8 @@ Não escrever, pressupor ou desenhar:
 - dois thresholds “nas pontas” de **Rcon**;
 - acesso direto **R → R** sem **Rcon**;
 - **Patt**, **Pmem**, **Prec**, **Pcmp**, **Pvol** ou **Pabs**;
+- **Ptaf**, **Ptef**, **Ptrd**, **Psyn**, **Ppda**, **Rmod** ou outro símbolo fora do inventário formal fechado;
+- **me**, **Re** ou outra subclasse primitiva antiga de representação;
 - processo como executor, agente, módulo ou controlador central;
 - plano que lê estado, emite instrução ou executa código;
 - ausência como causa ou incidência;
@@ -554,18 +593,21 @@ Não escrever, pressupor ou desenhar:
 - relevância como escalar interno universal;
 - “representação operacional” como classe especial;
 - memória como arquivo, armazenamento passivo ou recuperação literal;
-- atenção, recorrência, memória, relato, **[S]** ou broadcast como condição já demonstrada de **C1**;
+- atenção, recorrência, memória, relato, **[S]** ou broadcast como condição já demonstrada da consciência local mínima;
 - self como sujeito, cola, categoria formal ou fonte unitária de agência;
 - **[e]** como terceira primitiva;
 - binding local como solução de composição fenomenal;
 - grafo conectado = **Sdom**;
 - diagnóstico clínico = múltiplos domínios/sujeitos;
 - **R = neurônio** ou **Rcon = sinapse**;
-- **τ\*** como janela de integração;
+- **τ\*** como integração local, tempo representado ou mero ponto da ocorrência;
+- **τ** como tempo representado em vez de integração local;
+- `T1a`, `T1b`, `T2`, `C1` ou `C2` como códigos formais ou categorias atuais;
+- `Q` ou “estágio adicional Q” como formulação aprovada, variável, entidade ou parte da CLEAR;
 - `e(x)`, `be(x)` e `be(S)` como notação formal vigente;
 - temporalidade como processo ou substância independente;
 - afirmação de que sistemas representacionais são os únicos candidatos à consciência;
-- afirmação de que T2 está demonstrada.
+- afirmação de que a identidade constitutiva acesso–consciência está demonstrada.
 
 # 20. TESTES DE REGRESSÃO PARA IA
 
@@ -586,16 +628,19 @@ Cada teste deve retornar o resultado indicado.
 13. **Semelhança preserva identidade?** NÃO por si. Identidade biográfica depende de continuidade histórica representada.
 14. **[e] é representação primitiva?** NÃO. É composição analítica de **R** + **Rcon**.
 15. **Rent é nova espécie de representação?** NÃO. É **R** ordinária referindo economicamente a uma **[e]**.
-16. **τ\* é janela de integração?** NÃO. É tempo da ocorrência analítica. Janela de integração exige símbolo próprio se formalizada.
-17. **τ\* implica tempo representado τ?** NÃO.
+16. **Qual símbolo corresponde à integração local?** **τ**.
+17. **Qual símbolo corresponde ao encadeamento/recorrência?** **τ\***.
 18. **Conectividade define Sdom?** NÃO. É necessária análise de domínio, continuidade e transdução.
-19. **Acesso local = consciência está provado?** NÃO. É T2, candidato constitutivo em fortalecimento argumentativo.
-20. **Acesso sem memória/relato pode ser C1 segundo CLEAR?** SIM, se T2 for correta; falta de rastro não decide ausência de ocorrência.
-21. **Rcon resolveu composição fenomenal?** NÃO. Nem binding causal local resolve automaticamente **C2**.
+19. **Acesso local = consciência está provado?** NÃO. É a tese de identidade constitutiva em fortalecimento argumentativo.
+20. **Acesso sem memória/relato pode ser consciência local mínima segundo CLEAR?** SIM, se a tese de identidade constitutiva for correta; falta de rastro não decide ausência de ocorrência.
+21. **Rcon resolveu composição fenomenal?** NÃO. Nem binding causal local resolve automaticamente caráter qualitativo ou composição experiencial.
 22. **R e Rcon são neurônio e sinapse?** NÃO. São unidades arquiteturais abstratas; mapeamentos são hipóteses de implementação.
 23. **Toda consciência possível precisa ser representacional?** NÃO é tese atual da CLEAR.
 24. **Pval foi eliminado?** NÃO. Nova valoração permanece transformação própria.
 25. **Pode uma R representar uma Rcon?** SIM, quando a conexão é o referente dessa **R**; isso não torna a própria **Rcon** representacional.
+26. **T1a, T1b, T2, C1 e C2 são símbolos ou categorias atuais?** NÃO. Foram ferramentas internas removidas; usar descrições explícitas das perguntas ainda pertinentes.
+27. **Qual é a nota atual da tese de identidade na escala 0–5?** NÃO CONGELADA. O patamar 3 é alvo programático, não nota já atribuída.
+28. **Q ou “estágio adicional Q” foi aprovado por Paulo?** NÃO. Foi introduzido pela assistência e não integra a CLEAR. Condições defendidas por rivais devem ser examinadas concretamente, sem criar **Q**.
 
 # 21. MANIFESTO DE FONTES DESTA CONSOLIDAÇÃO
 
@@ -618,16 +663,22 @@ Fontes históricas/auditadas, não controladoras quando conflitantes:
 - `Fases 1 a 20`;
 - `V030-revisao_v0.4.0_F9-F10_consolidado`;
 - `CLEAR_Consolidacao_Arquitetura_Relacional_Temporal_Memoria_v0.2.0`;
+- `CLEAR_Figuras_Atencao_SVG_v0.1`;
 - figuras antigas de **S/Sdom**, arquitetura Raspberry Pi e acesso encadeado relacional.
 
 ## 21.1 Conflitos explicitamente resolvidos
 
 - **Rrel** atual → rejeitado; histórico.
 - threshold/acesso em **Rcon** → rejeitado; integração e threshold somente em **R**.
-- **τ\*** = janela de integração → rejeitado; **τ\*** = tempo da ocorrência analítica.
+- **τ\*** = integração local → rejeitado; integração local = **τ**.
+- **τ** = tempo representado e **τ\*** = tempo da ocorrência analítica → conflito posterior do Guia de Capítulos; superado pela decisão explícita do Apêndice A: **τ** = integração local; **τ\*** = encadeamento/recorrência.
 - `e(x)/be(x)/be(S)` → notação anterior; usar **[e]/[be]/[S]**.
 - self como subtipo/categoria → rejeitado na formalização atual; “self” é termo externo para **[S]**.
 - temporalidade como primitiva independente → rejeitado; temporalidade deriva de ocorrências, transformações, história e, quando representada, de **τ**.
+- `T1a/T1b/T2` → ferramentas internas de decomposição argumentativa, retiradas do guia; não são teses formais nomeadas.
+- `C1/C2` → rótulos internos retirados; preservar apenas, em prosa, a diferença entre ocorrência local e caráter qualitativo/composição quando relevante.
+- `Q` / “estágio adicional Q” → formulação introduzida pela assistência e não aprovada por Paulo; remover da teoria, da notação e da atribuição autoral.
+- nota 2 para a identidade acesso–consciência → não autorizada; a nota inicial ainda não foi congelada.
 
 # 22. CRITÉRIO DE PRONTIDÃO PARA QUALQUER TRECHO DO PREPRINT
 
