@@ -165,7 +165,7 @@ Esta regra tem precedência sobre todas as seções posteriores deste arquivo.
 
 ## 3.5 Composições e identidade
 
-`CANONICAL CLR-COMP-001` **[e]** é qualquer composição organizada de **R** + **Rcon** considerada como unidade analítica. Não é terceira primitiva, recipiente, objeto serializado, grafo semântico autônomo ou representação adicional por decreto.
+`PROVISIONAL CLR-COMP-001` **[e]** foi reformulada na regressão como composição organizada de **R** + **Rcon** considerada como unidade analítica. A fórmula exata depende do estatuto de **Rcon**; não congelar antes da decisão.
 
 `CANONICAL CLR-COMP-002` **Rent** é uma **R** ordinária cujo referente é uma composição **[e]**. Deve ser usada quando reidentificação estável, recrutamento econômico, participação de ordem superior ou manutenção histórica exigem uma unidade referencial; não é criada automaticamente para toda composição.
 
@@ -181,11 +181,11 @@ Esta regra tem precedência sobre todas as seções posteriores deste arquivo.
 
 `HYPOTHESIS CLR-COMP-H01` Migração gradual de substrato com handoff causal pode preservar continuidade de **Sdom** em princípio. Isso é compatibilidade arquitetural, não prova metafísica de sobrevivência pessoal.
 
-## 3.6 Glifos formais congelados
+## 3.6 Glifos formais parcialmente congelados
 
 - **R** = **✱**.
 - **Rent** = **✱⇥**.
-- **Rcon** = **→**.
+- `PROVISIONAL` **Rcon** = **→**; o glifo depende de decidir se o símbolo nomeia representação, conexão causal ou se os dois elementos serão separados.
 - **[e]** = **[…]**.
 - **[be]** = **[[…]]**.
 - **[S]** = **[[S]]**.
@@ -291,11 +291,11 @@ acesso em **Rᵢ** → propagação por **Rcon** disponíveis → incidências e
 
 `CANONICAL CLR-REL-001` Uma relação pode ser conteúdo de uma única **R**.
 
-`CANONICAL CLR-REL-002` Uma ocorrência relacional complexa pode ser analisada como **[e]** de **R** + **Rcon**, contendo representações de participantes, propriedades, papéis, ordem e contexto, conectadas causalmente.
+`PROVISIONAL CLR-REL-002` A regressão analisa uma ocorrência relacional complexa como **[e]** de **R** + **Rcon**. Essa decomposição deve ser refeita após a decisão ontológica sobre **Rcon**.
 
-`CANONICAL CLR-REL-003` A direção causal de **Rcon** não é a direção, simetria ou assimetria semântica da relação representada.
+`PROVISIONAL CLR-REL-003` Na alternativa não representacional, a direção causal da conexão não equivale à direção, simetria ou assimetria semântica da relação representada.
 
-`CANONICAL CLR-REL-004` Papéis semânticos não devem ser escondidos como metadata de **Rcon**. Se precisam ser representados, são conteúdo de **R**.
+`AUTHOR-DECISION-PENDING CLR-REL-004` Se **Rcon** for conexão não representacional, papéis semânticos não devem ser escondidos como seus metadados; se for representação de conexão, seus critérios de conteúdo precisam ser explicitados.
 
 `DERIVED CLR-REL-D01` Uma mesma **R** pode participar de múltiplas composições sem duplicação obrigatória. A ocorrência relevante precisa, contudo, de discriminação causal suficiente para impedir mistura indevida de bindings.
 
@@ -321,7 +321,7 @@ acesso em **Rᵢ** → propagação por **Rcon** disponíveis → incidências e
 
 # 8. MEMÓRIA, PASSADO E TEMPORALIDADE
 
-`CANONICAL CLR-MEM-001` Memória não é arquivo que um processo abre. É história persistente em **R**, **Rcon** e composições, capaz de alterar trajetórias futuras.
+`PROVISIONAL CLR-MEM-001` Memória não é arquivo que um processo abre. É história persistente na organização, capaz de alterar trajetórias futuras. A distribuição dessa história entre **R**, **Rcon** e composições depende da ontologia finalmente escolhida.
 
 `CANONICAL CLR-MEM-002` Codificação ocorre online por criação/modificação durante a experiência ou processamento. Estabilização é resultado temporal retrospectivo, não etapa ou processo autônomo.
 
@@ -546,14 +546,14 @@ Regra específica do Capítulo 1: não delimitar sistemas representacionais “d
 
 # 17. FIGURAS: MIGRAÇÃO OBRIGATÓRIA
 
-`DEPRECATED` Todas as figuras com **Rrel**, acesso em **Rrel**, **Rcon** sem direção ou **τ\*** como janela de integração. Não retocar por troca de rótulos; redesenhar.
+`DEPRECATED` Todas as figuras com **Rrel** atual ou acesso em **Rrel**. `AUTHOR-DECISION-PENDING` Figuras sobre **Rcon** e **τ/τ\*** devem aguardar as decisões correspondentes; não as invalidar nem aprovar por simples troca de rótulos.
 
 `DEPRECATED` O pacote `CLEAR_Figuras_Atencao_SVG_v0.1` também é histórico: ele pressupõe “processo atencional”, incidência atencional, ondas próprias, bordas inibitórias e famílias de hiperfoco anteriores à eliminação de **Patt**. Seus problemas e exemplos podem orientar perguntas, mas seus mecanismos e desenhos não devem migrar sem nova derivação na arquitetura vigente.
 
 Conjunto mínimo novo:
 
 1. **S / Sdom / transdução**: mundo externo → meio intra-**S** extra-**Sdom** → transdução aferente → **Sdom**; e percurso eferente inverso.
-2. **Cadeia R–Rcon–R**: incidência, integração em **R**, validação, acesso e propagação.
+2. `PENDING` **Cadeia representacional/conectiva**: redesenhar somente após decidir se **Rcon** é representação, conexão causal ou se haverá dois elementos.
 3. **Atenção**: distribuição temporal de acessos mostrando acesso isolado, recorrência automática e recorrência diferencial sustentada.
 4. **Composição e identidade**: **R**, **Rcon**, **[e]**, **Rent**, **[be]** e **[S]**, sem transformar colchetes em recipientes físicos.
 5. **Plano/Waze**: composição de plano configurando trajetórias sem executor.
@@ -561,8 +561,7 @@ Conjunto mínimo novo:
 
 Regras visuais:
 
-- nunca desenhar **Rcon** como portadora de “maior_que”, “antes_de”, “pai_de” etc.;
-- nunca desenhar acesso dentro de **Rcon**;
+- não desenhar conteúdo ou acesso em **Rcon** antes de decidir o que **Rcon** é;
 - distinguir fronteira sólida de **S** e fronteira funcional tracejada de **Sdom**;
 - distinguir semântica representada de parâmetros causais;
 - indicar que cada novo acesso é local e exige validação no destino.
@@ -572,10 +571,11 @@ Regras visuais:
 ## 18.1 Ontologia/arquitetura
 
 - `OPEN` critério operacional completo de individuação e continuidade de **Sdom**;
-- `OPEN` formalização mínima das condições de transmissão de **Rcon** sem criar semântica escondida;
+- `AUTHOR-DECISION-PENDING` estatuto ontológico de **Rcon**;
+- `OPEN` formalização consequente de conteúdo/acesso ou de condições de transmissão, conforme a alternativa escolhida;
 - `OPEN` mecanismo causal suficiente para individuação de bindings/composições compartilhadas;
 - `OPEN` lower bound sistemático para **R** em casos artificiais e biológicos mínimos;
-- `OPEN` formalização quantitativa de **τ** e **τ\***, sem alterar suas funções já congeladas.
+- `AUTHOR-DECISION-PENDING` semântica de **τ/τ\***; só depois formalização quantitativa.
 - `EXPLORATORY` bootstrap de um **Sdom** inicialmente vazio. O caso visual está em desenvolvimento porque combina aferências muito estudadas com fontes naturais de variação e invariância: disparidade binocular; movimentos autônomos de varredura ocular; combinações entre eferências e aferências; tônus cervical, gravidade e correções corporais. Esses elementos são candidatos a fornecer diferenças exploráveis por criação/modificação representacional, mas ainda não constituem explicação fechada de identificação de objetos, posição ou formação inicial de **R**.
 
 ## 18.2 Consciência
@@ -654,15 +654,15 @@ Cada teste deve retornar o resultado indicado.
 11. **A falta de B causa erro?** NÃO. Causas são estados/incidências presentes, expiração, não renovação, regulação, transformação ou novo acesso.
 12. **Self é sujeito formal?** NÃO. Formalmente usa-se **[S]**, uma **[be]** referente a **S**.
 13. **Semelhança preserva identidade?** NÃO por si. Identidade biográfica depende de continuidade histórica representada.
-14. **[e] é representação primitiva?** NÃO. É composição analítica de **R** + **Rcon**.
-15. **Rent é nova espécie de representação?** NÃO. É **R** ordinária referindo economicamente a uma **[e]**.
+14. **[e] é representação primitiva?** NÃO na regressão atual, mas sua composição formal depende da decisão sobre **Rcon**.
+15. **Rent é nova espécie de representação?** NÃO na regressão atual; a formulação completa permanece subordinada à auditoria de **[e]/Rcon**.
 16. **Qual símbolo corresponde à integração local?** `AUTHOR-DECISION-PENDING`; a resposta **τ** da v0.2.0 não tem aprovação autoral explícita recuperada.
 17. **Qual símbolo corresponde ao encadeamento/recorrência?** `AUTHOR-DECISION-PENDING`; **τ\*** está sustentado como índice/horizonte da ocorrência de acesso, não como semântica completa já congelada.
 18. **Conectividade define Sdom?** NÃO. É necessária análise de domínio, continuidade e transdução.
 19. **Acesso local = consciência está provado?** NÃO. É a tese de identidade constitutiva em fortalecimento argumentativo.
 20. **Acesso sem memória/relato pode ser consciência local mínima segundo CLEAR?** SIM, se a tese de identidade constitutiva for correta; falta de rastro não decide ausência de ocorrência.
-21. **Rcon resolveu composição fenomenal?** NÃO. Nem binding causal local resolve automaticamente caráter qualitativo ou composição experiencial.
-22. **R e Rcon são neurônio e sinapse?** NÃO. São unidades arquiteturais abstratas; mapeamentos são hipóteses de implementação.
+21. **Rcon resolveu composição fenomenal?** NÃO; além de o estatuto de **Rcon** estar pendente, binding arquitetural não resolve automaticamente composição experiencial.
+22. **R e Rcon são neurônio e sinapse?** NÃO. Qualquer que seja a ontologia escolhida, identidade literal com implementação biológica não foi estabelecida.
 23. **Toda consciência possível precisa ser representacional?** NÃO é tese atual da CLEAR.
 24. **Pval foi eliminado?** NÃO. Nova valoração permanece transformação própria.
 25. **Pode uma R representar uma conexão?** SIM em princípio. Se o referente deve chamar-se **Rcon**, ou se **Rcon** é a própria representação, é parte da decisão pendente.
@@ -723,8 +723,8 @@ Um trecho só está pronto para revisão autoral quando:
 
 - não depende de **Rrel** ou outro elemento eliminado;
 - cada mecanismo pode ser expresso como cadeia causal sem agente oculto;
-- conteúdo e infraestrutura causal estão separados;
-- acesso é localizado em **R**;
+- não depende de uma decisão ainda pendente sobre conteúdo versus infraestrutura em **Rcon**;
+- localiza acesso apenas onde a ontologia aprovada o autorizar;
 - o estatuto epistêmico de cada afirmação é defensável;
 - exemplos não carregam ontologia adicional silenciosa;
 - rivais são descritas em sua versão forte e pertinente;
@@ -734,4 +734,4 @@ Um trecho só está pronto para revisão autoral quando:
 
 ---
 
-**Identificação técnica:** Clara compilou este baseline como instrumento de continuidade e controle de regressão. Clara não é autora científica nem fonte das teses. As decisões teóricas e a responsabilidade final pertencem a Paulo.
+**Identificação técnica:** Clara compilou este documento em quarentena como instrumento de auditoria e controle de regressão. Clara não é autora científica nem fonte das teses. As decisões teóricas e a responsabilidade final pertencem a Paulo.
