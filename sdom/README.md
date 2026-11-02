@@ -48,7 +48,7 @@ Todas as características de nós e arestas podem ser modificadas por aprendizad
    formava, para evitar cópias do mesmo padrão.
 6. Ainda sem divisão e sem arestas inibitórias.
 
-## Aprendizado (v0.3)
+## Aprendizado (v0.4)
 
 Reforço e enfraquecimento agem **no mesmo lugar e em sentidos opostos: o peso da
 aresta** (a modulação da magnitude, de 0 = inerte a 1 = máximo), como LTP e LTD
@@ -64,15 +64,24 @@ representando o que a transdução definiu.
   & Nelson, 2001). Sem essa regra, em sons periódicos cada incidência era ao mesmo
   tempo "atrasada" para o disparo anterior e "a tempo" para o seguinte, e os pesos
   ficavam presos no valor de nascimento.
-- **Decaimento:** sem ser percorrida, o peso cai com meia-vida de 30 s de mundo;
-  abaixo de 0,01 a aresta fica inerte (a estrutura permanece).
-- Arestas nascem com peso 0,5; o limiar do nó novo é calibrado com esse peso.
+- **Decaimento em duas fases:** peso = parte **recente** + parte **consolidada**.
+  A recente se apaga com meia-vida de 1 h sem uso (LTP inicial dura < 3 h); a
+  consolidada, com meia-vida de 14 dias (LTP tardio dura de dias a semanas, às
+  vezes meses). Abaixo de 0,01 a aresta fica inerte (a estrutura permanece).
+- **Consolidação:** o primeiro reforço põe uma *etiqueta* na sinapse, válida por
+  3 h (Frey & Morris, 1997). Se o reforço acumulado dentro da etiqueta chegar a
+  0,3, a parte recente passa para a consolidada. Uma sinapse nova, sem reforço,
+  só tem a parte recente.
+- **Pular no tempo:** como no silêncio só o decaimento acontece, e ele é calculado
+  pelo tempo passado, dá para avançar 1 h, 1 dia, 1 semana ou 4 semanas na hora.
+- Arestas nascem com peso 0,5 (todo recente); o limiar do nó novo é calibrado com esse peso.
 - A ligação ouvido → nível 1 é transdução fixa: não aprende nem decai.
 
-Janelas de 17 ms e 34 ms: médias de Bi & Poo (1998). Todos os números são
-parâmetros do universo.
+Janelas de 17 ms e 34 ms: médias de Bi & Poo (1998). Os números de reforço,
+consolidação e meias-vidas são escolhas iniciais, ajustáveis como parâmetros.
 
 ### Histórico
+- v0.3 usava uma só meia-vida de 30 s (escolhida para ver o efeito rápido, sem base biológica).
 - v0.2 tentou reforço no limiar e decaimento na magnitude. Como agiam em coisas
   diferentes, um não desfazia o outro e não havia volta. Substituído na v0.3.
 
@@ -80,7 +89,7 @@ parâmetros do universo.
 
 Só local, no navegador (IndexedDB). A cada 2 s grava: o universo (versão e
 parâmetros), os nós com suas arestas de entrada, as mudanças de peso das arestas
-(`[peso, momento da última mudança]`, para recalcular o decaimento), a atividade
+(`[recente, consolidado, momento da última mudança]`, para recalcular o decaimento), os pulos no tempo, a atividade
 resumida (disparos por nó a cada 100 ms) e os estímulos tocados.
 "Baixar JSON" exporta um universo no formato `sdom-universe/2`.
 
@@ -98,20 +107,27 @@ O piano passa a ser só percorrido a partir da 4ª nota. A viola reaproveita par
 e cria o resto. Depois da viola, o piano volta a gerar estrutura: nós nascidos
 com a viola também disparam no piano, e ele passa a ser relacionado a ela.
 
-## Resultados da v0.3 (parâmetros padrão, `tests/`)
+## Resultados da v0.4 (parâmetros padrão, `tests/`)
 
-Nós nascidos durante cada nota (n1/n2/n3/n4):
+Convergência (nós nascidos por nota, n1/n2/n3/n4):
 
 | nota | 1 | 2 | 3 | 4 | 5 | 6 |
 |---|---|---|---|---|---|---|
-| piano | 4/5/7/2 | 0/1/12/5 | 0/0/0/2 | 0/0/0/2 | 0/0/0/0 | 0/0/0/0 |
-| viola | 2/1/7/2 | 0/1/4/3 | 0/0/1/3 | 0/0/0/0 | 0/0/0/0 | 0/0/0/0 |
-| piano de novo | 0/5/13/5 | 0/0/5/3 | | | | |
+| piano | 4/5/7/2 | 0/1/12/5 | 0/0/0/3 | 0/0/0/1 | 0/0/0/0 | 0/0/0/0 |
+| viola | 2/1/7/2 | 0/1/4/3 | 0/0/1/4 | 0/0/0/1 | 0/0/0/0 | 0/0/0/0 |
+| piano de novo | 0/5/12/5 | 0/0/2/4 | | | | |
 
-Decaimento (`tests/decaimento.js`): com o uso, o peso médio sobe de 0,5 para ~0,79.
-Após 10 s de silêncio o piano ainda é só percorrido. Após 60 s os pesos caíram a
-~1/4 e o piano volta a gerar estrutura nova ao lado da antiga (esqueceu e
-reaprende). Após 240 s todas as arestas aprendidas estão inertes.
+Esquecimento (`tests/decaimento.js`): nós novos ao ouvir o piano de novo depois
+do pulo (0 = reconheceu; ~22 = reaprendeu do zero).
 
-Exemplo de seletividade: um nó de nível 2 detector do período do dó terminou com
-as duas arestas de um receptor em ~0,92 e as duas de outro em ~0,44 e ~0,22.
+| repetições | consolidadas | 10 min | 2 h | 1 dia | 7 dias | 28 dias |
+|---|---|---|---|---|---|---|
+| 1× | 0/39 | 16 | 22 | 22 | 22 | 22 |
+| 3× | 62/125 | 1 | 10 | 18 | 22 | 22 |
+| 6× | 116/131 | 0 | 0 | 5 | 11 | 22 |
+
+Observação: ouvido uma vez só, o caminho já falha em 10 min. O limiar do nó novo é
+80% do que o criou; com meia-vida de 1 h, o peso cai abaixo disso em ~20 min.
+
+Seletividade: num nó detector do período do dó, as arestas de um receptor
+foram a ~0,99 (0,80 consolidado) e as de outro ficaram em ~0,46 e ~0,24.
