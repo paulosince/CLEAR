@@ -65,6 +65,8 @@ Status: **aprovado** (definido ou aceito pelo Paulo) · **em discussão**.
 | termo | definição | origem | status |
 |---|---|---|---|
 | **marcapasso de recursos** | o equivalente funcional do coração. Fica **fora do Sdom** e tem **ritmo próprio** (não depende do Sdom para bater). A cada batida, **entrega recurso** ao Sdom: o Sdom depende disso de verdade, porque disparar e aprender gastam recurso, e o que não cabe no que foi entregue não acontece (manter a estrutura não gasta). O Sdom o **ajusta sem comandá-lo**: arestas levam incidências até ele, e as excitatórias aceleram, as inibitórias freiam; em repouso, o freio prevalece. As arestas que chegam até ele são **aprendidas**. O ritmo dele e o nível geral de recurso **voltam ao Sdom** pela transdução endógena. | Paulo | aprovado |
+| **recurso operacional** | o que o marcapasso de recursos entrega a cada batida e o que o Sdom gasta para disparar e para aprender (manter não gasta). É medido em operações contadas, para que o resultado possa ser repetido com a mesma semente. "Quanto chega a cada batida" é só o recurso operacional entregue por batida. | Paulo | aprovado |
+| **reserva operacional** | quanto recurso operacional cada nó tem guardado. Recebe mais onde há atividade. Quando está baixa, o nó deixa primeiro de aprender (inclusive de criar estruturas) e depois de disparar; o limiar para disparar cresce com a distância da transdução, então o mais longe cai antes. | Paulo | aprovado |
 
 ## Poda
 
