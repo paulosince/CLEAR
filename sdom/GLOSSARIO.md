@@ -60,6 +60,12 @@ Status: **aprovado** (definido ou aceito pelo Paulo) · **em discussão**.
 | **preparação do campo representacional relacional** | o caminho que está sendo percorrido deixa preparado o que se relaciona a ele. Mecânica: um nó que recebeu incidências dentro da janela de integração, sem atingir o limiar, está preparado — usa as mesmas peças da dinâmica. Não é um estado futuro representado. | Paulo | aprovado |
 | **previsão** | reservado: projeção de um estado em tempo futuro, calculada a partir de dados históricos (probabilidade). **Não** usar para a preparação do campo representacional relacional. | Paulo | aprovado |
 
+## Marcapasso de recursos (em desenho, v0.11)
+
+| termo | definição | origem | status |
+|---|---|---|---|
+| **marcapasso de recursos** | o equivalente funcional do coração. Fica **fora do Sdom** e tem **ritmo próprio** (não depende do Sdom para bater). A cada batida, **entrega recurso** ao Sdom: o Sdom depende disso de verdade, porque disparar e aprender gastam recurso, e o que não cabe no que foi entregue não acontece (manter a estrutura não gasta). O Sdom o **ajusta sem comandá-lo**: arestas levam incidências até ele, e as excitatórias aceleram, as inibitórias freiam; em repouso, o freio prevalece. As arestas que chegam até ele são **aprendidas**. O ritmo dele e o nível geral de recurso **voltam ao Sdom** pela transdução endógena. | Paulo | aprovado |
+
 ## Poda
 
 | termo | definição | origem | status |
