@@ -6,7 +6,7 @@ que começa vazio. O que ele ouve é representado num grafo: uma estrutura é
 **criada** quando um estímulo não encontra caminho.
 
 - `web/index.html` — simulação completa numa página só. Publicada no GitHub Pages:
-  https://paulosince.github.io/clear/sdom/web/
+  https://paulosince.github.io/CLEAR/sdom/web/
 - `tests/convergencia.js` — experimento automático piano → viola (Playwright).
 - `tests/decaimento.js` — aprender, ficar em silêncio, ouvir de novo (Playwright).
 
