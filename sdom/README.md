@@ -50,6 +50,27 @@ Todas as características de nós e arestas podem ser modificadas por aprendizad
    formava, para evitar cópias do mesmo padrão.
 6. Ainda sem divisão e sem arestas inibitórias.
 
+## Transdução auditiva (v0.6, branch `transducao`)
+
+Fica **fora do Sdom** e é fixa; normaliza o som em incidências (a moeda comum do Sdom).
+
+- **Cóclea:** 41 canais de frequência, um por ERB (Glasberg & Moore, 1990), de ~26 Hz a
+  ~18,6 kHz, com filtros gammatone de 4ª ordem (Patterson et al., 1992). Canais acima
+  do alcance do microfone (≈ 7 kHz a 16 kHz de amostragem; ≈ 3,6 kHz a 8 kHz) existem,
+  mas ficam em silêncio.
+- **Célula ciliada:** retificação de meia-onda e passa-baixa (perda de sincronia em
+  frequências altas).
+- **Fibras:** 3 por canal — sensível, média (+10 dB) e pouco sensível (+30 dB)
+  (Liberman, 1977). Refratariedade de 3 ms. Cada disparo entra no Sdom como uma
+  incidência de **magnitude fixa** (tudo-ou-nada).
+- A criação de nós por "meia-onda" dentro do Sdom foi removida.
+- Microfone em 16 kHz por padrão; botão para 8 kHz (cria um universo novo).
+
+Observação: com a transdução nova, a regra de criação antiga (agrupar disparos sem
+destino com atrasos exatos) gera estrutura demais e não converge (centenas de nós por
+nota). É a regra cuja revisão está em discussão (relações + preparação do campo
+representacional relacional).
+
 ## Aprendizado (v0.4–v0.5)
 
 Reforço e enfraquecimento agem **no mesmo lugar e em sentidos opostos: o peso da

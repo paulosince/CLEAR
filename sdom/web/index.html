@@ -68,6 +68,7 @@
   <div class="row" style="margin-top:6px" id="keys"></div>
   <div class="row" style="margin-top:6px">
     <label class="small">duração <select id="dur"><option value="0.3">0,3 s</option><option value="0.8" selected>0,8 s</option><option value="1.5">1,5 s</option></select></label>
+    <button id="srBtn" title="trocar a taxa do microfone (cria um universo novo)">mic 16 kHz</button>
     <label class="small">mundo <select id="wspeed"><option value="0.25">0,25×</option><option value="1" selected>1×</option><option value="4">4×</option><option value="10">10×</option></select></label>
     <label class="small">intensidade <select id="amp"><option value="0.35">suave</option><option value="0.7" selected>média</option><option value="1">forte</option></select></label>
   </div>
@@ -118,7 +119,7 @@
   </div>
   <div class="legend" style="margin:4px 0 6px">
     <span><i class="dot" style="background:var(--l0)"></i>ouvidos</span>
-    <span><i class="dot" style="background:var(--l1)"></i>nível 1</span>
+    <span><i class="dot" style="background:var(--l1)"></i>transdução (fibras da cóclea)</span>
     <span><i class="dot" style="background:var(--l2)"></i>2</span>
     <span><i class="dot" style="background:var(--l3)"></i>3</span>
     <span><i class="dot" style="background:var(--l4)"></i>4</span>
@@ -167,10 +168,16 @@
      observados, para que tudo chegue junto ao nó novo.
    - Sem aprendizado nem divisão ainda.
    ===================================================================== */
-const CODE_VERSION = 'v0.5';
+const CODE_VERSION = 'v0.6';
 const DEFAULTS = {
-  sr: 8000,            // taxa do microfone (amostras/s)
-  floor: 0.02,         // sensibilidade: lóbulo abaixo disso é ignorado
+  sr: 16000,           // taxa do microfone (amostras/s); botão alterna 16k/8k
+  // transdução auditiva (v0.6): cóclea fixa, fora do Sdom
+  cochChannels: 41,    // canais de frequência: 1 por ERB, de ~26 Hz a ~18,6 kHz (Glasberg & Moore, 1990)
+  baseThr: 0.003,      // limiar da fibra mais sensível (amplitude na saída do canal)
+  fiberDb2: 10,        // fibra média: 10 dB menos sensível (Liberman, 1977)
+  fiberDb3: 30,        // fibra pouco sensível: 30 dB menos sensível (faixa observada: até ~70 dB)
+  fiberRefrMs: 3,      // refratariedade da fibra (limita a ~330 disparos/s)
+  ihcLowpassHz: 3000,  // célula ciliada: perda de sincronia em frequências altas
   thrFrac: 0.8,        // limiar do nó novo = fração do que o criou
   basalMs: 0.125,      // atraso basal das arestas
   coincMs2: 0.25, coincMs3: 0.5, coincMs4: 5,     // janela de integração por nível
@@ -178,7 +185,6 @@ const DEFAULTS = {
   gapMs2: 1, gapMs3: 5, gapMs4: 50,               // intervalo mínimo entre criações
   maxGroup2: 4, maxGroup3: 6, maxGroup4: 6,
   maxLevel: 4,
-  maxWms: 20,          // lóbulo mais longo considerado (≈ 25 Hz)
   maxNodes: 6000,
   histSeconds: 90,
   // aprendizado (v0.3): tudo no PESO da aresta (modulação da magnitude), 0 = inerte, 1 = máximo
@@ -200,7 +206,7 @@ const DEFAULTS = {
   actWindowMs: 100,      // janela da atividade gravada
 };
 const PARAM_UI = [
-  ['sr','taxa do microfone (Hz)'],['floor','sensibilidade mínima'],['thrFrac','limiar do nó novo (fração)'],
+  ['sr','taxa do microfone (Hz)'],['cochChannels','canais da cóclea'],['baseThr','limiar da fibra sensível'],['fiberDb2','fibra média (+dB)'],['fiberDb3','fibra pouco sensível (+dB)'],['fiberRefrMs','refratariedade da fibra (ms)'],['ihcLowpassHz','célula ciliada: corte (Hz)'],['thrFrac','limiar do nó novo (fração)'],
   ['basalMs','atraso basal da aresta (ms)'],
   ['coincMs2','integração nível 2 (ms)'],['coincMs3','integração nível 3 (ms)'],['coincMs4','integração nível 4 (ms)'],
   ['bindMs2','agrupamento nível 2 (ms)'],['bindMs3','agrupamento nível 3 (ms)'],['bindMs4','agrupamento nível 4 (ms)'],
@@ -225,18 +231,12 @@ class Universe{
     this.bind  = [0,0,ms(p.bindMs2),ms(p.bindMs3),ms(p.bindMs4)];
     this.gap   = [0,0,ms(p.gapMs2),ms(p.gapMs3),ms(p.gapMs4)];
     this.maxGroup = [0,0,p.maxGroup2,p.maxGroup3,p.maxGroup4];
-    this.maxW = ms(p.maxWms);
     this.t = 0;
     this.rng = mulberry32(seed);
-    this.nodes = []; this.edges = []; this.receptors = [[],[]];
+    this.nodes = []; this.edges = [];
     const maxD = Math.max(...this.bind) + this.basal + Math.max(...this.coinc) + 8;
     this.wsize = pow2(maxD+1); this.wmask = this.wsize-1;
     this.wheel = Array.from({length:this.wsize}, ()=>[]);
-    this.psize = pow2(this.maxW + this.basal + 8); this.pmask = this.psize-1;
-    this.pre = [new Float64Array(this.psize), new Float64Array(this.psize)];
-    this.lobe = [{on:false,start:0,int:0,peak:0},{on:false,start:0,int:0,peak:0}];
-    this.pending = [];
-    this.lastRecFire = [-1e12,-1e12];
     this.Q = []; this.qh = [];
     for(let l=0;l<=4;l++){this.Q.push([]);this.qh.push(0)}
     this.lastCreate = [-1e12,-1e12,-1e12,-1e12,-1e12];
@@ -258,6 +258,7 @@ class Universe{
     // os dois ouvidos (nível 0)
     this.addNode({lvl:0, ear:0, W:0, thr:0, mag:0, refr:0, born:0, x:60, y:250});
     this.addNode({lvl:0, ear:1, W:0, thr:0, mag:0, refr:0, born:0, x:60, y:750});
+    this.buildCochlea();
   }
   addNode(o){
     const n = Object.assign({id:this.nodes.length, out:[], in:[], contrib:[], refUntil:0, fires:0, nmT:-1e9, origin:null}, o);
@@ -325,41 +326,65 @@ class Universe{
     const t0=this.t; this.t+=samples;
     for(const b of this.wheel) b.length=0;
     for(const n of this.nodes){ n.contrib=[]; n.refUntil=0; }
-    this.pending=[]; this.lobe.forEach(L=>L.on=false);
+    for(const st of this.cochState) st.fill(0); for(const ih of this.ihc) ih.fill(0);
     for(let l=0;l<=4;l++){ this.Q[l]=[]; this.qh[l]=0; }
-    for(let e=0;e<2;e++){ const v=this.pre[e][(t0-1)&this.pmask]; this.pre[e].fill(v); }
     if(this.actCounts.size){ const c={}; for(const [k,v] of this.actCounts) c[k]=v; this.actLog.push({t0:this.actStart,c}); this.actCounts.clear(); }
     this.actStart=this.t;
     this.stimLog.push({t:t0, jumpS:samples/this.sr});
     this.sweep(this.t);
   }
+  // ---- TRANSDUÇÃO AUDITIVA (fora do Sdom) ----
+  // Cóclea: banco de filtros gammatone de 4ª ordem (Patterson et al., 1992), um canal por ERB
+  // (Glasberg & Moore, 1990). Célula ciliada: retificação de meia-onda + passa-baixa.
+  // Fibras: 3 por canal, com limiares escalonados (Liberman, 1977). Cada disparo de fibra
+  // entra no Sdom como incidência de magnitude fixa (tudo-ou-nada).
+  buildCochlea(){
+    const sr=this.sr, N=this.p.cochChannels|0;
+    this.coch=[]; this.cochState=[new Float64Array(N*8), new Float64Array(N*8)]; this.ihc=[new Float64Array(N), new Float64Array(N)];
+    this.ihcC=Math.exp(-2*Math.PI*this.p.ihcLowpassHz/sr);
+    const thr=[0,this.p.fiberDb2,this.p.fiberDb3].map(db=>this.p.baseThr*Math.pow(10,db/20));
+    const refr=Math.max(1,Math.round(this.p.fiberRefrMs*sr/1000));
+    this.fibers=[[],[]];
+    for(let k=0;k<N;k++){
+      const E=1+k*(40/Math.max(1,N-1));               // de 1 a 41 na escala ERB
+      const fc=(Math.pow(10,E/21.4)-1)/0.00437;
+      const erb=24.7*(4.37e-3*fc+1), b=1.019*erb;
+      const a=Math.exp(-2*Math.PI*b/sr), w=2*Math.PI*fc/sr;
+      const active = fc < 0.45*sr;
+      this.coch.push({k, fc, erb, active, pr:a*Math.cos(w), pi:a*Math.sin(w), g:Math.pow(1-a,4)});
+      for(let e=0;e<2;e++) for(let c=0;c<3;c++){
+        const yb = e===0 ? 470 : 970;
+        const n=this.addNode({lvl:1, ear:e, W:1, thr:thr[c], mag:1, refr, born:0,
+          x: 225 + c*45, y: yb - 430*(k/Math.max(1,N-1)), fiber:{k, fc, cls:c, db:[0,this.p.fiberDb2,this.p.fiberDb3][c], active}});
+        this.fibers[e].push(n);
+        this.addEdge(this.nodes[e], n, this.basal);
+      }
+    }
+  }
+  cochleaStep(e,x,t){
+    const st=this.cochState[e], ih=this.ihc[e], C=this.coch, F=this.fibers[e], cc=this.ihcC;
+    for(let k=0;k<C.length;k++){
+      const ch=C[k]; if(!ch.active) continue;
+      let re=x, im=0; const o=k*8;
+      for(let s=0;s<4;s++){
+        const pr=st[o+2*s], pi=st[o+2*s+1];
+        const yr=re+ch.pr*pr-ch.pi*pi, yi=im+ch.pr*pi+ch.pi*pr;
+        st[o+2*s]=yr; st[o+2*s+1]=yi; re=yr; im=yi;
+      }
+      const bm=re*ch.g;                                  // movimento da membrana basilar neste lugar
+      const hc=bm>0?bm:0;                                 // meia-onda (célula ciliada)
+      const v = ih[k] = cc*ih[k] + (1-cc)*hc;
+      for(let c=0;c<3;c++){ const f=F[k*3+c]; if(t>=f.refUntil && v>=f.thr) this.fire(f,t); }
+    }
+  }
   // um passo de tempo = uma amostra do microfone
   step(xL, xR){
-    const t = this.t, pm = this.pmask;
+    const t = this.t;
     const xs = [xL, xR];
     for(let e=0;e<2;e++){
       let x = xs[e]; if(x>1)x=1; else if(x<-1)x=-1;
-      const pre = this.pre[e];
-      pre[t&pm] = pre[(t-1)&pm] + x;
       this.aud[e][t % this.aCap] = x;
-      const L = this.lobe[e];
-      if(x>0){ if(!L.on){L.on=true;L.start=t;L.int=0;L.peak=0} L.int+=x; if(x>L.peak)L.peak=x; }
-      else if(L.on){
-        L.on=false; const w=t-L.start;
-        if(L.peak>=this.p.floor && w<=this.maxW) this.pending.push({e, start:L.start, w, int:L.int, peak:L.peak, at:t+this.basal+1});
-      }
-    }
-    // nível 1: integra as incidências vindas do ouvido (chegam com o atraso basal)
-    const ta = t - this.basal;
-    if(ta>=0){
-      for(let e=0;e<2;e++){
-        const pre=this.pre[e], R=this.receptors[e], a=pre[ta&pm];
-        for(let i=0;i<R.length;i++){
-          const r=R[i]; if(t<r.refUntil) continue;
-          const s = a - pre[(ta-r.W)&pm];
-          if(s>=r.thr) this.fire(r,t);
-        }
-      }
+      this.cochleaStep(e,x,t);
     }
     // entrega das incidências agendadas para agora
     const b = this.wheel[t&this.wmask];
@@ -375,11 +400,6 @@ class Universe{
         n.contrib.push(it); this.tryFire(n,t);
       }
       b.length=0;
-    }
-    // criação no nível 1: lóbulo que não encontrou caminho
-    while(this.pending.length && this.pending[0].at<=t){
-      const L=this.pending.shift();
-      if(this.lastRecFire[L.e] < L.start) this.createReceptor(L,t);
     }
     // criação nos níveis 2+: disparos que ninguém absorveu
     for(let l=2;l<=this.maxLevel;l++) this.groupLevel(l,t);
@@ -415,7 +435,6 @@ class Universe{
     const mag = n.mag; n.lastFire = t;   // magnitude do nó é fixa (representa o que a transdução definiu)
     n.refUntil=t+n.refr; n.fires++; this.fireCount++;
     this.actCounts.set(n.id,(this.actCounts.get(n.id)||0)+1);
-    if(n.lvl===1) this.lastRecFire[n.ear]=t;
     const k=this.hCount%this.hCap; this.hT[k]=t; this.hN[k]=n.id; this.hCount++;
     let ev=null;
     if(n.lvl<this.maxLevel){ ev={n, t, m:mag, a:false}; this.Q[n.lvl].push(ev); }
@@ -429,17 +448,6 @@ class Universe{
       this.wheel[(t+o.d)&this.wmask].push({n:o.to, v, ev, t0:t+o.d, e:o});
     }
     if(n.lvl>=2) this.wheel[(t+n.refr)&this.wmask].push({n, chk:true});
-  }
-  createReceptor(L,t){
-    if(this.nodes.length>=this.p.maxNodes){this.capHit=true;return}
-    const W=L.w, thr=this.p.thrFrac*L.int, mag=Math.min(1,L.peak);
-    const yb = L.e===0 ? 40 : 540;
-    const y = yb + 420*(Math.log(W)/Math.log(this.maxW+1));
-    const x = 230 + 110*Math.min(1,Math.max(0,-Math.log10(thr+1e-6)/2.5)) + this.rng()*30;
-    const n=this.addNode({lvl:1, ear:L.e, W, thr, mag, refr:W, born:t, x, y,
-      origin:{lobeMs:W*1000/this.sr, hz:this.sr/(2*W), int:L.int, peak:L.peak}});
-    this.receptors[L.e].push(n);
-    this.addEdge(this.nodes[L.e], n, this.basal);
   }
   groupLevel(l,t){
     const Q=this.Q[l-1], B=this.bind[l]; let h=this.qh[l-1];
@@ -604,6 +612,7 @@ function newUniverse(){
   for(const k of keep) Wd.addSource(k.inst,k.x,k.y);
   selSrc=Wd.sources[0]||null;
   view.live=true; view.playing=true; view.tv=0; view.sel=null; view.fitted=false;
+  if($('srBtn')) $('srBtn').textContent=`mic ${U.sr/1000} kHz`;
   $('ver').textContent=`· Sdom ${CODE_VERSION} · universo #${universeNo} · params ${hashStr(JSON.stringify(params))}`;
   refreshSrcUI(); showInfo();
 }
@@ -683,7 +692,7 @@ function drawSdom(){
   }
   // colunas
   g.font=`${11*d}px system-ui`; g.fillStyle='#5d6575';
-  const labels=[[60,'ouvidos'],[290,'nível 1'],[585,'nível 2'],[845,'nível 3'],[1095,'nível 4']];
+  const labels=[[60,'ouvidos'],[270,'transdução'],[585,'nível 2'],[845,'nível 3'],[1095,'nível 4']];
   for(const [x,t] of labels){ g.fillText(t, X(x)-18*d, Math.max(14*d,Y(0)-6*d)); }
   g.fillText('esq.', X(20), Y(250)+24*d); g.fillText('dir.', X(20), Y(750)+24*d);
   // arestas
@@ -713,9 +722,11 @@ function drawSdom(){
   for(let l=0;l<=4;l++){
     g.fillStyle=COL[l]; g.globalAlpha=l===0?0.9:0.45; g.beginPath();
     const r=RAD[l]*d*Math.max(0.7,Math.min(2.2,view.s*1.2));
-    for(let i=0;i<nv;i++){const n=U.nodes[i]; if(n.lvl!==l||n.diedAt<=tv)continue; const x=X(n.x),y=Y(n.y); if(x<-10||y<-10||x>W+10||y>H+10)continue; g.moveTo(x+r,y); g.arc(x,y,r,0,6.2832);} g.fill();
+    for(let i=0;i<nv;i++){const n=U.nodes[i]; if(n.lvl!==l||n.diedAt<=tv||(n.fiber&&!n.fiber.active))continue; const x=X(n.x),y=Y(n.y); if(x<-10||y<-10||x>W+10||y>H+10)continue; g.moveTo(x+r,y); g.arc(x,y,r,0,6.2832);} g.fill();
   }
-  g.globalAlpha=1;
+  g.globalAlpha=0.25; g.fillStyle='#4a5160'; g.beginPath();
+  { const r=RAD[1]*d*Math.max(0.7,Math.min(2.2,view.s*1.2)); for(let i=0;i<nv;i++){const n=U.nodes[i]; if(!n.fiber||n.fiber.active)continue; const x=X(n.x),y=Y(n.y); g.moveTo(x+r,y); g.arc(x,y,r,0,6.2832);} }
+  g.fill(); g.globalAlpha=1;
   const zr=Math.max(0.7,Math.min(2.2,view.s*1.2));
 
   for(let i=0;i<nv;i++){
@@ -794,14 +805,18 @@ function drawStats(){
 function showInfo(){
   const n=view.sel; if(!n){ $('info').textContent='Toque num nó do grafo para inspecionar.'; return; }
   const ms=v=>(v*1000/U.sr).toFixed(3)+' ms';
-  const lv=['ouvido','nível 1','nível 2','nível 3','nível 4'][n.lvl];
+  const lv=['ouvido','transdução (fibra)','nível 2','nível 3','nível 4'][n.lvl];
   let s=`#${n.id} · ${lv}${n.lvl<=1?(n.ear?' · ouvido direito':' · ouvido esquerdo'):''}\n`;
-  if(n.lvl===0){ s+=`microfone: transduz pressão em incidências\n(positivo = excitatória, negativo = inibitória)\nsaídas: ${n.out.length}`; $('info').textContent=s; return; }
+  if(n.lvl===0){ s+=`microfone (${U.sr/1000} kHz): entrega o som à cóclea (transdução)\nfibras: ${n.out.length}`; $('info').textContent=s; return; }
+  if(n.fiber){ const F=n.fiber;
+    s+=`canal ${F.k+1}/${U.coch.length} da cóclea · ${F.fc<1000?Math.round(F.fc)+' Hz':(F.fc/1000).toFixed(2)+' kHz'}\n`;
+    s+=`fibra ${['sensível','média','pouco sensível'][F.cls]} (+${F.db} dB) · limiar ${n.thr.toFixed(4)}\n`;
+    s+=F.active?`disparos até agora ${n.fires} · cada disparo entra no Sdom como incidência de magnitude ${n.mag}\n`:`fora do alcance do microfone (acima de ${(0.45*U.sr/1000).toFixed(1)} kHz): em silêncio\n`;
+    s+=`saídas para o Sdom: ${n.out.length}`; $('info').textContent=s; return; }
   s+=`nasceu em ${fmt(n.born)}`+(n.diedAt!==Infinity?` · PODADO em ${fmt(n.diedAt)} (ficou órfão)`:'')+`\n`;
   s+=`janela de integração ${ms(n.W)} · refratariedade ${ms(n.refr)}\n`;
   s+=`limiar ${n.thr.toFixed(4)} (fixo) · magnitude ${n.mag.toFixed(4)} (fixa)\n`;
   s+=`disparos até agora ${n.fires}`+(n.fires?` · último há ${((U.t-n.lastFire)/U.sr).toFixed(1)} s`:'')+`\n`;
-  if(n.lvl===1&&n.origin) s+=`origem: lóbulo de ${n.origin.lobeMs.toFixed(3)} ms (≈ ${Math.round(n.origin.hz)} Hz se fosse tom puro), pico ${n.origin.peak.toFixed(3)}\n`;
   if(n.lvl>=2&&n.origin) s+=`origem: agrupou ${n.origin.k} disparos espalhados em ${n.origin.span.toFixed(2)} ms\n`;
   s+=`entradas (${n.in.length}):\n`;
   const tvv=Math.floor(view.tv);
@@ -970,6 +985,12 @@ async function renderStore(){
 }
 $('stRefresh').onclick=()=>{ Store.flush(U); setTimeout(renderStore,200); };
 $('wspeed').onchange=e=>{ worldSpeed=+e.target.value; };
+let srArm=0;
+function srLabel(){ $('srBtn').textContent=`mic ${U.sr/1000} kHz`; }
+$('srBtn').onclick=()=>{ const now=performance.now(); const other=U.sr===16000?8000:16000;
+  if(now-srArm>3000){ srArm=now; $('srBtn').textContent=`mudar p/ ${other/1000} kHz? (universo novo) toque de novo`; setTimeout(srLabel,3000); return; }
+  srArm=0; params.sr=other; const inp=document.querySelector('#params input[data-k="sr"]'); if(inp) inp.value=other;
+  newUniverse(); srLabel(); setTimeout(renderStore,300); };
 for(const b of document.querySelectorAll('.jmp')) b.onclick=()=>{ U.jump(Math.round(+b.dataset.j*U.sr)); Wd.gc(U.t); goLive(); };
 setInterval(()=>Store.flush(U),2000);
 addEventListener('pagehide',()=>Store.flush(U));
