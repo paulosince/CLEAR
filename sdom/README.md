@@ -1,6 +1,6 @@
 # Sdom — robô que ouve
 
-Simulação de um robô com dois microfones e um domínio representacional (Sdom)
+Simulação de um robô com dois microfones e um **Sdom — domínio representacional do sistema**,
 que começa vazio. O que ele ouve é representado num grafo: uma estrutura é
 **percorrida de novo** quando chegam estímulos semelhantes aos que a criaram, e
 **criada** quando um estímulo não encontra caminho.
