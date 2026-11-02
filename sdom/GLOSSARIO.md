@@ -12,6 +12,7 @@ Status: **aprovado** (definido ou aceito pelo Paulo) · **em discussão**.
 | **Sdom** | domínio representacional do sistema: o grafo onde o que o robô percebe é representado. Nasce vazio. | Paulo | aprovado |
 | **nó** | elemento do Sdom que integra incidências e dispara ao atingir o limiar. | Paulo | aprovado |
 | **aresta** | ligação de um nó a outro; leva a incidência com um tempo de propagação. | Paulo | aprovado |
+| **malha temporotopológica** | pedaço do grafo (num conjunto de grafos) cujos nós se relacionam, e cuja relação tem como conteúdo também o **tempo de percorrimento** entre os nós. Não é só a topologia que tem significado: o tempo também tem. Ex.: o detector do dó é definido pelos atrasos das arestas (≈3,8 ms entre entradas). | Paulo | aprovado |
 | **nível** | camada do Sdom (1 a 4) conforme a distância dos ouvidos. | Claude | em discussão |
 | **universo** | um experimento completo, do nascimento do Sdom até ser destruído; tem versão e parâmetros. | Claude | aprovado |
 
