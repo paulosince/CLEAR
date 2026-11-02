@@ -13,6 +13,8 @@ Status: **aprovado** (definido ou aceito pelo Paulo) · **em discussão**.
 | **nó** | elemento do Sdom que integra incidências e dispara ao atingir o limiar. | Paulo | aprovado |
 | **aresta** | ligação de um nó a outro; leva a incidência com um tempo de propagação. | Paulo | aprovado |
 | **malha temporotopológica** | pedaço do grafo (num conjunto de grafos) cujos nós se relacionam, e cuja relação tem como conteúdo também o **tempo de percorrimento** entre os nós. Não é só a topologia que tem significado: o tempo também tem. Ex.: o detector do dó é definido pelos atrasos das arestas (≈3,8 ms entre entradas). | Paulo | aprovado |
+| **malha (contagem no painel)** | para contar no painel: malha = estrutura **criada a partir de um mesmo estímulo**. Regra operacional provisória (v0.10): o nó novo pertence ao estímulo que começou por último antes do primeiro disparo que ele relaciona e que ainda soava. Com sons sobrepostos (ex.: chuva + fala), a atribuição pode errar. | Paulo (regra) · Claude (operacionalização) | em discussão |
+| **sinapse** | junção aresta → nó. Hoje cada aresta termina em exatamente um nó, então o número de sinapses é igual ao de arestas. | Paulo | em discussão |
 | **nível** | camada do Sdom (1 a 4) conforme a distância dos ouvidos. | Claude | em discussão |
 | **universo** | um experimento completo, do nascimento do Sdom até ser destruído; tem versão e parâmetros. | Claude | aprovado |
 

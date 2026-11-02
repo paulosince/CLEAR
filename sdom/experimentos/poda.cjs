@@ -1,12 +1,7 @@
 // Experimento de poda: arestas inertes por 7 dias são podadas; nós órfãos também.
-// Uso: node poda.js   (requer playwright)
-const { chromium } = require('playwright');
+// Uso: NODE_PATH=$(npm root -g) node experimentos/poda.cjs   (requer playwright)
 (async () => {
-  const b = await chromium.launch();
-  const p = await b.newPage();
-  const errs=[]; p.on('pageerror', e => errs.push(String(e)));
-  await p.goto('file://' + require('path').resolve(__dirname, '../web/index.html'));
-  await p.waitForTimeout(600);
+  const { page: p, erros: errs, fechar } = await require('./servidor.cjs').abrir();
   const r = await p.evaluate(() => {
     const out=[];
     const mk=()=>{ const U=new window.__sdom.U.constructor(Object.assign({},window.__sdom.U.p),777); const W=new window.__sdom.W.constructor(U.sr);
@@ -30,5 +25,5 @@ const { chromium } = require('playwright');
     return out;
   });
   for (const x of r) console.log(x);
-  console.log(errs); await b.close();
+  console.log(errs); await fechar();
 })();

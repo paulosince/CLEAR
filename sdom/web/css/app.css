@@ -1,0 +1,79 @@
+:root{
+  --bg:#0f1115; --panel:#171a21; --line:#262b36; --ink:#e7e9ee; --mut:#8a92a3;
+  --l0:#9aa3b2; --l1:#3fc1b0; --l2:#5b8def; --l3:#a77bf3; --l4:#f0a04b; --hot:#ffe27a;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+body{padding-bottom:110px}
+header{padding:10px 12px 6px;border-bottom:1px solid var(--line)}
+h1{font-size:16px;margin:0}
+h3{font-size:13px;font-weight:600;color:var(--mut);margin:10px 0 6px;text-transform:uppercase;letter-spacing:.04em}
+.mut{color:var(--mut)} .small{font-size:12px}
+section{padding:8px 12px;border-bottom:1px solid var(--line)}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.between{justify-content:space-between}
+button,select,input{font:inherit;color:var(--ink);background:#222734;border:1px solid #333a4a;border-radius:8px;padding:6px 9px}
+button:active{background:#2d3446}
+button.on{background:#2f4f7a;border-color:#4a76b5}
+button.danger{background:#4a1f25;border-color:#7a2f38}
+button.small{padding:4px 8px;font-size:12px}
+canvas{display:block;width:100%;touch-action:none;background:#0b0d11;border:1px solid var(--line);border-radius:10px}
+#room{height:170px;margin-top:8px}
+#sdom{height:56vh;min-height:320px;margin-top:6px}
+#wave{height:60px}
+.labc{height:100px;margin-top:6px}
+.note{font-size:12px;color:var(--mut);margin-top:6px}
+details{margin-top:8px} details summary{cursor:pointer;color:var(--mut)}
+
+/* layout: no celular, uma coluna (painel, Sdom, controles…); no computador, Sdom à esquerda */
+.layout{display:flex;flex-direction:column}
+@media (min-width:980px){
+  .layout{display:grid;grid-template-columns:1fr 380px;align-items:start}
+  aside{border-left:1px solid var(--line)}
+  #sdom{height:66vh}
+}
+
+/* painel de números */
+.tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 8px;min-width:0}
+.tile .tl{display:block;font-size:11px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile b{display:block;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+@media (max-width:520px){ .tiles{grid-template-columns:repeat(3,1fr)} .tile b{font-size:18px} }
+#statsMore{margin-top:6px}
+
+/* seletor de visão */
+.seg{display:inline-flex;border:1px solid #333a4a;border-radius:8px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:5px 8px;font-size:12px;background:#1c202b}
+.seg button.on{background:#2f4f7a}
+
+/* legenda */
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;font-size:12px;margin-top:6px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.ramp{display:inline-block;width:90px;height:9px;border-radius:5px;background:linear-gradient(90deg,#2a2f3a,#7a3d10,#e07a1f,#ffd36a,#fff4c2)}
+
+/* fontes: ícone + play/pause */
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.chip{display:flex;align-items:center;gap:8px;text-align:left;padding:8px 10px;border-radius:10px;background:#1c202b}
+.chip .ic{font-size:20px;line-height:1}
+.chip .nm{flex:1;min-width:0;font-size:13px}
+.chip .st{font-size:14px;opacity:.9}
+.chip.on{background:#2b3f2f;border-color:#4f8a5a}
+
+/* laboratório */
+#labTip{position:fixed;pointer-events:none;background:#232937;border:1px solid #3a4256;border-radius:6px;padding:3px 7px;font-size:12px;display:none;z-index:9}
+
+/* nó selecionado / gravação / parâmetros */
+#info{white-space:pre-wrap;font:12px/1.45 ui-monospace,Menlo,Consolas,monospace;color:#cfd5e1;min-height:2em}
+.uni{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 0;border-top:1px solid var(--line);font-size:12px}
+.uni .lbl{flex:1 1 200px}
+.params{display:grid;grid-template-columns:auto 90px;gap:6px 10px;align-items:center;margin-top:8px;max-width:420px}
+.params input{width:90px}
+
+/* linha do tempo */
+footer{position:fixed;left:0;right:0;bottom:0;background:#12151cf2;border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom));backdrop-filter:blur(6px);z-index:5}
+.tl{display:flex;gap:4px;align-items:center}
+.tl button,.tl select{padding:7px 6px;font-size:13px;flex:1 1 auto;min-width:0}
+footer input[type=range]{width:100%;padding:0;margin:6px 0 2px}
+#live.on{background:#7a2f38;border-color:#b5444f}
+.legend[hidden]{display:none}

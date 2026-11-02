@@ -1,16 +1,8 @@
 // Roda um roteiro no laboratório (Web Worker) e imprime a evolução por segundo de mundo.
-// Uso: node laboratorio.js [roteiro=casa] [segundos=10] [semente=2026] [taxa=16000]
-const { chromium } = require('playwright');
-const http = require('http'), fs = require('fs'), path = require('path');
+// Uso: NODE_PATH=$(npm root -g) node experimentos/laboratorio.cjs [roteiro=casa] [segundos=10] [semente=2026] [taxa=16000]
 const [scen='casa', dur='10', seed='2026', sr='16000'] = process.argv.slice(2);
 (async () => {
-  // serve a pasta web por http (o navegador não deixa criar Worker a partir de file://)
-  const root = path.resolve(__dirname, '../web');
-  const srv = http.createServer((q, r) => { const f = path.join(root, q.url === '/' ? 'index.html' : q.url.split('?')[0]); fs.readFile(f, (e, d) => { if (e) { r.writeHead(404); r.end(); } else { r.writeHead(200, {'content-type': 'text/html'}); r.end(d); } }); }).listen(0);
-  const port = srv.address().port;
-  const b = await chromium.launch(); const p = await b.newPage();
-  const errs = []; p.on('pageerror', e => errs.push(String(e))); p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); }); p.on('crash', () => errs.push('PÁGINA TRAVOU (crash)')); p.on('load', () => errs.push('página recarregou'));
-  await p.goto(`http://127.0.0.1:${port}/`); await p.waitForTimeout(500); errs.length = 0;
+  const { page: p, erros: errs, fechar } = await require('./servidor.cjs').abrir();
   await p.evaluate(s => { const i = document.querySelector('#params input[data-k="sr"]'); if (i) i.value = s; }, sr);
   const ok = await p.evaluate(([a, d, s]) => window.__sdom.lab.start(a, +d, +s), [scen, dur, seed]);
   if (!ok) throw new Error('não iniciou');
@@ -38,5 +30,5 @@ const [scen='casa', dur='10', seed='2026', sr='16000'] = process.argv.slice(2);
     const cnt = async s => (await S.getAllFor(s, m.id)).length;
     return { label: m.label, worldTimeS: m.worldTimeS, nodes: m.nodes, labSeries: m.lab && m.lab.series ? m.lab.series.length : 0, gravados: { nodes: await cnt('nodes'), activity: await cnt('activity'), stimuli: await cnt('stimuli'), weights: await cnt('weights') } }; });
   console.log('gravação (IndexedDB):', st);
-  await b.close(); srv.close();
+  await fechar();
 })();

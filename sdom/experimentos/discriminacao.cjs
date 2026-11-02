@@ -1,9 +1,7 @@
 // Compara as duas regras de relação: tamanho do Sdom e o que é comum/exclusivo entre dó do piano e dó da viola.
-// Uso: node discriminacao.js   (requer playwright)
-const { chromium } = require('playwright');
+// Uso: NODE_PATH=$(npm root -g) node experimentos/discriminacao.cjs   (requer playwright)
 (async () => {
-  const b = await chromium.launch(); const p = await b.newPage();
-  await p.goto('file://' + require('path').resolve(__dirname, '../web/index.html') + ''); await p.waitForTimeout(500);
+  const { page: p, fechar } = await require('./servidor.cjs').abrir();
   const r = await p.evaluate(() => {
     const out=[];
     for (const rule of [0,1]) {
@@ -20,5 +18,5 @@ const { chromium } = require('playwright');
     }
     return out;
   });
-  r.forEach(x=>console.log(x)); await b.close();
+  r.forEach(x=>console.log(x)); await fechar();
 })();

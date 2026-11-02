@@ -1,0 +1,10 @@
+{
+  "name": "sdom",
+  "private": true,
+  "description": "Sdom — domínio representacional do sistema (simulação)",
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"tests/unit/*.test.js\"",
+    "experimento": "node experimentos/laboratorio.js"
+  }
+}

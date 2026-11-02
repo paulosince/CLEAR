@@ -5,12 +5,74 @@ que começa vazio. O que ele ouve é representado num grafo: uma estrutura é
 **percorrida de novo** quando chegam estímulos semelhantes aos que a criaram, e
 **criada** quando um estímulo não encontra caminho.
 
-- `web/index.html` — simulação completa numa página só. Publicada no GitHub Pages:
-  https://paulosince.github.io/CLEAR/sdom/web/
-- `tests/convergencia.js` — experimento automático piano → viola (Playwright).
-- `tests/decaimento.js` — aprender, pular no tempo, ouvir de novo (Playwright).
-- `tests/poda.js` — arestas inertes, acesso e poda (Playwright).
+- `web/` — a simulação (página + módulos JavaScript, sem build). Publicada no GitHub Pages:
+  https://paulosince.github.io/CLEAR/sdom/web/ — precisa ser aberta por http (não funciona por file://).
+- `tests/unit/` — testes automáticos das regras (`npm test`); rodam no GitHub Actions a cada push.
+- `experimentos/convergencia.cjs` — experimento automático piano → viola (Playwright).
+- `experimentos/decaimento.cjs` — aprender, pular no tempo, ouvir de novo (Playwright).
+- `experimentos/poda.cjs` — arestas inertes, acesso e poda (Playwright).
 - `GLOSSARIO.md` — os nomes combinados (aprovados e propostos).
+
+## Organização do código (v0.10)
+
+Sem etapa de build: o GitHub Pages serve os módulos JavaScript diretamente.
+
+```
+sdom/
+  web/index.html, web/css/app.css
+  web/js/core/      núcleo do Sdom: params.js (parâmetros e origem), universe.js (nós, arestas,
+                    transdução, aprendizado, poda, malhas), graph-copy.js, util.js
+  web/js/env/       ambiente: sounds.js (síntese), world.js (sala e microfones), score.js (Cânone),
+                    streams.js (fluxos de eventos), environment.js (liga/desliga fluxos), scenarios.js (roteiros)
+  web/js/lab/       laboratório: lab.js e worker.js (Web Worker em módulo)
+  web/js/store.js   gravação local (IndexedDB)
+  web/js/ui/        página: app.js, sdomview.js (atividade e grafo), panels.js, controls.js, labui.js, storeui.js
+  tests/unit/       testes automáticos (node:test) — `npm test` dentro de sdom/
+  tests/fixtures/   referência para o teste de regressão
+  experimentos/     experimentos com navegador (Playwright), que imprimem números
+```
+
+- **Testes** (`npm test`, rodam também no GitHub Actions a cada push): uma regra por teste —
+  limiar, janela de integração, refratariedade, peso, efeito inibitório, magnitude fixa, reforço,
+  enfraquecimento pendente, "o reforço vence", freio, consolidação, janela de consolidação,
+  decaimento em duas fases, poda, órfão, acesso, cóclea (41 canais, 3 fibras), adaptação,
+  ambiente repetível, coerência do Cânone, cópia do universo, malhas — e **regressão**: com a
+  mesma semente, o resultado tem que ser idêntico à referência gravada.
+- Mudou uma regra de propósito? `node tests/atualizar-referencia.js` e explique no commit.
+
+### Correção na v0.10: incidências que chegam no mesmo instante
+
+Os testes acharam um defeito: o nó avaliava o limiar a cada incidência que chegava, e a ordem de
+processamento dentro do mesmo instante (mesma amostra) decidia o resultado — por exemplo, uma
+incidência inibitória simultânea era ignorada se fosse processada por último, e uma excitatória
+simultânea ficava de fora do reforço. Agora todas as incidências do instante chegam primeiro e
+depois cada nó avalia uma vez. Efeito medido (mesma semente): 6 pianos + 6 violas, 429 → 434 nós e
+338 mil → 374 mil reforços; roteiro Casa 15 s, 671 → 642 nós; discriminação piano×viola, 218 → 210 nós
+(o que é comum aos dois continua em 76 nós).
+
+## Página (v0.10)
+
+- **Painel:** malhas, nós, arestas, sinapses e disparos por segundo.
+- **Sdom:** de longe, um **mapa de atividade** (à maneira de uma fMRI: acende onde houve disparos
+  nos últimos ~0,25 s; transdução e Sdom com escalas próprias). Não é um modelo de sinal BOLD.
+  Ao aproximar, aparece o **grafo**. Botões: auto / atividade / grafo.
+- **Controle do ambiente:** **Instrumentos** (Cânone em Ré de Pachelbel, um instrumento por fonte:
+  violinos I, II e III, violoncelo e cravo) e **Sons ambiente** (pássaros, mar, carros ao fundo,
+  crianças, chuva, conversa, passos e porta, campainha). Cada um só com ícone e play/pause.
+  Instrumentos ligados entram juntos, no próximo ciclo da música.
+- Desempenho medido (Chromium sem tela, 2 núcleos, 16 kHz): sem som, 100% do tempo real; 8 sons
+  ambiente ligados, ~90%; os 5 instrumentos, ~60% (o mundo anda mais devagar que o relógio; os
+  resultados não mudam, porque tudo é medido em tempo de mundo). O laboratório é mais rápido.
+
+**Música:** transcrição **de memória** e simplificada (baixo obstinado + 3 padrões do violino em
+cânone); o cravo com acordes é arranjo meu. Conferir com a partitura antes de citar. Um teste
+confere que toda nota de violino no tempo forte pertence ao acorde do baixo.
+
+**Sons ambiente sintetizados** (escolhas minhas, não validadas): pássaro = tom deslizante com
+trinado (2–4,5 kHz; a 8 kHz o microfone não alcança e fica em silêncio); mar = ruído abafado
+(média de amostras) que sobe e desce em ondas de 5–9 s; carro = ronco (ruído bem abafado) +
+harmônicos do motor descendo de leve (Doppler); crianças = vogais com formantes femininos × 1,15
+e risadas.
 
 ## Regras do modelo (definidas pelo Paulo)
 
@@ -100,7 +162,7 @@ voltar no tempo (os últimos ~90 s em detalhe). As curvas (nós do Sdom e dispar
 de mundo) ficam gravadas em `universe.lab.series`. "Ouvir 10 s do roteiro" toca o que chega
 aos dois microfones.
 
-Teste: `tests/laboratorio.js [roteiro] [segundos] [semente] [taxa]`.
+Experimento: `NODE_PATH=$(npm root -g) node experimentos/laboratorio.cjs [roteiro] [segundos] [semente] [taxa]`.
 
 ### Sessão longa: roteiro Casa, 10 min de mundo, semente 2026 (headless, 2 núcleos)
 
@@ -200,7 +262,7 @@ Convergência (nós nascidos por nota, n1/n2/n3/n4):
 | viola | 2/1/7/2 | 0/1/4/3 | 0/0/1/4 | 0/0/0/1 | 0/0/0/0 | 0/0/0/0 |
 | piano de novo | 0/5/12/5 | 0/0/2/4 | | | | |
 
-Esquecimento (`tests/decaimento.js`): nós novos ao ouvir o piano de novo depois
+Esquecimento (`experimentos/decaimento.cjs`): nós novos ao ouvir o piano de novo depois
 do pulo (0 = reconheceu; ~22 = reaprendeu do zero).
 
 | repetições | consolidadas | 10 min | 2 h | 1 dia | 7 dias | 28 dias |
@@ -212,7 +274,7 @@ do pulo (0 = reconheceu; ~22 = reaprendeu do zero).
 Observação: ouvido uma vez só, o caminho já falha em 10 min. O limiar do nó novo é
 80% do que o criou; com meia-vida de 1 h, o peso cai abaixo disso em ~20 min.
 
-Poda (`tests/poda.js`): ouvido 1×, depois de 1 dia as 39 arestas aprendidas são
+Poda (`experimentos/poda.cjs`): ouvido 1×, depois de 1 dia as 39 arestas aprendidas são
 candidatas. Ouvir de novo acessa 17 delas (as que saem do nível 1), mas o reforço
 de acesso (0,11) não basta para o caminho disparar: nascem 22 nós novos. Uma semana
 depois, tudo o que foi aprendido está podado (103 arestas, 36 nós); restam os 4

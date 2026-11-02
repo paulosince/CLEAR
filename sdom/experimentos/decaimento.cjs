@@ -1,13 +1,8 @@
 // Experimento de esquecimento: ouvir o dó do piano N vezes, pular no tempo e ouvir de novo.
 // Compara quantos nós nascem na volta (0 = reconheceu; muitos = esqueceu e reaprendeu).
-// Cada cenário roda num universo novo. Uso: node decaimento.js   (requer playwright)
-const { chromium } = require('playwright');
+// Cada cenário roda num universo novo. Uso: NODE_PATH=$(npm root -g) node experimentos/decaimento.cjs   (requer playwright)
 (async () => {
-  const b = await chromium.launch();
-  const p = await b.newPage();
-  const errs=[]; p.on('pageerror', e => errs.push(String(e)));
-  await p.goto('file://' + require('path').resolve(__dirname, '../web/index.html'));
-  await p.waitForTimeout(600);
+  const { page: p, erros: errs, fechar } = await require('./servidor.cjs').abrir();
   const r = await p.evaluate(() => {
     const out=[];
     for (const reps of [1, 3, 6]) for (const gap of [600, 2*3600, 86400, 7*86400, 28*86400]) {
@@ -27,5 +22,5 @@ const { chromium } = require('playwright');
   });
   const fmt=s=>s<3600?(s/60)+' min':s<86400?(s/3600)+' h':(s/86400)+' d';
   for (const x of r) console.log(`${x.reps}× piano, pulo ${fmt(x.gap).padEnd(6)} consolidadas ${x.consolidadas.padEnd(8)} inertes ${x.inertes.padEnd(8)} nós novos na volta: ${x.novosNaVolta}`);
-  console.log(errs); await b.close();
+  console.log(errs); await fechar();
 })();

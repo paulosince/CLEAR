@@ -1,13 +1,8 @@
 // Experimento: 6× dó no piano, 6× dó na viola, 2× dó no piano.
 // Mostra quantos nós nasceram (n1/n2/n3/n4) durante cada nota.
-// Uso: node convergencia.js   (requer playwright)
-const { chromium } = require('playwright');
+// Uso: NODE_PATH=$(npm root -g) node experimentos/convergencia.cjs   (requer playwright)
 (async () => {
-  const b = await chromium.launch();
-  const p = await b.newPage({ viewport: { width: 390, height: 844 } });
-  const errs=[]; p.on('pageerror', e => errs.push(String(e)));
-  await p.goto('file://' + require('path').resolve(__dirname, '../web/index.html'));
-  await p.waitForTimeout(500);
+  const { page: p, erros: errs, fechar } = await require('./servidor.cjs').abrir();
   await p.evaluate(() => {
     const S=window.__sdom, W=S.W; const P=W.sources.find(s=>s.inst==='piano'), V=W.sources.find(s=>s.inst==='viola');
     document.getElementById('audioOn').checked=false;
@@ -24,5 +19,5 @@ const { chromium } = require('playwright');
     return {out, total:U.nodes.length, t:U.t/sr};
   });
   console.log(JSON.stringify(r,null,0)); console.log(errs);
-  await b.close();
+  await fechar();
 })();
