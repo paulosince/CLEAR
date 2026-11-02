@@ -43,7 +43,8 @@ se ele acelerar, o Sdom ganha capacidade de verdade.
 6. **Reserva operacional por nó** (não global). "Local" é definido pelo grafo, nunca pela posição no desenho.
 7. **Pisos em degraus:** piso de aprender (o mais alto); piso de disparar crescendo com a distância da transdução.
 8. **O Sdom ajusta o marcapasso por incidências** (eferência): excitatórias aceleram, inibitórias freiam. Ele não obedece; soma os empurrões.
-9. **As ligações da eferência são aprendidas**, pela mesma regra de criação de sempre, quando o sinal do próprio ritmo coincide com a atividade de representações.
+9. **Nenhuma relação entre representações e batimentos é pré-programada** (revisão do Paulo). No substrato, o que vem pronto é um **reflexo** abaixo de qualquer representação (barorreflexo); qual representação mexe no coração é **aprendido** (condicionamento), e esse aprendizado aparece tarde no desenvolvimento.
+9a. **Aprendizado de saídas** é um tema a estudar à parte (coração agora; braços, olhos, pernas depois). Hipótese do Paulo: como nos movimentos, **reflexos ajudam o Sdom a aprender** as saídas.
 10. **Em repouso, o freio prevalece.**
 11. **Moduladores ficam para depois**, mas o transporte é feito genérico (o recurso operacional é a primeira coisa transportada).
 
@@ -88,9 +89,10 @@ A transdução (fibras) fica **fora** do orçamento: ela não é Sdom.
 - **Nível geral de recurso**: a média das reservas operacionais é sentida por fibras com limiares escalonados (como as 3 fibras de cada canal da cóclea), que disparam junto com a batida quando o nível está acima do limiar delas.
 - Essas incidências entram no Sdom como qualquer outra e são relacionadas pela regra de criação de sempre.
 
-### 4.7 Eferência
-- Quando a regra de criação relaciona disparos que incluem fibras endógenas, o nó novo ganha também uma **ligação de eferência** até o marcapasso de recursos.
-- O efeito dessa ligação (acelera ou freia) é **aprendido** — ver aberto 1.
+### 4.7 Reflexo fixo (fora do Sdom) e eferência
+- **Reflexo fixo**, como a transdução, fora do Sdom: o sinal das batidas freia o marcapasso de recursos (retroalimentação negativa, à maneira do barorreflexo). Ele existe desde o nascimento e responde por **"em repouso, o freio prevalece"** mesmo com o Sdom vazio.
+- **Eferência do Sdom: nada pré-programado.** Nesta primeira versão, o Sdom **ainda não** chega ao marcapasso; ele só recebe o ritmo pela transdução endógena. Como as saídas se aprendem será estudado (ver §5).
+- Respaldo: barorreflexo no tronco encefálico (inato); no medo condicionado, a saída para o corpo já existe e o que se aprende é o que a dispara (LeDoux et al., 1988); condicionamento da frequência cardíaca aparece tarde no desenvolvimento (coelhos, cabritos, bebês).
 
 ### 4.8 Consequências esperadas (a verificar)
 - Em silêncio, o Sdom deixa de ficar parado: as batidas chegam sempre (primeira fonte endógena).
@@ -99,8 +101,8 @@ A transdução (fibras) fica **fora** do orçamento: ela não é Sdom.
 
 ## 5. Em aberto (decisões e respaldo que faltam)
 
-1. **Sinal da eferência.** Minha hipótese: se o disparo do nó vem antes de batidas mais rápidas, a ligação vira acelerador; antes de batidas mais lentas, vira freio (aprendido pelo tempo, como o reforço). Falta respaldo.
-2. **Freio em repouso com o Sdom vazio.** O Sdom nasce vazio, então no começo ninguém freia: o robô "recém-nascido" bateria na frequência intrínseca, e o freio surgiria com o aprendizado. Curiosamente, bebês têm frequência mais alta (118 bpm com 1 ano, 81 aos 16, em Cumming & Mir), mas isso não prova o mecanismo. É isso que você quer?
+1. **Aprendizado de saídas (a estudar).** Como o Sdom passa a agir sobre o marcapasso (e, depois, sobre motores) sem regra pré-programada. Pistas: o reflexo dá a saída e o aprendizado liga novas entradas a ela (condicionamento); movimentos espontâneos gerados no tronco encefálico (abalos do sono REM em ratos recém-nascidos) produzem retorno sensorial que ajuda a montar os circuitos (Blumberg e colegas); só o movimento produzido pelo próprio animal ensina comportamento guiado pela visão (Held & Hein, 1963).
+2. ~~Freio em repouso com o Sdom vazio~~ — resolvido pelo reflexo fixo (§4.7).
 3. **Força da batida** também ajustável pela eferência, ou só a frequência por enquanto?
 4. **Quem paga a criação** (proposta: os nós relacionados, divididos igualmente).
 5. **Valores numéricos** de §4: todos são pontos de partida meus.
@@ -114,7 +116,8 @@ A transdução (fibras) fica **fora** do orçamento: ela não é Sdom.
 - **O mundo não espera:** com muito som, o relógio do mundo avança no tempo certo; o Sdom faz menos.
 - **Adaptação:** demanda sustentada aumenta o teto local; sobra o diminui.
 - **Circuito:** em silêncio, as fibras endógenas disparam a cada batida.
-- **Eferência:** incidência excitatória acelera, inibitória freia; sem eferência, o ritmo vai para `f0`.
+- **Reflexo:** batidas mais fortes/rápidas acionam o freio; sem o reflexo, o ritmo vai para `f0`.
+- **Nada pré-programado:** nenhum nó do Sdom afeta o marcapasso nesta versão.
 - **Repetição:** mesma semente, mesmo resultado.
 
 ## 7. Fontes
@@ -139,3 +142,10 @@ A transdução (fibras) fica **fora** do orçamento: ela não é Sdom.
 - Tallon-Baudry (palestras) — https://talks.ox.ac.uk/talks/id/03228cd0-0fc2-4da6-b3df-d46a8c6835ea?format=txt
 - Ogawa & de Bold, 2014 — https://pmc.ncbi.nlm.nih.gov/articles/PMC3987289
 - Craig, 2002 — https://pubmed.ncbi.nlm.nih.gov/12154366/
+- Barorreflexo (revisão, Braz J Med Biol Res 1998) — https://scielo.br/j/bjmbr/a/VGqCdpbkynVTwSPjWXqH39Q/?lang=en
+- LeDoux et al., 1988 — https://pmc.ncbi.nlm.nih.gov/articles/PMC6569498
+- Condicionamento cardíaco em coelhos recém-nascidos — https://arpi.unipi.it/handle/11568/26984
+- Fitzgerald et al., 1984 (cabritos) — https://link.springer.com/article/10.3758/BF03213145
+- Stamps & Porges, 1975 (bebês) — https://www.rti.org/publication/heart-rate-conditioning-newborn-infants-relationships-among-conditionability-heart-rate
+- Blumberg et al., 2013 (abalos do sono) — https://blumberg.lab.uiowa.edu/sites/blumberg.lab.uiowa.edu/files/2022-01/Blumberg_Current_Biology_2013.pdf
+- Held & Hein, 1963 — https://pmc.ncbi.nlm.nih.gov/articles/PMC7248214
