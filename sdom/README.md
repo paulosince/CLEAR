@@ -13,6 +13,37 @@ que começa vazio. O que ele ouve é representado num grafo: uma estrutura é
 - `experimentos/poda.cjs` — arestas inertes, acesso e poda (Playwright).
 - `GLOSSARIO.md` — os nomes combinados (aprovados e propostos).
 
+## Marcapasso de recursos (v0.11)
+
+Desenho e respaldo: [`DESENHO-marcapasso-de-recursos.md`](DESENHO-marcapasso-de-recursos.md). Termos: `GLOSSARIO.md`.
+
+- **Ritmo próprio** de 1,7 batida/s (≈ 102/min, a frequência intrínseca aos 16 anos em Cumming & Mir, 1970).
+  Um **reflexo fixo**, fora do Sdom, freia o ritmo com o sinal das próprias batidas: em repouso ele se
+  acomoda em ≈ 81/min (mesma fonte). Nada liga representações ao marcapasso: a eferência ainda não existe.
+- **Recurso operacional** entregue a cada batida (15 mil operações) e dividido entre as **reservas
+  operacionais** dos nós: uma parte base + mais para quem gastou (com sobra), até o teto de cada nó.
+- **Gastos:** disparar (1 + 1 por aresta de saída), reforço/enfraquecimento (1), consolidação (20),
+  criar nó (10 + 2 por aresta). Manter não gasta. A transdução não gasta.
+- **Pisos:** aprender exige ≥ 60% do teto; disparar exige 5% perto da transdução, +4% por passo de
+  distância (até 50%). O que não cabe **não acontece**; o relógio do mundo não muda.
+- **Adaptação:** falta sustentada aumenta o teto do nó (+5% por dia de falta); sem falta, ele volta ao
+  inicial com meia-vida de 14 dias.
+- **Transdução endógena:** 3 fibras da batida e 4 do nível geral de reserva (20/40/60/80%) disparam
+  junto com cada batida. Em silêncio total, o Sdom passa a ter atividade (as batidas).
+- `mpOn: 0` desliga tudo isso e volta ao comportamento da v0.10 (os testes de regressão usam assim).
+
+**Calibração (escolha minha, para o Paulo revisar).** Medi a demanda sem limite no roteiro Casa (semente
+2026): ≈ 50 operações/s em silêncio e 30 mil–180 mil/s com som. Com 15 mil por batida a ≈ 81/min
+(≈ 20 mil/s), o recurso cobre boa parte da demanda e falta nos picos.
+
+Resultado em 19 s de Casa:
+- sem limite: 437 nós;
+- com o marcapasso: 358 nós;
+- o que mais cai é aprender (milhares de vezes por segundo), depois criar, por último disparar.
+
+Uma diferença em relação ao cérebro: o cérebro tem atividade de base alta e a demanda varia pouco (Raichle &
+Gusnard, 2002); o Sdom em silêncio quase não gasta, e com som gasta mil vezes mais.
+
 ## Organização do código (v0.10)
 
 Sem etapa de build: o GitHub Pages serve os módulos JavaScript diretamente.

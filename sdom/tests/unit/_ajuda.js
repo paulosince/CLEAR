@@ -4,7 +4,7 @@ import { DEFAULTS } from '../../web/js/core/params.js';
 export { Universe, DEFAULTS };
 
 export function universoSemCriacao(extra={}){
-  const U=new Universe(Object.assign({},DEFAULTS,extra),1);
+  const U=new Universe(Object.assign({},DEFAULTS,{mpOn:0},extra),1);
   U.p.maxNodes=0;   // trava a criação: só as regras de nó, aresta, aprendizado e poda agem
   return U;
 }

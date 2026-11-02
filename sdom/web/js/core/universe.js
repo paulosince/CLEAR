@@ -36,6 +36,8 @@ export class Universe{
     this.addNode({lvl:0, ear:0, W:0, thr:0, mag:0, refr:0, born:0, x:60, y:250});
     this.addNode({lvl:0, ear:1, W:0, thr:0, mag:0, refr:0, born:0, x:60, y:750});
     this.buildCochlea();
+    this.mpOn = !!p.mpOn; this.sdomList = [];
+    if(this.mpOn) this.mpInit();
   }
   addNode(o){
     const n = Object.assign({id:this.nodes.length, out:[], in:[], contrib:[], refUntil:0, fires:0, nmT:-1e9, origin:null}, o);
@@ -55,15 +57,17 @@ export class Universe{
     const dt=t-e.lastUse; e.wF*=Math.pow(0.5,dt/this.hlF); e.wS*=Math.pow(0.5,dt/this.hlS); e.lastUse=t; e.mod=e.wF+e.wS;
   }
   potentiate(e,t,timing){
+    if(this.mpOn && !this.mpLearn(e.to,this.p.mpCostLearn)) return;   // sem recurso para aprender
     this.decayEdge(e,t);
     const dw=this.p.aPlus*(1-e.mod)*timing; if(dw<=0) return;
     e.wF+=dw;
     if(t>e.tagUntil){ e.tagUntil=t+this.tagLen+e.winExtra; e.acc=0; }   // abre a janela de consolidação
     e.acc+=dw;
-    if(e.acc>=this.p.consolThr){ e.wS+=e.wF; e.wF=0; e.acc=0; this.consol++; }   // consolidação
+    if(e.acc>=this.p.consolThr && (!this.mpOn || this.mpLearn(e.to,this.p.mpCostConsol))){ e.wS+=e.wF; e.wF=0; e.acc=0; this.consol++; }   // consolidação
     e.mod=e.wF+e.wS; this.ltp++; this.wChanged.add(e);
   }
   depress(e,t,frac){
+    if(this.mpOn && !this.mpLearn(e.to,this.p.mpCostLearn)) return;
     this.decayEdge(e,t);
     let dw=frac*e.mod; const a=Math.min(dw,e.wF); e.wF-=a; dw-=a; if(dw>0) e.wS=Math.max(0,e.wS-dw);
     e.mod=e.wF+e.wS; this.ltd++; this.wChanged.add(e);
@@ -71,6 +75,7 @@ export class Universe{
   // ---- poda ----
   // acesso: o nó de origem disparou e a incidência passou por uma aresta candidata à poda
   access(e,t){
+    if(this.mpOn && !this.mpLearn(e.to,this.p.mpCostLearn)) return;
     e.wF=Math.min(1-e.wS, e.wF+this.p.accessBoost); e.mod=e.wF+e.wS;
     e.winExtra+=this.accessWin; if(e.tagUntil>=t) e.tagUntil+=this.accessWin;
     e.inertSince=null; this.accesses++; this.wChanged.add(e);
@@ -109,6 +114,7 @@ export class Universe{
     if(this.actCounts.size){ const c={}; for(const [k,v] of this.actCounts) c[k]=v; this.actLog.push({t0:this.actStart,c}); this.actCounts.clear(); }
     this.actStart=this.t;
     this.stimLog.push({t:t0, jumpS:samples/this.sr});
+    if(this.mpOn) this.mpJump(samples);
     this.sweep(this.t);
   }
   // ---- TRANSDUÇÃO AUDITIVA (fora do Sdom) ----
@@ -192,6 +198,7 @@ export class Universe{
       b.length=0;
       for(let i=0;i<touched.length;i++) this.tryFire(touched[i],t);
     }
+    if(this.mpOn) this.mpStep(t);
     // criação nos níveis 2+: disparos que ninguém absorveu
     this.groupAll(t);
     if(t%this.sweepEvery===0) this.sweep(t);
@@ -211,6 +218,8 @@ export class Universe{
     if(k) c.splice(0,k);
     let s=0; for(let i=0;i<c.length;i++) s+=c[i].v;
     if(s>=n.thr-1e-9){
+      // ACESSO depende do recurso operacional: abaixo do piso de disparar (ou sem saldo), o nó não dispara
+      if(this.mpOn && n.lvl>=2 && !this.mpPayFire(n)){ for(let i=0;i<c.length;i++){ const x=c[i]; if(x.ev) x.ev.a=true; } return; }
       for(let i=0;i<c.length;i++){
         const x=c[i]; if(x.ev) x.ev.a=true; x.used=true;
         // REFORÇO (sincronia): chegou ANTES do disparo e contribuiu; freio: quanto mais forte, menos sobe
@@ -279,6 +288,8 @@ export class Universe{
     this.qh=h;
   }
   createGroup(group,t,h){
+    let mpStart=0;
+    if(this.mpOn){ mpStart=this.mpPayCreate(group); if(mpStart<0) return; }   // sem recurso para criar (aprender cai primeiro)
     let tLast=-1e12, tFirst=1e12, sm=0, sy=0, dep=1;
     for(const e of group){ if(e.t>tLast)tLast=e.t; if(e.t<tFirst)tFirst=e.t; sm+=e.m; sy+=e.n.y; dep=Math.max(dep,(e.n.depth||1)); }
     const span=tLast-tFirst, W=this.tol(span), depth=dep+1;
@@ -286,6 +297,7 @@ export class Universe{
       x: Math.min(1150, 330 + 175*(depth-1)) + this.rng()*110, y: Math.max(20,Math.min(980, sy/group.length + (this.rng()-0.5)*40)),
       origin:{span:span*1000/this.sr, k:group.length, tolMs:W*1000/this.sr, self:group.length===2&&group[0].n===group[1].n}});
     n.malha=this.malhaAt(tFirst);
+    if(this.mpOn){ n.cap=this.p.mpCap0; n.res=mpStart; n.spent=0; n.blocked=false; this.sdomList.push(n); }
     for(const e of group){ this.addEdge(e.n, n, tLast-e.t+this.basal); e.a=true; }
     this.lastCreateT=t;
     this.retroAbsorb(n,h);
@@ -303,6 +315,82 @@ export class Universe{
         for(const e of a){ const arr=e.t+ed.d; if(tau-arr>=0 && tau-arr<n.W){ s+=e.m*ed.mod; used.push(e); } } }
       if(s>=this.p.prepFrac*n.thr-1e-9) for(const e of used) e.a=true;
     }
+  }
+  // ---- MARCAPASSO DE RECURSOS (v0.11) ----
+  // Fora do Sdom, com ritmo próprio. A cada batida entrega recurso operacional às reservas
+  // operacionais dos nós. Reflexo fixo (à maneira do barorreflexo): o sinal das batidas freia
+  // o ritmo, então em repouso o freio prevalece. Nada liga representações ao marcapasso
+  // (a eferência ainda não existe nesta versão). Ver sdom/DESENHO-marcapasso-de-recursos.md.
+  mpInit(){
+    const p=this.p, sr=this.sr, fRest=p.mpRestBpm/60, tau=p.mpPressTauS;
+    this.mp={ f:p.mpF0, phase:0, press:fRest*tau, stopped:false, beats:0, lastBeat:0, u:0,
+      kB: Math.log(p.mpF0/fRest)/(fRest*tau), level:1,
+      blockedFire:0, blockedLearn:0, blockedCreate:0, opsSpent:0, opsDelivered:0, lastDelivered:0, lastRequested:0 };
+    this.mpPressK=Math.exp(-64/(tau*sr)); this.mpRateK=1-Math.exp(-64/(p.mpRateTauS*sr));
+    this.mpHl=p.mpCapHalfLifeDays*86400*sr;
+    // transdução endógena: fibras da batida (mais forte → mais fibras) e do nível geral de recurso (limiares escalonados)
+    this.endoFibers=[];
+    const mk=(kind,thr,i,y)=>{ const n=this.addNode({lvl:1, depth:1, ear:-1, W:1, thr:0, mag:1, refr:1, born:0, x:225+i*30, y, endo:{kind,thr}}); this.endoFibers.push(n); return n; };
+    [0.25,0.5,0.75].forEach((th,i)=>mk('batida',th,i,500));
+    [0.2,0.4,0.6,0.8].forEach((th,i)=>mk('nivel',th,i,525));
+  }
+  pisoFire(n){ const p=this.p; return Math.min(p.mpPisoDispMax, p.mpPisoDisp0+p.mpPisoDispK*Math.max(0,(n.depth||2)-2)); }
+  mpPayFire(n){
+    const cost=this.p.mpCostFire+this.p.mpCostEdge*n.out.length;
+    if(n.res<this.pisoFire(n)*n.cap || n.res<cost){ n.blocked=true; this.mp.blockedFire++; return false; }
+    n.res-=cost; n.spent+=cost; this.mp.opsSpent+=cost; return true;
+  }
+  mpLearn(n,cost){
+    if(!n || n.lvl<2 || n.res===undefined) return true;           // fora do Sdom (não deveria acontecer)
+    if(n.res<this.p.mpPisoAprender*n.cap || n.res<cost){ n.blocked=true; this.mp.blockedLearn++; return false; }
+    n.res-=cost; n.spent+=cost; this.mp.opsSpent+=cost; return true;
+  }
+  // criar paga quem é relacionado (nós do Sdom); se só há fibras, o nó novo paga com a reserva com que nasce (cheia).
+  // Devolve a reserva inicial do nó novo, ou -1 se não há recurso para aprender.
+  mpPayCreate(group){
+    const p=this.p, cost=p.mpCostCreate+p.mpCostCreateEdge*group.length, src=[];
+    for(const e of group) if(e.n.lvl>=2 && src.indexOf(e.n)<0) src.push(e.n);
+    if(src.length){
+      for(const n of src) if(n.res<p.mpPisoAprender*n.cap || n.res<cost/src.length){ n.blocked=true; this.mp.blockedCreate++; return -1; }
+      for(const n of src){ n.res-=cost/src.length; n.spent+=cost/src.length; }
+      this.mp.opsSpent+=cost; return p.mpCap0;
+    }
+    if(this.mp.level<p.mpPisoAprender){ this.mp.blockedCreate++; return -1; }
+    this.mp.opsSpent+=cost; return Math.max(0,p.mpCap0-cost);
+  }
+  mpStep(t){
+    const mp=this.mp;
+    if((t&63)===0){   // reflexo fixo e mudança lenta do ritmo
+      mp.press*=this.mpPressK;
+      const target=this.p.mpF0*Math.exp(-mp.kB*mp.press+mp.u);
+      mp.f+=(target-mp.f)*this.mpRateK;
+    }
+    if(mp.stopped) return;
+    mp.phase+=mp.f/this.sr;
+    if(mp.phase>=1){ mp.phase-=1; this.mpBeat(t); }
+  }
+  mpBeat(t){
+    const p=this.p, mp=this.mp, L=this.sdomList, dt=t-mp.lastBeat; mp.lastBeat=t; mp.beats++;
+    const decay=Math.pow(0.5,dt/this.mpHl), grow=p.mpGrowPerDay/(86400*Math.max(0.1,mp.f));
+    let req=0, alive=0, sumFrac=0;
+    for(let i=0;i<L.length;i++){ const n=L[i]; if(n.diedAt!==Infinity) continue;
+      // adaptação: falta sustentada aumenta o teto; sem falta, ele volta devagar ao inicial
+      n.cap = n.blocked ? Math.min(p.mpCapMax, n.cap*(1+grow)) : p.mpCap0+(n.cap-p.mpCap0)*decay;
+      alive++; sumFrac+=Math.max(0,n.res)/n.cap;   // nível geral medido ANTES da reposição (o ponto mais baixo do ciclo)
+      n.want=Math.max(0,Math.min(n.cap-n.res, p.mpBaseOps+p.mpOver*n.spent)); req+=n.want; }
+    const give=p.mpBeatOps, k= req>0 ? Math.min(1,give/req) : 0;
+    let delivered=0;
+    for(let i=0;i<L.length;i++){ const n=L[i]; if(n.diedAt!==Infinity) continue;
+      const g=n.want*k; n.res+=g; delivered+=g; n.spent=0; n.blocked=false; }
+    mp.level = alive? sumFrac/alive : 1; mp.opsDelivered+=delivered; mp.lastDelivered=delivered; mp.lastRequested=req;
+    mp.press+=1;   // força da batida fixa nesta versão
+    // transdução endógena: a batida e o nível geral entram no Sdom como incidências
+    for(const f of this.endoFibers){ const e=f.endo; if(e.kind==='batida' ? 1>=e.thr : mp.level>=e.thr) this.fire(f,t); }
+  }
+  mpJump(samples){
+    const p=this.p, mp=this.mp, decay=Math.pow(0.5,samples/this.mpHl);
+    for(const n of this.sdomList){ if(n.diedAt!==Infinity) continue; n.cap=p.mpCap0+(n.cap-p.mpCap0)*decay; n.res=n.cap; n.spent=0; n.blocked=false; }
+    const fRest=p.mpRestBpm/60; mp.f=fRest; mp.press=fRest*p.mpPressTauS; mp.level=1; mp.lastBeat=this.t; mp.phase=0;
   }
   // ---- estímulos e malhas ----
   // Registra um estímulo (nota, sílaba, gota…) que começa em rec.t e soa até t1 (amostras).

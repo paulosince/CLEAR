@@ -66,16 +66,16 @@ function chart(id,key,color,fmtV){
   g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,W,H); g.font=`${10*d}px system-ui`;
   if(series.length<2){ g.fillStyle='#5d6575'; g.fillText('rode um roteiro para ver a curva', 10*d, H/2); c._geo=null; return; }
   const padL=44*d, padR=8*d, padT=8*d, padB=16*d, tMax=Math.max(1,(meta&&meta.durS)||series[series.length-1].t);
-  let vMax=0; for(const p of series) if(p[key]>vMax) vMax=p[key]; vMax=vMax||1;
+  let vMax=0; for(const p of series) if((p[key]||0)>vMax) vMax=p[key]; vMax=vMax||1;
   const X=t=>padL+(W-padL-padR)*t/tMax, Y=v=>H-padB-(H-padT-padB)*v/vMax;
   g.strokeStyle='#1e232d'; g.lineWidth=1; g.fillStyle='#6b7385';
   for(let i=0;i<=2;i++){ const v=vMax*i/2, y=Y(v); g.beginPath(); g.moveTo(padL,y); g.lineTo(W-padR,y); g.stroke(); g.fillText(fmtV(v),4*d,y+3*d); }
   g.fillText('0 s',padL,H-3*d); const tl=fmtS(tMax); g.fillText(tl,W-padR-g.measureText(tl).width,H-3*d);
-  g.strokeStyle=color; g.lineWidth=2*d; g.lineJoin='round'; g.beginPath(); series.forEach((p,i)=>{ const x=X(p.t), y=Y(p[key]); i?g.lineTo(x,y):g.moveTo(x,y); }); g.stroke();
-  if(hover!==null && hover<series.length){ const p=series[hover], x=X(p.t); g.strokeStyle='#8a92a3'; g.lineWidth=d; g.beginPath(); g.moveTo(x,padT); g.lineTo(x,H-padB); g.stroke(); g.fillStyle=color; g.beginPath(); g.arc(x,Y(p[key]),4*d,0,6.2832); g.fill(); }
+  g.strokeStyle=color; g.lineWidth=2*d; g.lineJoin='round'; g.beginPath(); series.forEach((p,i)=>{ const x=X(p.t), y=Y(p[key]||0); i?g.lineTo(x,y):g.moveTo(x,y); }); g.stroke();
+  if(hover!==null && hover<series.length){ const p=series[hover], x=X(p.t); g.strokeStyle='#8a92a3'; g.lineWidth=d; g.beginPath(); g.moveTo(x,padT); g.lineTo(x,H-padB); g.stroke(); g.fillStyle=color; g.beginPath(); g.arc(x,Y(p[key]||0),4*d,0,6.2832); g.fill(); }
   c._geo={padL,padR,tMax,d};
 }
-export function drawCharts(){ chart('labC1','sdom','#5b8def',v=>String(Math.round(v))); chart('labC2','firesPerS','#3fc1b0',v=>v>=1000?(v/1000).toFixed(0)+' mil':String(Math.round(v))); }
+export function drawCharts(){ const k=v=>v>=1000?(v/1000).toFixed(0)+' mil':String(Math.round(v)); chart('labC1','sdom','#5b8def',v=>String(Math.round(v))); chart('labC2','firesPerS','#3fc1b0',k); chart('labC3','faltasPerS','#e07a5f',k); }
 
 export function initLab(){
   const s=$('labScen'); for(const k in SCEN){ const o=document.createElement('option'); o.value=k; o.textContent=SCEN[k].name; s.appendChild(o); }
@@ -83,11 +83,11 @@ export function initLab(){
   $('labRun').onclick=()=>labStart();
   $('labStop').onclick=()=>{ if(labW){ labW.postMessage({cmd:'stop'}); $('labState').textContent='parando…'; } };
   $('labHear').onclick=hear;
-  for(const id of ['labC1','labC2']){ const c=$(id);
+  for(const id of ['labC1','labC2','labC3']){ const c=$(id);
     const mv=e=>{ const G=c._geo; if(!G||series.length<2) return; const r=c.getBoundingClientRect();
       const x=(e.clientX-r.left)*G.d, t=(x-G.padL)/(c.width-G.padL-G.padR)*G.tMax; let bi=0,bd=1e18; series.forEach((p,i)=>{ const dd=Math.abs(p.t-t); if(dd<bd){bd=dd;bi=i} });
       hover=bi; drawCharts(); const p=series[bi], tip=$('labTip');
-      tip.textContent=`${fmtS(p.t)} de mundo · ${p.sdom} nós · ${p.malhas??'—'} malhas · ${p.firesPerS.toLocaleString('pt-BR')} disparos/s · ${p.edges} arestas · ${p.wallS.toFixed(1)} s reais`;
+      tip.textContent=`${fmtS(p.t)} de mundo · ${p.sdom} nós · ${p.malhas??'—'} malhas · ${p.firesPerS.toLocaleString('pt-BR')} disparos/s · ${p.edges} arestas`+(p.bpm!=null?` · marcapasso ${Math.round(p.bpm)}/min · reserva ${Math.round(100*p.nivel)}% · faltas ${p.faltasPerS.toLocaleString('pt-BR')}/s`:'')+` · ${p.wallS.toFixed(1)} s reais`;
       tip.style.display='block'; tip.style.left=Math.min(innerWidth-270,e.clientX+12)+'px'; tip.style.top=(e.clientY-34)+'px'; };
     c.addEventListener('pointermove',mv); c.addEventListener('pointerdown',mv);
     c.addEventListener('pointerleave',()=>{ hover=null; $('labTip').style.display='none'; drawCharts(); }); }

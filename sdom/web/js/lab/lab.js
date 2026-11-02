@@ -31,9 +31,9 @@ export class Lab{
     return U.t>=this.end;
   }
   census(){ const U=this.U; let sd=0; for(const n of U.nodes) if(n.lvl>=2 && n.diedAt===Infinity) sd++;
-    return {sdom:sd, edges:U.edges.length-U.prunedE, fires:U.fireCount, malhas:U.malhaCount()}; }
+    return {sdom:sd, edges:U.edges.length-U.prunedE, fires:U.fireCount, malhas:U.malhaCount(), bpm:U.mp?+(U.mp.f*60).toFixed(1):null, nivel:U.mp?+U.mp.level.toFixed(3):null, faltas:U.mp?U.mp.blockedFire+U.mp.blockedLearn+U.mp.blockedCreate:0}; }
   record(){ // um ponto por segundo de mundo
     const U=this.U, wallS=(performance.now()-this.w0)/1000;
     while(U.t>=this.nextSer){ const c=this.census(); const ts=Math.round(this.nextSer/U.sr);
-      this.series.push({t:ts, sdom:c.sdom, edges:c.edges, malhas:c.malhas, firesPerS:c.fires-this.lastFires, wallS:+wallS.toFixed(2)}); this.lastFires=c.fires; this.nextSer+=U.sr; } }
+      this.series.push({t:ts, sdom:c.sdom, edges:c.edges, malhas:c.malhas, firesPerS:c.fires-this.lastFires, bpm:c.bpm, nivel:c.nivel, faltasPerS:c.faltas-(this.lastFaltas||0), wallS:+wallS.toFixed(2)}); this.lastFires=c.fires; this.lastFaltas=c.faltas; this.nextSer+=U.sr; } }
 }

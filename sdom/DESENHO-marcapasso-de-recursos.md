@@ -1,6 +1,6 @@
 # Desenho: marcapasso de recursos (para conferência antes de programar)
 
-Status: **em revisão pelo Paulo**. Nada disto está no código ainda.
+Status: **implementado na v0.11** (sem eferência do Sdom; aprendizado de saídas a estudar). Valores numéricos: pontos de partida do Claude — ver calibração no README.
 Método: (1) o raciocínio levanta hipóteses; (2) as hipóteses buscam respaldo na neurobiologia;
 (3) o que sobrevive vira arquitetura agnóstica de substrato.
 

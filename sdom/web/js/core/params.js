@@ -17,7 +17,7 @@
      observados, para que tudo chegue junto ao nó novo.
    - Sem aprendizado nem divisão ainda.
    ===================================================================== */
-export const CODE_VERSION = 'v0.10';
+export const CODE_VERSION = 'v0.11';
 export const DEFAULTS = {
   sr: 16000,           // taxa do microfone (amostras/s); botão alterna 16k/8k
   // transdução auditiva (v0.6): cóclea fixa, fora do Sdom
@@ -62,6 +62,30 @@ export const DEFAULTS = {
   accessWindowH: 3,      // acesso: aumento da janela de consolidação da aresta
   inertW: 0.01,          // peso abaixo disso = inerte (não entrega nada)
   actWindowMs: 100,      // janela da atividade gravada
+  // marcapasso de recursos (v0.11). Desenho: sdom/DESENHO-marcapasso-de-recursos.md
+  // Os valores são PONTOS DE PARTIDA do Claude (não medidos), salvo onde indicado.
+  mpOn: 1,               // 1 = o Sdom depende do recurso operacional; 0 = comportamento da v0.10
+  mpF0: 1.7,             // ritmo próprio (batidas/s de mundo) ≈ 102/min: frequência intrínseca aos 16 anos (Cumming & Mir, 1970)
+  mpRestBpm: 81,         // repouso com o reflexo (freio) ≈ 81/min (mesma fonte)
+  mpPressTauS: 2,        // reflexo fixo: o sinal das batidas se acumula e se dissipa em ~2 s
+  mpRateTauS: 1,         // o ritmo muda devagar em direção ao alvo
+  mpBeatOps: 15000,      // recurso operacional por batida: no roteiro Casa cobre a demanda média com som; falta nos picos (calibração: README)
+  mpBaseOps: 100,        // parte base que cada nó recebe por batida (até encher a reserva)
+  mpOver: 1.3,           // sobra: o nó ativo recebe mais do que gastou (como o sangue na região ativa)
+  mpCap0: 1000,          // teto inicial da reserva operacional de cada nó
+  mpCapMax: 10000,       // teto máximo que a adaptação pode alcançar
+  mpGrowPerDay: 0.05,    // adaptação: +5% do teto por dia de falta sustentada
+  mpCapHalfLifeDays: 14, // adaptação: sem falta, o teto volta ao inicial com meia-vida de 14 dias
+  mpPisoAprender: 0.6,   // piso de aprender (fração do teto): o mais alto, cai primeiro
+  mpPisoDisp0: 0.05,     // piso de disparar do nó mais perto da transdução (distância 2)
+  mpPisoDispK: 0.04,     // piso de disparar: a mais por passo de distância da transdução
+  mpPisoDispMax: 0.5,    // piso de disparar: limite
+  mpCostFire: 1,         // custo de disparar (+ mpCostEdge por aresta de saída)
+  mpCostEdge: 1,
+  mpCostLearn: 1,        // custo de cada reforço ou enfraquecimento
+  mpCostConsol: 20,      // custo da consolidação (a parte mais cara do aprender)
+  mpCostCreate: 10,      // custo de criar um nó (+ mpCostCreateEdge por aresta)
+  mpCostCreateEdge: 2,
 };
 export const PARAM_UI = [
   ['sr','taxa do microfone (Hz)'],['cochChannels','canais da cóclea'],['baseThr','limiar da fibra sensível'],['fiberDb2','fibra média (+dB)'],['fiberDb3','fibra pouco sensível (+dB)'],['fiberRefrMs','refratariedade da fibra (ms)'],['adaptCost','adaptação: gasto por disparo'],['adaptTau1Ms','adaptação rápida (ms)'],['adaptTau2Ms','adaptação curto prazo (ms)'],['ihcLowpassHz','célula ciliada: corte (Hz)'],['thrFrac','limiar do nó novo (fração)'],
@@ -72,4 +96,8 @@ export const PARAM_UI = [
   ['tauPlusMs','janela do reforço (ms)'],['tauMinusMs','janela do enfraquecimento (ms)'],
   ['fastHalfLifeS','meia-vida do peso basal (s)'],['slowHalfLifeDays','meia-vida do peso consolidado (dias)'],['tagHours','janela de consolidação (h)'],['consolThr','reforço acumulado para consolidar'],
   ['pruneDays','poda: dias inerte até podar'],['accessBoost','acesso: reforço da candidata'],['accessWindowH','acesso: +janela de consolidação (h)'],['inertW','peso inerte abaixo de'],['actWindowMs','janela da atividade gravada (ms)'],
+  ['mpOn','marcapasso de recursos ligado (0/1)'],['mpF0','marcapasso: ritmo próprio (batidas/s)'],['mpRestBpm','marcapasso: repouso com o reflexo (bpm)'],['mpBeatOps','recurso operacional por batida'],['mpBaseOps','parte base por nó e batida'],['mpOver','sobra para o nó ativo (×)'],
+  ['mpCap0','teto inicial da reserva operacional'],['mpCapMax','teto máximo da reserva'],['mpGrowPerDay','adaptação: crescimento por dia de falta'],['mpCapHalfLifeDays','adaptação: meia-vida da volta (dias)'],
+  ['mpPisoAprender','piso de aprender (fração do teto)'],['mpPisoDisp0','piso de disparar perto da transdução'],['mpPisoDispK','piso de disparar: + por distância'],['mpPisoDispMax','piso de disparar: máximo'],
+  ['mpCostFire','custo: disparar'],['mpCostEdge','custo: por aresta de saída'],['mpCostLearn','custo: reforço/enfraquecimento'],['mpCostConsol','custo: consolidação'],['mpCostCreate','custo: criar nó'],['mpCostCreateEdge','custo: por aresta criada'],
 ];

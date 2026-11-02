@@ -21,6 +21,9 @@
       <div class="tile" title="Arestas vivas que saem das fibras ou de nós do Sdom"><span class="tl">Arestas</span><b id="tArestas">—</b></div>
       <div class="tile" title="Sinapse = junção aresta → nó. Hoje cada aresta termina em exatamente um nó, então o número é igual ao de arestas"><span class="tl">Sinapses</span><b id="tSinapses">—</b></div>
       <div class="tile" title="Disparos por segundo (de tempo real) em todo o sistema"><span class="tl">Disparos/s</span><b id="tDisp">—</b></div>
+      <div class="tile" title="Ritmo do marcapasso de recursos (batidas por minuto de mundo)"><span class="tl">Marcapasso</span><b id="tBpm">—</b></div>
+      <div class="tile" title="Nível geral da reserva operacional (média das reservas dos nós do Sdom, em % do teto)"><span class="tl">Reserva</span><b id="tRes">—</b></div>
+      <div class="tile" title="Quantas vezes por segundo algo deixou de acontecer por falta de recurso operacional (disparar, aprender ou criar)"><span class="tl">Faltas/s</span><b id="tFalta">—</b></div>
     </div>
     <div class="small mut" id="statsMore">—</div>
   </section>
@@ -108,6 +111,8 @@
     <canvas id="labC1" class="labc"></canvas>
     <div class="small" style="margin-top:6px">Disparos a cada segundo de mundo</div>
     <canvas id="labC2" class="labc"></canvas>
+    <div class="small" style="margin-top:6px">Faltas de recurso operacional a cada segundo de mundo</div>
+    <canvas id="labC3" class="labc"></canvas>
     <div class="note">Cria um universo novo e roda o roteiro num processo separado, sem desenhar, o mais rápido que o aparelho aguenta. O universo atual fica em espera. No fim, o do laboratório vira o atual (dá para voltar os últimos ~90 s) e tudo fica gravado. Mesma semente = mesmo ambiente.</div>
     <div id="labTip"></div>
   </section>
