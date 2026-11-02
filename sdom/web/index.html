@@ -168,7 +168,7 @@
      observados, para que tudo chegue junto ao nó novo.
    - Sem aprendizado nem divisão ainda.
    ===================================================================== */
-const CODE_VERSION = 'v0.7';
+const CODE_VERSION = 'v0.8';
 const DEFAULTS = {
   sr: 16000,           // taxa do microfone (amostras/s); botão alterna 16k/8k
   // transdução auditiva (v0.6): cóclea fixa, fora do Sdom
@@ -176,7 +176,12 @@ const DEFAULTS = {
   baseThr: 0.003,      // limiar da fibra mais sensível (amplitude na saída do canal)
   fiberDb2: 10,        // fibra média: 10 dB menos sensível (Liberman, 1977)
   fiberDb3: 30,        // fibra pouco sensível: 30 dB menos sensível (faixa observada: até ~70 dB)
-  fiberRefrMs: 3,      // refratariedade da fibra (limita a ~330 disparos/s)
+  fiberRefrMs: 1,      // refratariedade absoluta da fibra
+  // adaptação da fibra (v0.8): esgotamento e reposição de "substância" em dois reservatórios
+  // (Smith & Brachman, 1982; Westerman & Smith, 1984): rápida (~5 ms) e de curto prazo (~50 ms)
+  adaptCost: 0.1,      // fração do reservatório imediato gasta por disparo
+  adaptTau1Ms: 5,      // reposição do reservatório imediato (adaptação rápida)
+  adaptTau2Ms: 50,     // reposição do reservatório local (adaptação de curto prazo)
   ihcLowpassHz: 3000,  // célula ciliada: perda de sincronia em frequências altas
   thrFrac: 0.8,        // limiar do nó novo = fração do que o criou
   basalMs: 0.125,      // atraso basal das arestas
@@ -185,6 +190,7 @@ const DEFAULTS = {
   weber: 0.1,          // tolerância proporcional ao intervalo relacionado (propriedade escalar)
   minCoincMs: 0.25,    // tolerância mínima (escala da diferença de tempo entre os ouvidos)
   prepFrac: 0.5,       // nó que recebe ≥ 50% do limiar está preparado: o que chegou nele tem relação
+  pathRule: 0,         // 1 = basta a incidência chegar a algum nó (ter caminho) para o disparo ter relação
   gapMs: 1,            // intervalo mínimo entre criações
   maxGroup: 6,         // disparos relacionados por um nó novo, no máximo
   maxDepth: 12,        // trava de segurança contra fuga (não é regra de agrupamento)
@@ -209,10 +215,10 @@ const DEFAULTS = {
   actWindowMs: 100,      // janela da atividade gravada
 };
 const PARAM_UI = [
-  ['sr','taxa do microfone (Hz)'],['cochChannels','canais da cóclea'],['baseThr','limiar da fibra sensível'],['fiberDb2','fibra média (+dB)'],['fiberDb3','fibra pouco sensível (+dB)'],['fiberRefrMs','refratariedade da fibra (ms)'],['ihcLowpassHz','célula ciliada: corte (Hz)'],['thrFrac','limiar do nó novo (fração)'],
+  ['sr','taxa do microfone (Hz)'],['cochChannels','canais da cóclea'],['baseThr','limiar da fibra sensível'],['fiberDb2','fibra média (+dB)'],['fiberDb3','fibra pouco sensível (+dB)'],['fiberRefrMs','refratariedade da fibra (ms)'],['adaptCost','adaptação: gasto por disparo'],['adaptTau1Ms','adaptação rápida (ms)'],['adaptTau2Ms','adaptação curto prazo (ms)'],['ihcLowpassHz','célula ciliada: corte (Hz)'],['thrFrac','limiar do nó novo (fração)'],
   ['basalMs','atraso basal da aresta (ms)'],
   ['bindMs','alcance da relação no tempo (ms)'],['weber','tolerância proporcional (fração)'],['minCoincMs','tolerância mínima (ms)'],
-  ['prepFrac','preparado a partir de (fração do limiar)'],['maxGroup','disparos por nó novo (máx.)'],['maxDepth','trava de profundidade'],['maxNodes','teto de nós'],['histSeconds','histórico gravado (s)'],
+  ['prepFrac','preparado a partir de (fração do limiar)'],['pathRule','regra: basta ter caminho (0/1)'],['maxGroup','disparos por nó novo (máx.)'],['maxDepth','trava de profundidade'],['maxNodes','teto de nós'],['histSeconds','histórico gravado (s)'],
   ['wBirth','peso de nascimento da aresta'],['aPlus','reforço (chegou antes)'],['aMinus','enfraquecimento (chegou depois)'],
   ['tauPlusMs','janela do reforço (ms)'],['tauMinusMs','janela do enfraquecimento (ms)'],
   ['fastHalfLifeS','meia-vida do peso basal (s)'],['slowHalfLifeDays','meia-vida do peso consolidado (dias)'],['tagHours','janela de consolidação (h)'],['consolThr','reforço acumulado para consolidar'],
@@ -325,6 +331,7 @@ class Universe{
     for(const b of this.wheel) b.length=0;
     for(const n of this.nodes){ n.contrib=[]; n.refUntil=0; }
     for(const st of this.cochState) st.fill(0); for(const ih of this.ihc) ih.fill(0);
+    for(const F of this.fibers) for(const f of F){ f.q1=1; f.q2=1; }   // em silêncio longo, a fibra se recupera
     this.Qe=[]; this.qh=0;
     if(this.actCounts.size){ const c={}; for(const [k,v] of this.actCounts) c[k]=v; this.actLog.push({t0:this.actStart,c}); this.actCounts.clear(); }
     this.actStart=this.t;
@@ -343,6 +350,7 @@ class Universe{
     const thr=[0,this.p.fiberDb2,this.p.fiberDb3].map(db=>this.p.baseThr*Math.pow(10,db/20));
     const refr=Math.max(1,Math.round(this.p.fiberRefrMs*sr/1000));
     this.fibers=[[],[]];
+    this.ak1=1-Math.exp(-1/(this.p.adaptTau1Ms*sr/1000)); this.ak2=1-Math.exp(-1/(this.p.adaptTau2Ms*sr/1000));
     for(let k=0;k<N;k++){
       const E=1+k*(40/Math.max(1,N-1));               // de 1 a 41 na escala ERB
       const fc=(Math.pow(10,E/21.4)-1)/0.00437;
@@ -353,7 +361,7 @@ class Universe{
       for(let e=0;e<2;e++) for(let c=0;c<3;c++){
         const yb = e===0 ? 470 : 970;
         const n=this.addNode({lvl:1, depth:1, ear:e, W:1, thr:thr[c], mag:1, refr, born:0,
-          x: 225 + c*45, y: yb - 430*(k/Math.max(1,N-1)), fiber:{k, fc, cls:c, db:[0,this.p.fiberDb2,this.p.fiberDb3][c], active}});
+          x: 225 + c*45, y: yb - 430*(k/Math.max(1,N-1)), fiber:{k, fc, cls:c, db:[0,this.p.fiberDb2,this.p.fiberDb3][c], active}, q1:1, q2:1});
         this.fibers[e].push(n);
         this.addEdge(this.nodes[e], n, this.basal);
       }
@@ -372,7 +380,12 @@ class Universe{
       const bm=re*ch.g;                                  // movimento da membrana basilar neste lugar
       const hc=bm>0?bm:0;                                 // meia-onda (célula ciliada)
       const v = ih[k] = cc*ih[k] + (1-cc)*hc;
-      for(let c=0;c<3;c++){ const f=F[k*3+c]; if(t>=f.refUntil && v>=f.thr) this.fire(f,t); }
+      for(let c=0;c<3;c++){
+        const f=F[k*3+c];
+        // adaptação: o reservatório local repõe o imediato; o global (=1) repõe o local
+        if(f.q1<1 || f.q2<1){ const fl=(f.q2-f.q1)*this.ak1; if(fl>0){ f.q1+=fl; f.q2-=fl; } f.q2+=(1-f.q2)*this.ak2; }
+        if(t>=f.refUntil && v>=f.thr && f.q1>=this.p.adaptCost){ f.q1-=this.p.adaptCost; this.fire(f,t); }
+      }
     }
   }
   // um passo de tempo = uma amostra do microfone
@@ -446,6 +459,7 @@ class Universe{
       if(o.mod<this.p.inertW) continue;      // inerte: a estrutura fica, mas não entrega nada
       let v = mag*o.mod; if(o.effect===2) v=-Math.abs(v);
       this.wheel[(t+o.d)&this.wmask].push({n:o.to, v, ev, t0:t+o.d, e:o});
+      if(ev && this.p.pathRule) ev.a=true;   // variante: a incidência encontrou um caminho
     }
     if(n.lvl>=2) this.wheel[(t+n.refr)&this.wmask].push({n, chk:true});
   }
