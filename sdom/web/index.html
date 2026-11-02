@@ -90,7 +90,7 @@
   </div>
   <div class="small mut" id="stStatus">—</div>
   <div id="stList" style="margin-top:6px"></div>
-  <div class="note">Fica tudo só aqui (IndexedDB). Grava a cada 2 s: estrutura, mudanças de limiar, atividade resumida (disparos por nó a cada 100 ms) e estímulos tocados. "Baixar JSON" gera o arquivo para análise.</div>
+  <div class="note">Fica tudo só aqui (IndexedDB). Grava a cada 2 s: estrutura, mudanças de peso das arestas, atividade resumida (disparos por nó a cada 100 ms) e estímulos tocados. "Baixar JSON" gera o arquivo para análise.</div>
 </section>
 
 <section id="secPar">
@@ -120,7 +120,7 @@
     <span><i class="dot" style="background:var(--l4)"></i>4</span>
     <span><i class="dot" style="background:var(--hot)"></i>disparou</span>
     <span><i class="dot" style="border:2px solid #fff;background:none"></i>acabou de nascer</span>
-    <span class="mut">arco = percorrido em parte · escurecido = magnitude decaindo · anel cinza = inerte</span>
+    <span class="mut">arco = percorrido em parte · aresta: apagada = fraca, azul = forte, tracejada = inerte</span>
   </div>
   <canvas id="sdom"></canvas>
   <div class="small mut" style="margin-top:6px">O que cada ouvido está captando (últimos 40 ms):</div>
@@ -163,7 +163,7 @@
      observados, para que tudo chegue junto ao nó novo.
    - Sem aprendizado nem divisão ainda.
    ===================================================================== */
-const CODE_VERSION = 'v0.2';
+const CODE_VERSION = 'v0.3';
 const DEFAULTS = {
   sr: 8000,            // taxa do microfone (amostras/s)
   floor: 0.02,         // sensibilidade: lóbulo abaixo disso é ignorado
@@ -177,13 +177,15 @@ const DEFAULTS = {
   maxWms: 20,          // lóbulo mais longo considerado (≈ 25 Hz)
   maxNodes: 6000,
   histSeconds: 90,
-  // aprendizado (v0.2)
-  reinfRate: 0.05,       // reforço: cada nova travessia baixa o limiar em 5%
-  thrFloorFrac: 0.3,     // piso do limiar: 30% do valor de nascimento
-  episodeGapMs: 100,     // só conta como "percorrida de novo" após 100 ms sem disparar
-  decayHalfLifeS: 30,    // decaimento: meia-vida da magnitude sem ser percorrida
-  inertFrac: 0.01,       // abaixo de 1% da magnitude de nascimento = inerte
-  actWindowMs: 100,      // janela da atividade resumida gravada
+  // aprendizado (v0.3): tudo no PESO da aresta (modulação da magnitude), 0 = inerte, 1 = máximo
+  wBirth: 0.5,           // peso com que a aresta nasce
+  aPlus: 0.005,          // reforço por sincronia: chegou ANTES do disparo do nó seguinte
+  aMinus: 0.005,         // enfraquecimento por sincronia: chegou DEPOIS do disparo
+  tauPlusMs: 17,         // janelas de tempo (valores médios de Bi & Poo, 1998)
+  tauMinusMs: 34,
+  decayHalfLifeS: 30,    // decaimento: meia-vida do peso sem ser percorrida
+  inertW: 0.01,          // peso abaixo disso = inerte (não entrega nada)
+  actWindowMs: 100,      // janela da atividade gravada
 };
 const PARAM_UI = [
   ['sr','taxa do microfone (Hz)'],['floor','sensibilidade mínima'],['thrFrac','limiar do nó novo (fração)'],
@@ -191,8 +193,9 @@ const PARAM_UI = [
   ['coincMs2','integração nível 2 (ms)'],['coincMs3','integração nível 3 (ms)'],['coincMs4','integração nível 4 (ms)'],
   ['bindMs2','agrupamento nível 2 (ms)'],['bindMs3','agrupamento nível 3 (ms)'],['bindMs4','agrupamento nível 4 (ms)'],
   ['maxLevel','níveis máximos (1–4)'],['maxNodes','teto de nós'],['histSeconds','histórico gravado (s)'],
-  ['reinfRate','reforço: queda do limiar por travessia'],['thrFloorFrac','piso do limiar (fração)'],['episodeGapMs','intervalo que define nova travessia (ms)'],
-  ['decayHalfLifeS','meia-vida da magnitude (s)'],['inertFrac','inerte abaixo de (fração)'],['actWindowMs','janela da atividade gravada (ms)'],
+  ['wBirth','peso de nascimento da aresta'],['aPlus','reforço por sincronia (chegou antes)'],['aMinus','enfraquecimento por sincronia (chegou depois)'],
+  ['tauPlusMs','janela do reforço (ms)'],['tauMinusMs','janela do enfraquecimento (ms)'],
+  ['decayHalfLifeS','meia-vida do peso sem uso (s)'],['inertW','peso inerte abaixo de'],['actWindowMs','janela da atividade gravada (ms)'],
 ];
 
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -232,9 +235,9 @@ class Universe{
     this.fireCount = 0; this.capHit = false;
     // aprendizado e registros para gravação
     this.halfLife = Math.max(1, p.decayHalfLifeS*sr);
-    this.episodeGap = ms(p.episodeGapMs);
-    this.reinfCount = 0;
-    this.thrLog = []; this.actLog = []; this.stimLog = [];
+    this.tauP = Math.max(1e-9, p.tauPlusMs*sr/1000); this.tauM = Math.max(1e-9, p.tauMinusMs*sr/1000);
+    this.ltp = 0; this.ltd = 0; this.wChanged = new Set();
+    this.actLog = []; this.stimLog = [];
     this.actWin = ms(p.actWindowMs); this.actStart = 0; this.actCounts = new Map();
     // os dois ouvidos (nível 0)
     this.addNode({lvl:0, ear:0, W:0, thr:0, mag:0, refr:0, born:0, x:60, y:250});
@@ -242,11 +245,12 @@ class Universe{
   }
   addNode(o){
     const n = Object.assign({id:this.nodes.length, out:[], in:[], contrib:[], refUntil:0, fires:0, nmT:-1e9, origin:null}, o);
-    n.thr0=n.thr; n.mag0=n.mag; n.lastFire=n.born; n.inert=false;
+    n.lastFire=-1e12;
     this.nodes.push(n); return n;
   }
   addEdge(from, to, d){
-    const e = {from, to, d, mod:1, effect:0, born:to.born}; // effect 0 = mantém
+    // peso (mod) só aprende em arestas que saem de nós; ouvido→nível 1 é transdução fixa
+    const e = {id:this.edges.length, from, to, d, mod: from.lvl===0 ? 1 : this.p.wBirth, effect:0, born:to.born, lastUse:to.born}; // effect 0 = mantém
     from.out.push(e); to.in.push(e); this.edges.push(e); return e;
   }
   // um passo de tempo = uma amostra do microfone
@@ -282,8 +286,13 @@ class Universe{
     if(b.length){
       for(let i=0;i<b.length;i++){
         const it=b[i];
-        if(it.chk) this.tryFire(it.n,t);
-        else { it.n.contrib.push(it); this.tryFire(it.n,t); }
+        if(it.chk) { this.tryFire(it.n,t); continue; }
+        const n=it.n, e=it.e;
+        // SINCRONIA (enfraquece): a incidência chegou DEPOIS de o nó já ter disparado.
+        // Fica pendente: se ela ainda ajudar o PRÓXIMO disparo, o reforço vence (Sjöström et al., 2001);
+        // se expirar sem ajudar, o enfraquecimento é aplicado.
+        if(e && n.fires>0){ const dt=t-n.lastFire; if(dt>=1 && dt<5*this.tauM) it.dep=this.p.aMinus*Math.exp(-dt/this.tauM); }
+        n.contrib.push(it); this.tryFire(n,t);
       }
       b.length=0;
     }
@@ -303,11 +312,18 @@ class Universe{
   tryFire(n,t){
     if(t<n.refUntil) return;
     const c=n.contrib; let k=0;
-    while(k<c.length && t-c[k].t0>=n.W) k++;
+    while(k<c.length && t-c[k].t0>=n.W){
+      const x=c[k]; if(x.dep && !x.used && x.e){ x.e.mod-=x.dep*x.e.mod; this.ltd++; this.wChanged.add(x.e); }
+      k++;
+    }
     if(k) c.splice(0,k);
     let s=0; for(let i=0;i<c.length;i++) s+=c[i].v;
     if(s>=n.thr-1e-9){
-      for(let i=0;i<c.length;i++) if(c[i].ev) c[i].ev.a=true;
+      for(let i=0;i<c.length;i++){
+        const x=c[i]; if(x.ev) x.ev.a=true; x.used=true;
+        // SINCRONIA (reforça): chegou ANTES do disparo e contribuiu; freio: quanto mais forte, menos sobe
+        const e=x.e; if(e){ const dw=this.p.aPlus*(1-e.mod)*Math.exp(-(t-x.t0)/this.tauP); e.mod+=dw; this.ltp++; this.wChanged.add(e); }
+      }
       this.fire(n,t);
     } else if(n.lvl>=2 && s>0){
       const f=s/n.thr;
@@ -315,28 +331,20 @@ class Universe{
     }
   }
   fire(n,t){
-    const dtF = t - n.lastFire;
-    // REFORÇO: uma nova travessia (após um intervalo sem disparar) baixa o limiar, até o piso
-    if(dtF>=this.episodeGap){
-      const floor=n.thr0*this.p.thrFloorFrac;
-      if(n.thr>floor){ n.thr=Math.max(floor, n.thr*(1-this.p.reinfRate)); this.thrLog.push([t,n.id,n.thr]); this.reinfCount++; }
-    }
-    // DECAIMENTO: a magnitude cai com o tempo sem ser percorrida; abaixo do limite, inerte.
-    // O disparo entrega a magnitude decaída e "renova" o nó para a próxima vez.
-    let mag = n.mag0*Math.pow(0.5, dtF/this.halfLife);
-    n.inert = mag < n.mag0*this.p.inertFrac;
-    if(n.inert) mag=0;
-    n.mag = mag; n.lastFire = t;
+    const mag = n.mag; n.lastFire = t;   // magnitude do nó é fixa (representa o que a transdução definiu)
     n.refUntil=t+n.refr; n.fires++; this.fireCount++;
     this.actCounts.set(n.id,(this.actCounts.get(n.id)||0)+1);
     if(n.lvl===1) this.lastRecFire[n.ear]=t;
     const k=this.hCount%this.hCap; this.hT[k]=t; this.hN[k]=n.id; this.hCount++;
     let ev=null;
-    if(mag>0 && n.lvl<this.maxLevel){ ev={n, t, m:mag, a:false}; this.Q[n.lvl].push(ev); }
-    if(mag>0) for(let i=0;i<n.out.length;i++){
+    if(n.lvl<this.maxLevel){ ev={n, t, m:mag, a:false}; this.Q[n.lvl].push(ev); }
+    for(let i=0;i<n.out.length;i++){
       const o=n.out[i];
+      // DECAIMENTO: o peso cai com o tempo sem a aresta ser percorrida (calculado agora, de forma preguiçosa)
+      if(t>o.lastUse){ o.mod*=Math.pow(0.5,(t-o.lastUse)/this.halfLife); o.lastUse=t; }
+      if(o.mod<this.p.inertW) continue;      // inerte: a estrutura fica, mas não entrega nada
       let v = mag*o.mod; if(o.effect===2) v=-Math.abs(v);
-      this.wheel[(t+o.d)&this.wmask].push({n:o.to, v, ev, t0:t+o.d});
+      this.wheel[(t+o.d)&this.wmask].push({n:o.to, v, ev, t0:t+o.d, e:o});
     }
     if(n.lvl>=2) this.wheel[(t+n.refr)&this.wmask].push({n, chk:true});
   }
@@ -371,7 +379,7 @@ class Universe{
   createGroup(l,group,t,h){
     let tLast=-1e12, sm=0, sy=0;
     for(const e of group){ if(e.t>tLast)tLast=e.t; sm+=e.m; sy+=e.n.y; }
-    const n=this.addNode({lvl:l, W:this.coinc[l], refr:this.coinc[l], thr:this.p.thrFrac*sm, mag:Math.min(1,sm/group.length), born:t,
+    const n=this.addNode({lvl:l, W:this.coinc[l], refr:this.coinc[l], thr:this.p.thrFrac*sm*this.p.wBirth, mag:Math.min(1,sm/group.length), born:t,
       x: [0,0,520,780,1030][l] + this.rng()*130, y: Math.max(20,Math.min(980, sy/group.length + (this.rng()-0.5)*40)),
       origin:{span:(tLast-group[0].t)*1000/this.sr, k:group.length}});
     for(const e of group){ this.addEdge(e.n, n, tLast-e.t+this.basal); e.a=true; }
@@ -388,7 +396,7 @@ class Universe{
     for(const tau of taus){
       let s=0; const used=[];
       for(const ed of n.in){ const a=bySrc.get(ed.from.id); if(!a)continue;
-        for(const e of a){ const arr=e.t+ed.d; if(tau-arr>=0 && tau-arr<n.W){ s+=e.m; used.push(e); } } }
+        for(const e of a){ const arr=e.t+ed.d; if(tau-arr>=0 && tau-arr<n.W){ s+=e.m*ed.mod; used.push(e); } } }
       if(s>=n.thr-1e-9) for(const e of used) e.a=true;
     }
   }
@@ -412,15 +420,14 @@ class Universe{
     const h = this.hCount>this.hCap ? this.hT[lo%this.hCap] : 0;
     return Math.max(a,h);
   }
-  magAt(n,time){ // magnitude que o nó entregaria se disparasse em `time` (null se desconhecida)
-    if(n.lvl<1) return null; if(n.lastFire>time) return null;
-    const m=n.mag0*Math.pow(0.5,(time-n.lastFire)/this.halfLife);
-    return m < n.mag0*this.p.inertFrac ? 0 : m;
+  wAt(e,time){ // peso efetivo da aresta em `time` (null se a última mudança é posterior)
+    if(e.lastUse>time) return null;
+    return e.mod*Math.pow(0.5,(time-e.lastUse)/this.halfLife);
   }
   toJSON(){
     return {version:CODE_VERSION, params:this.p, worldTimeS:this.t/this.sr,
-      nodes:this.nodes.map(n=>({id:n.id,lvl:n.lvl,ear:n.ear,W:n.W,thr0:+n.thr0.toFixed(5),thr:+n.thr.toFixed(5),mag0:+n.mag0.toFixed(4),refr:n.refr,born:n.born,lastFire:n.lastFire,fires:n.fires,
-        in:n.in.map(e=>[e.from.id,e.d])}))};
+      nodes:this.nodes.map(n=>({id:n.id,lvl:n.lvl,ear:n.ear,W:n.W,thr:+n.thr.toFixed(5),mag:+n.mag.toFixed(4),refr:n.refr,born:n.born,fires:n.fires,
+        in:n.in.map(e=>[e.from.id,e.d,+this.wAt(e,this.t).toFixed(4)])}))};
   }
 }
 
@@ -598,10 +605,15 @@ function drawSdom(){
   // arestas
   const sel=view.sel;
   g.lineWidth=Math.max(0.5,0.6*d);
-  if(ne<=12000){
-    g.strokeStyle='rgba(140,150,170,0.07)'; g.beginPath();
-    for(let i=0;i<ne;i++){const e=U.edges[i]; if(e.from.lvl===0)continue; g.moveTo(X(e.from.x),Y(e.from.y)); g.lineTo(X(e.to.x),Y(e.to.y));}
-    g.stroke();
+  if(ne<=15000){
+    // arestas pelo peso: fraca, média, forte; inertes tracejadas
+    const B=[['rgba(140,150,170,0.06)',0.6],['rgba(150,170,210,0.16)',1],['rgba(120,190,255,0.45)',1.4]];
+    const paths=[new Path2D(),new Path2D(),new Path2D()], inert=new Path2D();
+    for(let i=0;i<ne;i++){const e=U.edges[i]; if(e.from.lvl===0)continue; let w=U.wAt(e,tv); if(w===null) w=e.mod;
+      const p = w<U.p.inertW ? inert : paths[w<0.35?0:(w<0.7?1:2)];
+      p.moveTo(X(e.from.x),Y(e.from.y)); p.lineTo(X(e.to.x),Y(e.to.y)); }
+    for(let k=0;k<3;k++){ g.strokeStyle=B[k][0]; g.lineWidth=B[k][1]*d; g.stroke(paths[k]); }
+    g.setLineDash([3*d,4*d]); g.strokeStyle='rgba(120,120,120,0.25)'; g.lineWidth=0.7*d; g.stroke(inert); g.setLineDash([]);
   }
   // trilha percorrida: aresta entre dois nós que acabaram de disparar
   g.strokeStyle='rgba(255,226,122,0.55)'; g.lineWidth=1.3*d; g.beginPath();
@@ -620,14 +632,7 @@ function drawSdom(){
   }
   g.globalAlpha=1;
   const zr=Math.max(0.7,Math.min(2.2,view.s*1.2));
-  // decaimento: escurece conforme a magnitude cai; inerte = anel cinza
-  for(let i=2;i<nv;i++){
-    const n=U.nodes[i]; const ma=U.magAt(n,tv); if(ma===null) continue;
-    const f=ma/n.mag0; if(f>0.97) continue;
-    const x=X(n.x),y=Y(n.y); if(x<-10||y<-10||x>W+10||y>H+10)continue; const r=RAD[n.lvl]*d*zr;
-    if(f===0){ g.fillStyle='#0b0d11'; g.beginPath(); g.arc(x,y,r,0,6.2832); g.fill(); g.strokeStyle='#59606e'; g.lineWidth=1*d; g.beginPath(); g.arc(x,y,r,0,6.2832); g.stroke(); }
-    else { g.fillStyle=`rgba(11,13,17,${0.85*(1-f)})`; g.beginPath(); g.arc(x,y,r+0.5,0,6.2832); g.fill(); }
-  }
+
   for(let i=0;i<nv;i++){
     const n=U.nodes[i], x=X(n.x), y=Y(n.y); if(x<-10||y<-10||x>W+10||y>H+10)continue;
     const r=RAD[n.lvl]*d*zr;
@@ -694,7 +699,7 @@ function drawStats(){
   const dtR=(now-lastStatT)/1000; lastStatT=now;
   fireRate=(U.fireCount-lastFC)/dtR; lastFC=U.fireCount;
   const per=[0,0,0,0,0]; for(const n of U.nodes) per[n.lvl]++;
-  $('stats').textContent=`nós: ${U.nodes.length-2} (n1 ${per[1]} · n2 ${per[2]} · n3 ${per[3]} · n4 ${per[4]}) · arestas ${U.edges.length} · disparos/s ${Math.round(fireRate)} · reforços ${U.reinfCount} · tempo do mundo ${(U.t/U.sr).toFixed(1)} s · ritmo ${(simRatio*100).toFixed(0)}% do real`;
+  $('stats').textContent=`nós: ${U.nodes.length-2} (n1 ${per[1]} · n2 ${per[2]} · n3 ${per[3]} · n4 ${per[4]}) · arestas ${U.edges.length} · disparos/s ${Math.round(fireRate)} · reforços ${U.ltp} · enfraquecimentos ${U.ltd} · tempo do mundo ${(U.t/U.sr).toFixed(1)} s · ritmo ${(simRatio*100).toFixed(0)}% do real`;
   if(view.sel) showInfo();
 }
 function showInfo(){
@@ -705,15 +710,14 @@ function showInfo(){
   if(n.lvl===0){ s+=`microfone: transduz pressão em incidências\n(positivo = excitatória, negativo = inibitória)\nsaídas: ${n.out.length}`; $('info').textContent=s; return; }
   s+=`nasceu em ${fmt(n.born)}\n`;
   s+=`janela de integração ${ms(n.W)} · refratariedade ${ms(n.refr)}\n`;
-  const red=(1-n.thr/n.thr0)*100;
-  s+=`limiar ${n.thr.toFixed(4)} (nasceu ${n.thr0.toFixed(4)}; reforço −${red.toFixed(0)}%)\n`;
-  const ma=U.magAt(n,Math.floor(view.tv));
-  s+=`magnitude: nasceu ${n.mag0.toFixed(4)}`+(ma===null?'':` · agora ${ma.toFixed(4)} (${(ma/n.mag0*100).toFixed(0)}%)${ma===0?' · INERTE':''}`)+`\n`;
-  s+=`disparos até agora ${n.fires} · último há ${((U.t-n.lastFire)/U.sr).toFixed(1)} s\n`;
+  s+=`limiar ${n.thr.toFixed(4)} (fixo) · magnitude ${n.mag.toFixed(4)} (fixa)\n`;
+  s+=`disparos até agora ${n.fires}`+(n.fires?` · último há ${((U.t-n.lastFire)/U.sr).toFixed(1)} s`:'')+`\n`;
   if(n.lvl===1&&n.origin) s+=`origem: lóbulo de ${n.origin.lobeMs.toFixed(3)} ms (≈ ${Math.round(n.origin.hz)} Hz se fosse tom puro), pico ${n.origin.peak.toFixed(3)}\n`;
   if(n.lvl>=2&&n.origin) s+=`origem: agrupou ${n.origin.k} disparos espalhados em ${n.origin.span.toFixed(2)} ms\n`;
   s+=`entradas (${n.in.length}):\n`;
-  for(const e of n.in.slice(0,12)) s+=`  de #${e.from.id} (${['ouvido','n1','n2','n3','n4'][e.from.lvl]}) atraso ${ms(e.d)}\n`;
+  const tvv=Math.floor(view.tv);
+  for(const e of n.in.slice(0,12)){ let w=U.wAt(e,tvv); if(w===null)w=e.mod;
+    s+=`  de #${e.from.id} (${['ouvido','n1','n2','n3','n4'][e.from.lvl]}) atraso ${ms(e.d)}`+(e.from.lvl? ` · peso ${w.toFixed(3)}${w<U.p.inertW?' INERTE':''}`:'')+`\n`; }
   if(n.in.length>12) s+=`  …\n`;
   s+=`saídas: ${n.out.length}`;
   $('info').textContent=s;
@@ -807,9 +811,9 @@ const Store={
   db:null, ok:false, uid:null, nodePtr:0, meta:null, bytes:0,
   async open(){
     try{
-      this.db=await new Promise((res,rej)=>{ const r=indexedDB.open('sdom',1);
-        r.onupgradeneeded=()=>{ const d=r.result; d.createObjectStore('universes',{keyPath:'id'});
-          for(const st of ['nodes','thr','activity','stimuli']){ const os=d.createObjectStore(st,{autoIncrement:true}); os.createIndex('u','u'); } };
+      this.db=await new Promise((res,rej)=>{ const r=indexedDB.open('sdom',2);
+        r.onupgradeneeded=()=>{ const d=r.result; if(!d.objectStoreNames.contains('universes')) d.createObjectStore('universes',{keyPath:'id'});
+          for(const st of ['nodes','thr','weights','activity','stimuli']){ if(!d.objectStoreNames.contains(st)){ const os=d.createObjectStore(st,{autoIncrement:true}); os.createIndex('u','u'); } } };
         r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
       this.ok=true;
     }catch(e){ this.ok=false; }
@@ -817,21 +821,22 @@ const Store={
   begin(u){
     this.uid=new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'-'+Math.random().toString(36).slice(2,6);
     this.nodePtr=0;
-    this.meta={id:this.uid, label:'#'+universeNo, version:CODE_VERSION, params:u.p, sr:u.sr, createdAt:new Date().toISOString(), worldTimeS:0, nodes:0, edges:0, fires:0, reinforcements:0};
+    this.meta={id:this.uid, label:'#'+universeNo, version:CODE_VERSION, params:u.p, sr:u.sr, createdAt:new Date().toISOString(), worldTimeS:0, nodes:0, edges:0, fires:0, ltp:0, ltd:0};
     if(this.ok){ try{ this.db.transaction('universes','readwrite').objectStore('universes').put(this.meta); }catch(e){} }
   },
   flush(u){
-    const nodes=u.nodes.slice(this.nodePtr), thr=u.thrLog, act=u.actLog, stim=u.stimLog;
-    this.nodePtr=u.nodes.length; u.thrLog=[]; u.actLog=[]; u.stimLog=[];
+    const nodes=u.nodes.slice(this.nodePtr), act=u.actLog, stim=u.stimLog;
+    const wch={}; for(const e of u.wChanged) wch[e.id]=[+e.mod.toFixed(5), e.lastUse]; u.wChanged.clear();
+    this.nodePtr=u.nodes.length; u.actLog=[]; u.stimLog=[];
     if(!this.ok||!this.uid) return;
     try{
-      const tx=this.db.transaction(['universes','nodes','thr','activity','stimuli'],'readwrite'), id=this.uid;
-      const N=tx.objectStore('nodes'), T=tx.objectStore('thr'), A=tx.objectStore('activity'), S=tx.objectStore('stimuli');
-      for(const n of nodes) N.add({u:id, id:n.id, lvl:n.lvl, ear:n.ear, W:n.W, thr0:n.thr0, mag0:n.mag0, refr:n.refr, born:n.born, x:+n.x.toFixed(1), y:+n.y.toFixed(1), origin:n.origin, in:n.in.map(e=>[e.from.id,e.d])});
-      for(const [t,nid,v] of thr) T.add({u:id, t, id:nid, thr:v});
+      const tx=this.db.transaction(['universes','nodes','weights','activity','stimuli'],'readwrite'), id=this.uid;
+      const N=tx.objectStore('nodes'), Wt=tx.objectStore('weights'), A=tx.objectStore('activity'), S=tx.objectStore('stimuli');
+      for(const n of nodes) N.add({u:id, id:n.id, lvl:n.lvl, ear:n.ear, W:n.W, thr:n.thr, mag:n.mag, refr:n.refr, born:n.born, x:+n.x.toFixed(1), y:+n.y.toFixed(1), origin:n.origin, in:n.in.map(e=>[e.id,e.from.id,e.d,e.mod])});
+      if(Object.keys(wch).length) Wt.add({u:id, t:u.t, w:wch});
       for(const a of act) A.add({u:id, t0:a.t0, c:a.c});
       for(const st of stim) S.add(Object.assign({u:id},st));
-      Object.assign(this.meta,{worldTimeS:+(u.t/u.sr).toFixed(3), nodes:u.nodes.length-2, edges:u.edges.length, fires:u.fireCount, reinforcements:u.reinfCount, updatedAt:new Date().toISOString()});
+      Object.assign(this.meta,{worldTimeS:+(u.t/u.sr).toFixed(3), nodes:u.nodes.length-2, edges:u.edges.length, fires:u.fireCount, ltp:u.ltp, ltd:u.ltd, updatedAt:new Date().toISOString()});
       tx.objectStore('universes').put(this.meta);
     }catch(e){}
   },
@@ -839,13 +844,14 @@ const Store={
   async getAllFor(store,id){ return await new Promise(res=>{ const r=this.db.transaction(store).objectStore(store).index('u').getAll(IDBKeyRange.only(id)); r.onsuccess=()=>res((r.result||[]).map(x=>{const y=Object.assign({},x); delete y.u; return y;})); r.onerror=()=>res([]); }); },
   async exportU(id){
     const meta=(await this.list()).find(m=>m.id===id);
-    return {format:'sdom-universe/1', universe:meta, nodes:await this.getAllFor('nodes',id), thresholdChanges:await this.getAllFor('thr',id),
+    return {format:'sdom-universe/2', universe:meta, nodes:await this.getAllFor('nodes',id),
+      weightChanges:await this.getAllFor('weights',id), thresholdChanges:await this.getAllFor('thr',id),
       activity:await this.getAllFor('activity',id), stimuli:await this.getAllFor('stimuli',id)};
   },
   async del(id){
-    const tx=this.db.transaction(['universes','nodes','thr','activity','stimuli'],'readwrite');
+    const tx=this.db.transaction(['universes','nodes','thr','weights','activity','stimuli'],'readwrite');
     tx.objectStore('universes').delete(id);
-    for(const st of ['nodes','thr','activity','stimuli']){ const c=tx.objectStore(st).index('u').openKeyCursor(IDBKeyRange.only(id)); const os=tx.objectStore(st); c.onsuccess=()=>{ const cur=c.result; if(cur){ os.delete(cur.primaryKey); cur.continue(); } }; }
+    for(const st of ['nodes','thr','weights','activity','stimuli']){ const c=tx.objectStore(st).index('u').openKeyCursor(IDBKeyRange.only(id)); const os=tx.objectStore(st); c.onsuccess=()=>{ const cur=c.result; if(cur){ os.delete(cur.primaryKey); cur.continue(); } }; }
     await new Promise(r=>{tx.oncomplete=r; tx.onerror=r;});
   },
 };
@@ -859,7 +865,7 @@ async function renderStore(){
     const row=document.createElement('div'); row.className='uni';
     const cur=m.id===Store.uid;
     const lbl=document.createElement('span'); lbl.className='lbl';
-    lbl.textContent=`${m.label}${cur?' (atual)':''} · ${new Date(m.createdAt).toLocaleString('pt-BR')} · ${m.version} · ${m.worldTimeS??0} s de mundo · ${m.nodes??0} nós · ${m.reinforcements??0} reforços`;
+    lbl.textContent=`${m.label}${cur?' (atual)':''} · ${new Date(m.createdAt).toLocaleString('pt-BR')} · ${m.version} · ${m.worldTimeS??0} s de mundo · ${m.nodes??0} nós · ${m.ltp??m.reinforcements??0} reforços`;
     const bD=document.createElement('button'); bD.textContent='Baixar JSON';
     bD.onclick=async()=>{ if(cur) Store.flush(U); const data=await Store.exportU(m.id); const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
       const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`sdom-${m.id}.json`; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},2000); };

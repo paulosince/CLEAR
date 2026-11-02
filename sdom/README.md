@@ -48,25 +48,41 @@ Todas as características de nós e arestas podem ser modificadas por aprendizad
    formava, para evitar cópias do mesmo padrão.
 6. Ainda sem divisão e sem arestas inibitórias.
 
-## Aprendizado (v0.2)
+## Aprendizado (v0.3)
 
-- **Reforço** (definido pelo Paulo: o limiar): quando o nó é percorrido de novo, o
-  limiar cai 5%, até um piso de 30% do valor de nascimento. *Escolha do Claude:* só
-  conta como nova travessia um disparo depois de ≥ 100 ms sem disparar — senão um
-  nó que dispara a cada ciclo de um tom chegaria ao piso em décimos de segundo.
-- **Decaimento** (definido pelo Paulo: a magnitude, até inerte; a estrutura fica):
-  a magnitude que o nó entrega cai com meia-vida de 30 s de mundo desde o último
-  disparo; abaixo de 1% da magnitude de nascimento o nó fica inerte (entrega 0).
-  *Escolha do Claude:* disparar renova o nó (o relógio do decaimento recomeça).
+Reforço e enfraquecimento agem **no mesmo lugar e em sentidos opostos: o peso da
+aresta** (a modulação da magnitude, de 0 = inerte a 1 = máximo), como LTP e LTD
+na sinapse. A magnitude do nó e o limiar ficam fixos: a magnitude continua
+representando o que a transdução definiu.
 
-Todos os números acima são parâmetros do universo.
+- **Sincronia, reforço:** a incidência chegou *antes* do disparo do nó seguinte e
+  contribuiu → o peso sobe `aPlus·(1−peso)·e^(−Δt/17 ms)`. O `(1−peso)` é o freio:
+  quanto mais forte, menos sobe (dependência do peso observada por Bi & Poo, 1998).
+- **Sincronia, enfraquecimento:** a incidência chegou *depois* de o nó já ter
+  disparado → o peso desce `aMinus·peso·e^(−Δt/34 ms)`. Fica pendente: se ela
+  ainda ajudar o próximo disparo, o reforço vence (modelo de Sjöström, Turrigiano
+  & Nelson, 2001). Sem essa regra, em sons periódicos cada incidência era ao mesmo
+  tempo "atrasada" para o disparo anterior e "a tempo" para o seguinte, e os pesos
+  ficavam presos no valor de nascimento.
+- **Decaimento:** sem ser percorrida, o peso cai com meia-vida de 30 s de mundo;
+  abaixo de 0,01 a aresta fica inerte (a estrutura permanece).
+- Arestas nascem com peso 0,5; o limiar do nó novo é calibrado com esse peso.
+- A ligação ouvido → nível 1 é transdução fixa: não aprende nem decai.
+
+Janelas de 17 ms e 34 ms: médias de Bi & Poo (1998). Todos os números são
+parâmetros do universo.
+
+### Histórico
+- v0.2 tentou reforço no limiar e decaimento na magnitude. Como agiam em coisas
+  diferentes, um não desfazia o outro e não havia volta. Substituído na v0.3.
 
 ## Gravação
 
 Só local, no navegador (IndexedDB). A cada 2 s grava: o universo (versão e
-parâmetros), os nós com suas arestas de entrada, as mudanças de limiar, a
-atividade resumida (disparos por nó a cada 100 ms) e os estímulos tocados.
-"Baixar JSON" exporta um universo no formato `sdom-universe/1`.
+parâmetros), os nós com suas arestas de entrada, as mudanças de peso das arestas
+(`[peso, momento da última mudança]`, para recalcular o decaimento), a atividade
+resumida (disparos por nó a cada 100 ms) e os estímulos tocados.
+"Baixar JSON" exporta um universo no formato `sdom-universe/2`.
 
 ## Resultado do experimento na v0.1 (sem aprendizado)
 
@@ -82,12 +98,20 @@ O piano passa a ser só percorrido a partir da 4ª nota. A viola reaproveita par
 e cria o resto. Depois da viola, o piano volta a gerar estrutura: nós nascidos
 com a viola também disparam no piano, e ele passa a ser relacionado a ela.
 
-## Observações da v0.2
+## Resultados da v0.3 (parâmetros padrão, `tests/`)
 
-- Com o reforço, a convergência piorou: o piano não para mais de criar estrutura
-  depois de 4 repetições. Hipótese: com limiar mais baixo, nós disparam com padrões
-  parciais e em momentos novos, e isso é novidade para o nível de cima.
-- Depois de ~4 min de silêncio tudo fica inerte, inclusive o nível 1. A primeira
-  nota depois disso quase não passa do nível 1 (só "acorda" os nós); a segunda já
-  percorre. Um som realmente novo, nesse estado, também não seria aprendido na
-  primeira vez.
+Nós nascidos durante cada nota (n1/n2/n3/n4):
+
+| nota | 1 | 2 | 3 | 4 | 5 | 6 |
+|---|---|---|---|---|---|---|
+| piano | 4/5/7/2 | 0/1/12/5 | 0/0/0/2 | 0/0/0/2 | 0/0/0/0 | 0/0/0/0 |
+| viola | 2/1/7/2 | 0/1/4/3 | 0/0/1/3 | 0/0/0/0 | 0/0/0/0 | 0/0/0/0 |
+| piano de novo | 0/5/13/5 | 0/0/5/3 | | | | |
+
+Decaimento (`tests/decaimento.js`): com o uso, o peso médio sobe de 0,5 para ~0,79.
+Após 10 s de silêncio o piano ainda é só percorrido. Após 60 s os pesos caíram a
+~1/4 e o piano volta a gerar estrutura nova ao lado da antiga (esqueceu e
+reaprende). Após 240 s todas as arestas aprendidas estão inertes.
+
+Exemplo de seletividade: um nó de nível 2 detector do período do dó terminou com
+as duas arestas de um receptor em ~0,92 e as duas de outro em ~0,44 e ~0,22.
