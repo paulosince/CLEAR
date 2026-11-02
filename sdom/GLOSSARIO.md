@@ -46,8 +46,9 @@ Status: **aprovado** (definido ou aceito pelo Paulo) · **em discussão**.
 
 | termo | definição | origem | status |
 |---|---|---|---|
-| **preparação do campo semântico** | o que a neurobiologia costuma chamar de "previsão": o caminho que está sendo percorrido deixa preparado o que costuma vir a seguir. Não é um estado futuro representado. Mecânica a definir. | Paulo | aprovado (mecânica em discussão) |
-| **previsão** | reservado: projeção de um estado em tempo futuro, calculada a partir de dados históricos (probabilidade). **Não** usar para a preparação do campo semântico. | Paulo | aprovado |
+| **campo representacional relacional** | conjunto de representações interligadas por relações (ex.: hospital → médico, enfermeiro; não açougueiro, a não ser que seja paciente). Definido pelas relações, não pelo significado. | Paulo | aprovado |
+| **preparação do campo representacional relacional** | o caminho que está sendo percorrido deixa preparado o que se relaciona a ele. Mecânica: um nó que recebeu incidências dentro da janela de integração, sem atingir o limiar, está preparado — usa as mesmas peças da dinâmica. Não é um estado futuro representado. | Paulo | aprovado |
+| **previsão** | reservado: projeção de um estado em tempo futuro, calculada a partir de dados históricos (probabilidade). **Não** usar para a preparação do campo representacional relacional. | Paulo | aprovado |
 
 ## Poda
 
