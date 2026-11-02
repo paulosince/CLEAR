@@ -27,11 +27,13 @@
   #room{height:180px}
   #sdom{height:58vh;min-height:320px}
   #wave{height:70px}
-  .grid2{display:grid;grid-template-columns:1fr;grid-template-areas:"env" "sdom" "info" "store" "par"}
-  #secEnv{grid-area:env} #secSdom{grid-area:sdom} #secInfo{grid-area:info} #secPar{grid-area:par} #secStore{grid-area:store}
+  .labc{height:110px;margin-top:6px}
+  #labTip{position:fixed;pointer-events:none;background:#232937;border:1px solid #3a4256;border-radius:6px;padding:3px 7px;font-size:12px;display:none;z-index:9}
+  .grid2{display:grid;grid-template-columns:1fr;grid-template-areas:"env" "lab" "sdom" "info" "store" "par"}
+  #secEnv{grid-area:env} #secLab{grid-area:lab} #secSdom{grid-area:sdom} #secInfo{grid-area:info} #secPar{grid-area:par} #secStore{grid-area:store}
   .uni{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 0;border-top:1px solid var(--line);font-size:12px}
   .uni .lbl{flex:1 1 200px}
-  @media (min-width:900px){ .grid2{grid-template-columns:360px 1fr;grid-template-areas:"env sdom" "info sdom" "store sdom" "par sdom";align-items:start} #secSdom{border-left:1px solid var(--line)} #sdom{height:72vh} }
+  @media (min-width:900px){ .grid2{grid-template-columns:360px 1fr;grid-template-areas:"env sdom" "lab sdom" "info sdom" "store sdom" "par sdom";align-items:start} #secSdom{border-left:1px solid var(--line)} #sdom{height:72vh} }
   #info{white-space:pre-wrap;font:12px/1.45 ui-monospace,Menlo,Consolas,monospace;color:#cfd5e1;min-height:2em}
   .legend span{display:inline-flex;align-items:center;gap:4px;margin-right:10px;font-size:12px}
   .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
@@ -81,6 +83,28 @@
     <button id="expDir">▶ Mesmo som, outra direção</button>
   </div>
   <div class="note">Arraste as fontes na sala. O robô (centro) olha para cima; ● azul = microfone esquerdo, ● vermelho = direito.</div>
+</section>
+
+<section id="secLab">
+  <div class="row" style="justify-content:space-between"><b>Laboratório</b><span class="small mut" id="labState">pronto</span></div>
+  <div class="row" style="margin-top:6px">
+    <label class="small">roteiro <select id="labScen"></select></label>
+    <label class="small">duração <select id="labDur"><option value="10">10 s</option><option value="60" selected>1 min</option><option value="300">5 min</option><option value="600">10 min</option><option value="1800">30 min</option></select></label>
+    <label class="small">semente <input id="labSeedIn" style="width:100px" placeholder="aleatória" inputmode="numeric"></label>
+  </div>
+  <div class="small mut" id="labDesc" style="margin-top:4px"></div>
+  <div class="row" style="margin-top:6px">
+    <button id="labRun">▶ Rodar no laboratório</button>
+    <button id="labStop" disabled>■ Parar</button>
+    <button id="labHear">🔊 ouvir 10 s do roteiro</button>
+  </div>
+  <div class="small mut" id="labProg" style="margin-top:6px"></div>
+  <div class="small" style="margin-top:6px">Nós do Sdom vivos, ao longo do tempo do mundo</div>
+  <canvas id="labC1" class="labc"></canvas>
+  <div class="small" style="margin-top:6px">Disparos a cada segundo de mundo</div>
+  <canvas id="labC2" class="labc"></canvas>
+  <div class="note">O laboratório cria um universo novo e roda o roteiro num processo separado (Web Worker), sem desenhar, o mais rápido que o aparelho aguenta. O universo atual fica em espera. No fim, o universo do laboratório vira o atual: você vê o Sdom, volta no tempo (os últimos ~90 s em detalhe) e tudo fica gravado (inclusive estas curvas). Mesma semente = mesmo ambiente.</div>
+  <div id="labTip"></div>
 </section>
 
 <section id="secInfo">
@@ -147,7 +171,7 @@
   <div class="small mut" id="tlbl">—</div>
 </footer>
 
-<script>
+<script id="core">
 'use strict';
 /* =====================================================================
    Sdom v0.1 — núcleo
@@ -168,7 +192,7 @@
      observados, para que tudo chegue junto ao nó novo.
    - Sem aprendizado nem divisão ainda.
    ===================================================================== */
-const CODE_VERSION = 'v0.8';
+const CODE_VERSION = 'v0.9';
 const DEFAULTS = {
   sr: 16000,           // taxa do microfone (amostras/s); botão alterna 16k/8k
   // transdução auditiva (v0.6): cóclea fixa, fora do Sdom
@@ -558,22 +582,69 @@ class Universe{
 
 /* =====================================================================
    Ambiente: sala 4×4 m, robô com dois microfones, fontes sonoras sintéticas
+   (v0.9) Todos os sons são sintetizados por fórmula, amostra a amostra,
+   sem estado: valor = soma de componentes [ω, amplitude, decaimento, fase, chirp].
    ===================================================================== */
 const INST = {
   piano:{name:'Piano', letter:'P', color:'#e6c35c', tail:0.5},
   viola:{name:'Viola', letter:'V', color:'#d9805f', tail:0.15},
   tom:{name:'Tom puro', letter:'T', color:'#7fd1e8', tail:0.04},
   ruido:{name:'Ruído', letter:'R', color:'#b0b0b0', tail:0.03},
+  voz:{name:'Voz (vogais)', letter:'Vz', color:'#8fd18a', tail:0.05},
+  passo:{name:'Passo', letter:'Ps', color:'#b59a7a', tail:0.25, perc:true},
+  porta:{name:'Porta batendo', letter:'Pt', color:'#9a7356', tail:0.9, perc:true},
+  campainha:{name:'Campainha', letter:'Cp', color:'#f0d070', tail:2.5, perc:true},
+  gota:{name:'Chuva (gota)', letter:'Ch', color:'#6aa0e0', tail:0.06, perc:true},
 };
-function makeNote(inst,f,dur,amp,sr){
-  const parts=[]; const ny=0.45*sr;
+// Formantes médios das vogais (F1, F2, F3 em Hz), Peterson & Barney (1952), homens e mulheres adultos.
+// Ordem: i, é (ɛ), a (ɑ), ó (ɔ), u
+const VOWELS = ['i','é','a','ó','u'];
+const FORMANTS = {
+  m:[[270,2290,3010],[530,1840,2480],[730,1090,2440],[570,840,2410],[300,870,2240]],
+  f:[[310,2790,3310],[610,2330,2990],[850,1220,2810],[590,920,2710],[370,950,2670]],
+};
+const FORM_BW = [60,100,150];   // larguras de banda dos formantes (Hz): escolha minha, valores típicos
+function makeNote(inst,f,dur,amp,sr,opt){
+  opt=opt||{}; const parts=[]; const ny=0.45*sr; const T=2*Math.PI;
+  const R=mulberry32((opt.seed|0)||1);
+  const rnd=(a,b)=>a+(b-a)*R(), logr=(a,b)=>a*Math.exp(R()*Math.log(b/a));
+  let quiet=false; // componentes com fase aleatória: normaliza pela energia, não pela soma
   if(inst==='piano'){
-    for(let h=1;h<=10;h++){ const fh=f*h*Math.sqrt(1+0.0004*h*h); if(fh>ny)break; parts.push([2*Math.PI*fh, 1/Math.pow(h,1.1), 1.2+0.9*h]); }
+    for(let h=1;h<=10;h++){ const fh=f*h*Math.sqrt(1+0.0004*h*h); if(fh>ny)break; parts.push([T*fh, 1/Math.pow(h,1.1), 1.2+0.9*h, 0, 0]); }
   } else if(inst==='viola'){
-    for(let h=1;h<=14;h++){ const fh=f*h; if(fh>ny)break; const form=1+1.2*Math.exp(-Math.pow((fh-900)/350,2)); parts.push([2*Math.PI*fh, form/h, 0]); }
-  } else if(inst==='tom'){ parts.push([2*Math.PI*f,1,0]); }
-  let norm=0; for(const p of parts) norm+=p[1]; norm=norm||1;
-  return {inst,f,dur,amp,parts,norm};
+    for(let h=1;h<=14;h++){ const fh=f*h; if(fh>ny)break; const form=1+1.2*Math.exp(-Math.pow((fh-900)/350,2)); parts.push([T*fh, form/h, 0, 0, 0]); }
+  } else if(inst==='tom'){ parts.push([T*f,1,0,0,0]); }
+  else if(inst==='voz'){
+    // fonte glotal harmônica (f = altura, f0) moldada por 3 ressonâncias (formantes) em cascata.
+    // Inclinação da fonte (−12 dB/oitava) + radiação dos lábios (+6) = 1/h.
+    const F=FORMANTS[opt.sex==='f'?'f':'m'][(opt.v??2)%5], g=opt.glide||0;
+    for(let h=1;h<=60;h++){ const fh=f*h; if(fh>ny||fh>5000)break;
+      let a=1/h; for(let k=0;k<3;k++){ const Fk=F[k], B=FORM_BW[k]; a*=Fk*Fk/Math.sqrt(Math.pow(Fk*Fk-fh*fh,2)+Math.pow(B*fh,2)); }
+      parts.push([T*fh, a, 0, 0, T*fh*g/2]); }   // glide: f0 varia linearmente (entonação)
+  } else if(inst==='passo'){
+    quiet=true;
+    for(let i=0;i<14;i++){ const fr=logr(60,400); if(fr>ny)continue; parts.push([T*fr, 1, rnd(25,60), rnd(0,T), 0]); }     // baque
+    for(let i=0;i<10;i++){ const fr=logr(1000,4000); if(fr>ny)continue; parts.push([T*fr, 0.3, rnd(150,300), rnd(0,T), 0]); } // arrasto
+  } else if(inst==='porta'){
+    quiet=true;
+    for(let i=0;i<12;i++){ const fr=logr(40,200); parts.push([T*fr, 1, rnd(12,25), rnd(0,T), 0]); }        // baque grave
+    for(let i=0;i<14;i++){ const fr=logr(250,2500); if(fr>ny)continue; parts.push([T*fr, 0.35, rnd(6,15), rnd(0,T), 0]); } // vibração da porta
+    for(let i=0;i<6;i++){ const fr=logr(2000,5000); if(fr>ny)continue; parts.push([T*fr, 0.4, 400, rnd(0,T), 0]); }        // estalo
+  } else if(inst==='campainha'){
+    // barra livre-livre (carrilhão): parciais 1 : 2,756 : 5,404 : 8,933 (Rossing)
+    const r=[1,2.756,5.404,8.933], A=[1,0.5,0.3,0.15], D=[1.5,3,6,10];
+    for(let i=0;i<4;i++){ const fr=f*r[i]; if(fr>ny)break; parts.push([T*fr, A[i], D[i], 0, 0]); }
+  } else if(inst==='gota'){
+    quiet=true;
+    let fr=logr(1500,6000); if(fr>ny) fr=rnd(0.5,0.9)*ny;
+    parts.push([T*fr, 1, rnd(120,200), rnd(0,T), T*fr*rnd(0,3)]);
+    for(let i=0;i<3;i++){ const fc=logr(3000,7000); if(fc>ny)continue; parts.push([T*fc, 0.3, 900, rnd(0,T), 0]); }   // estalo do impacto
+  }
+  let norm=0;
+  if(quiet){ for(const p of parts) norm+=p[1]*p[1]; norm=1.5*Math.sqrt(norm); }
+  else if(inst==='voz'){ let mx=0; for(const p of parts) mx=Math.max(mx,p[1]); for(const p of parts) norm+=p[1]; norm=1.4*Math.max(norm*0.6, mx); }
+  else for(const p of parts) norm+=p[1];
+  return {inst,f,dur,amp,parts,norm:norm||1};
 }
 function noteValue(nt,tt,sr){
   if(tt<0) return 0;
@@ -582,14 +653,15 @@ function noteValue(nt,tt,sr){
     case 'piano': env=Math.min(1,tt/0.002)*(tt>d?Math.exp(-(tt-d)/0.08):1); break;
     case 'viola': env=Math.min(1,tt/0.08)*(tt>d?Math.max(0,1-(tt-d)/0.12):1); break;
     case 'tom':   env=Math.min(1,tt/0.005)*(tt>d?Math.max(0,1-(tt-d)/0.03):1); break;
+    case 'voz':   env=Math.min(1,tt/0.015)*(tt>d?Math.max(0,1-(tt-d)/0.04):1); break;
     case 'ruido': { env=Math.min(1,tt/0.002)*(tt>d?Math.max(0,1-(tt-d)/0.02):1);
       let k=Math.floor(tt*sr)|0; k=Math.imul(k^0x9e3779b9,0x85ebca6b); k^=k>>>13; k=Math.imul(k,0xc2b2ae35); k^=k>>>16;
       return nt.amp*env*((k>>>0)/4294967296*2-1)*0.8; }
+    default: env = tt>d+INST[nt.inst].tail ? 0 : Math.min(1,tt/0.0008);   // percussivos: o decaimento está em cada componente
   }
   if(env<=0) return 0;
   let s=0; const P=nt.parts;
-  if(nt.inst==='piano'){ for(let i=0;i<P.length;i++){const p=P[i]; s+=p[1]*Math.exp(-p[2]*tt)*Math.sin(p[0]*tt);} }
-  else { for(let i=0;i<P.length;i++){const p=P[i]; s+=p[1]*Math.sin(p[0]*tt);} }
+  for(let i=0;i<P.length;i++){ const p=P[i]; let v=p[1]*Math.sin(p[0]*tt+p[3]+p[4]*tt*tt); if(p[2]) v*=Math.exp(-p[2]*tt); s+=v; }
   return nt.amp*env*s/nt.norm;
 }
 class World{
@@ -598,8 +670,8 @@ class World{
     this.sources=[]; this.nextId=1;
   }
   ears(){ const r=this.robot; return [{x:r.x-this.earSep/2,y:r.y},{x:r.x+this.earSep/2,y:r.y}]; }
-  addSource(inst,x,y){ const s={id:this.nextId++,inst,x,y,notes:[]}; this.sources.push(s); return s; }
-  play(src,f,dur,amp,start){ const nt=makeNote(src.inst,f,dur,amp,this.sr); nt.start=start; src.notes.push(nt); return nt; }
+  addSource(inst,x,y,label){ const s={id:this.nextId++,inst,x,y,notes:[],label:label||null}; this.sources.push(s); return s; }
+  play(src,f,dur,amp,start,opt){ const nt=makeNote(src.inst,f,dur,amp,this.sr,opt); nt.start=start; src.notes.push(nt); return nt; }
   prepare(){ // geometria do quadro atual
     const E=this.ears();
     for(const s of this.sources){
@@ -621,9 +693,177 @@ class World{
     out[0]=L; out[1]=R;
   }
   gc(t){ for(const s of this.sources){ s.notes=s.notes.filter(n=>(t-n.start)/this.sr < n.dur+INST[n.inst].tail+0.05); } }
-  activeAt(s,t){ return s.notes.some(n=>{const a=(t-n.start)/this.sr; return a>=0 && a<n.dur+0.05;}); }
+  activeAt(s,t){ return s.notes.some(n=>{const a=(t-n.start)/this.sr; return a>=0 && a<n.dur+(INST[n.inst].perc?Math.min(0.3,INST[n.inst].tail):0.05);}); }
 }
 
+/* =====================================================================
+   Roteiros (v0.9): ambientes sonoros programados, repetíveis pela semente.
+   Cada roteiro devolve as fontes (posição na sala) e a lista de eventos no tempo.
+   ===================================================================== */
+const SCEN_TOOLS = {
+  // fala: sílabas (só vogais) de 0,12–0,25 s, frases de 1–3 s; f0 com declinação ao longo da frase
+  speak(ev,key,t0,t1,sex,R){
+    const f0b = sex==='f' ? 210 : 120; let t=t0;
+    while(t<t1){
+      const phr=0.8+R()*2.2, n0=t; const base=f0b*(0.9+0.2*R());
+      while(t<Math.min(t1,n0+phr)){
+        const d=0.12+0.13*R(), prog=(t-n0)/phr;
+        ev.push({t, s:key, f:base*(1.08-0.16*prog)*(0.95+0.1*R()), dur:d, amp:0.35+0.2*R(), opt:{v:Math.floor(R()*5), sex, glide:(R()-0.6)*0.6, seed:(R()*1e9)|0}});
+        t+=d+0.03+0.05*R();
+      }
+      t+=0.25+0.6*R();
+    }
+  },
+  conversation(ev,t0,t1,R){ let t=t0, who=0;
+    while(t<t1){ const turn=1.5+2.5*R(); this.speak(ev, who?'vozB':'vozA', t, Math.min(t1,t+turn), who?'f':'m', R); t+=turn+0.3+0.7*R(); who^=1; } },
+  steps(ev,key,t0,n,R){ for(let i=0;i<n;i++) ev.push({t:t0+i*(0.5+0.1*R()), s:key, f:0, dur:0.03, amp:0.35+0.25*R(), opt:{seed:(R()*1e9)|0}}); return t0+n*0.55; },
+  rain(ev,key,t0,t1,rate,R){ let t=t0; while(true){ t+=-Math.log(1-R())/rate; if(t>=t1)break; ev.push({t, s:key, f:0, dur:0.005, amp:0.04+0.14*R(), opt:{seed:(R()*1e9)|0}}); } },
+  motif(ev,key,t0,R,amp){ // Dó Mi Sol Mi Dó — sempre o mesmo motivo, para estudar reconhecimento
+    const M=[261.63,329.63,392.0,329.63,261.63]; let t=t0;
+    for(const f of M){ ev.push({t, s:key, f, dur:0.28, amp:amp||0.6, opt:{}}); t+=0.32; } return t; },
+  bell(ev,key,t0){ ev.push({t:t0, s:key, f:659.25, dur:0.01, amp:0.5, opt:{}}); ev.push({t:t0+0.45, s:key, f:523.25, dur:0.01, amp:0.5, opt:{}}); },
+};
+const SCEN = {
+  casa:{name:'Casa', desc:'conversa entre duas vozes, chuva na janela, passos, porta, campainha e alguém tocando um motivo no piano',
+    sources:[['vozA','voz',1.2,1.3],['vozB','voz',2.9,1.5],['chuva','gota',0.2,0.4],['passos','passo',0.8,3.4],['porta','porta',3.7,0.3],['campainha','campainha',3.6,3.6],['piano','piano',0.6,1.0]],
+    build(Rs,T){ const S=SCEN_TOOLS, ev=[]; let R;
+      // chuva contínua, com intensidade que muda devagar (trechos de 20 s)
+      R=Rs(1); for(let t=0;t<T;t+=20) S.rain(ev,'chuva',t,Math.min(T,t+20),6+14*R(),R);
+      // conversa em episódios de 8–20 s, com silêncios de 5–15 s
+      R=Rs(2); for(let t=1+2*R(); t<T; ){ const L=8+12*R(); S.conversation(ev,t,Math.min(T,t+L),R); t+=L+5+10*R(); }
+      // passos a cada 15–30 s; às vezes terminam na porta
+      R=Rs(3); for(let t=6+6*R(); t<T; t+=15+15*R()){ const e=S.steps(ev,'passos',t,5+Math.floor(5*R()),R); if(R()<0.35 && e<T) ev.push({t:e+0.2, s:'porta', f:0, dur:0.02, amp:0.8, opt:{seed:(R()*1e9)|0}}); }
+      // campainha a cada 60–120 s
+      R=Rs(4); for(let t=25+20*R(); t<T; t+=60+60*R()) S.bell(ev,'campainha',t);
+      // piano: o mesmo motivo a cada 20–40 s
+      R=Rs(5); for(let t=10+10*R(); t<T; t+=20+20*R()) S.motif(ev,'piano',t,R);
+      return ev; }},
+  conversa:{name:'Conversa', desc:'duas vozes (uma grave, uma aguda) alternando a fala, sem outros sons',
+    sources:[['vozA','voz',1.2,1.3],['vozB','voz',2.9,1.5]],
+    build(Rs,T){ const ev=[]; SCEN_TOOLS.conversation(ev,0.5,T,Rs(2)); return ev; }},
+  musica:{name:'Música', desc:'piano e viola repetindo o mesmo motivo (Dó Mi Sol Mi Dó), alternando',
+    sources:[['piano','piano',1.0,1.1],['viola','viola',3.0,1.1]],
+    build(Rs,T){ const ev=[], R=Rs(5); let k=0; for(let t=0.5; t<T; t+=2.2+0.6*R()){ SCEN_TOOLS.motif(ev, (k++%3===2)?'viola':'piano', t, R); } return ev; }},
+  chuva:{name:'Chuva', desc:'só chuva na janela, com intensidade variando',
+    sources:[['chuva','gota',0.2,0.4]],
+    build(Rs,T){ const ev=[], R=Rs(1); for(let t=0;t<T;t+=20) SCEN_TOOLS.rain(ev,'chuva',t,Math.min(T,t+20),6+14*R(),R); return ev; }},
+};
+function planScenario(key,seed,T){
+  // cada fluxo (chuva, conversa, passos…) tem seu próprio sorteio: o começo de um roteiro longo é igual ao roteiro curto
+  const sc=SCEN[key], Rs=i=>mulberry32((Math.imul(seed^0x5bd1e995, 0x9e3779b1)+i*0x632be5ab)>>>0);
+  const ev=sc.build(Rs,T).filter(e=>e.t<T).sort((a,b)=>a.t-b.t);
+  return {key, seed, T, sources:sc.sources, ev};
+}
+// Grafo de objetos -> lista plana, sem recursão. O postMessage copia objetos recursivamente
+// e estoura a pilha em cadeias longas (nó → aresta → nó → …); por isso o laboratório entrega assim.
+function flattenGraph(root){
+  const ids=new Map([[root,0]]), list=[root], out=[];
+  const ref=o=>{ let i=ids.get(o); if(i===undefined){ i=list.length; ids.set(o,i); list.push(o); } return {$r:i}; };
+  const v=x=>(x===null||typeof x!=='object') ? (typeof x==='function'?null:x) : (ArrayBuffer.isView(x)? x : ref(x));
+  for(let k=0;k<list.length;k++){ const o=list[k];
+    if(Array.isArray(o)) out.push(o.map(v));
+    else if(o instanceof Map) out.push({$map:[...o].map(([a,b])=>[v(a),v(b)])});
+    else if(o instanceof Set) out.push({$set:[...o].map(v)});
+    else { const q={}; for(const key in o) q[key]=v(o[key]); out.push({$o:q}); } }
+  return out;
+}
+function unflattenGraph(out){
+  const objs=out.map(x=>Array.isArray(x)?[]:x.$map?new Map():x.$set?new Set():{});
+  const v=x=>(x&&typeof x==='object'&&!ArrayBuffer.isView(x)&&x.$r!==undefined)? objs[x.$r] : x;
+  out.forEach((x,i)=>{ const o=objs[i];
+    if(Array.isArray(x)) for(const y of x) o.push(v(y));
+    else if(x.$map) for(const [a,b] of x.$map) o.set(v(a),v(b));
+    else if(x.$set) for(const y of x.$set) o.add(v(y));
+    else for(const key in x.$o) o[key]=v(x.$o[key]); });
+  return objs[0];
+}
+// Laboratório: roda um roteiro sem desenhar, o mais rápido possível (usado dentro do Web Worker)
+class Lab{
+  constructor(p, seed, scenKey, durS){
+    this.U=new Universe(p,seed); this.W=new World(p.sr);
+    this.plan=planScenario(scenKey,seed,durS);
+    this.src={}; for(const [k,inst,x,y] of this.plan.sources) this.src[k]=this.W.addSource(inst,x,y,k);
+    this.W.prepare();
+    this.k=0; this.end=Math.round(durS*p.sr); this.scen=scenKey; this.durS=durS; this.seed=seed;
+    this.series=[]; this.nextSer=0; this.lastFires=0; this.w0=performance.now();
+  }
+  advance(samples){
+    const U=this.U, W=this.W, sr=U.sr, ev=this.plan.ev, xs=[0,0];
+    const until=Math.min(this.end, U.t+samples), lead=Math.round(0.1*sr), blk=Math.round(0.05*sr);
+    while(U.t<until){
+      while(this.k<ev.length && Math.round(ev[this.k].t*sr)<=U.t+lead){
+        const x=ev[this.k++], s=this.src[x.s], start=Math.round(x.t*sr);
+        W.play(s,x.f,x.dur,x.amp,start,x.opt);
+        U.stimLog.push({t:start, src:s.id, inst:s.inst, f:+x.f.toFixed(2), dur:+x.dur.toFixed(3), amp:+x.amp.toFixed(3), x:s.x, y:s.y, opt:x.opt});
+      }
+      const stop=Math.min(until, U.t+blk);
+      while(U.t<stop){ W.sample(U.t,xs); U.step(xs[0],xs[1]); }
+      W.gc(U.t); this.record();
+    }
+    return U.t>=this.end;
+  }
+  census(){ const U=this.U; let sd=0; for(const n of U.nodes) if(n.lvl>=2 && n.diedAt===Infinity) sd++;
+    return {sdom:sd, edges:U.edges.length-U.prunedE, fires:U.fireCount}; }
+  record(){ // um ponto por segundo de mundo
+    const U=this.U, wallS=(performance.now()-this.w0)/1000; while(U.t>=this.nextSer){ const c=this.census(); const ts=Math.round(this.nextSer/U.sr);
+      this.series.push({t:ts, sdom:c.sdom, edges:c.edges, firesPerS:c.fires-this.lastFires, wallS:+wallS.toFixed(2)}); this.lastFires=c.fires; this.nextSer+=U.sr; } }
+}
+
+// ---------- gravação local (IndexedDB) — no núcleo, para a página e o laboratório gravarem igual ----------
+const Store={
+  db:null, ok:false, uid:null, nodePtr:0, meta:null, bytes:0,
+  async open(){
+    try{
+      this.db=await new Promise((res,rej)=>{ const r=indexedDB.open('sdom',3);
+        r.onupgradeneeded=()=>{ const d=r.result; if(!d.objectStoreNames.contains('universes')) d.createObjectStore('universes',{keyPath:'id'});
+          for(const st of ['nodes','thr','weights','activity','stimuli','prunes']){ if(!d.objectStoreNames.contains(st)){ const os=d.createObjectStore(st,{autoIncrement:true}); os.createIndex('u','u'); } } };
+        r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
+      this.ok=true;
+    }catch(e){ this.ok=false; }
+  },
+  begin(u,label){
+    this.uid=new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'-'+Math.random().toString(36).slice(2,6);
+    this.nodePtr=0;
+    this.meta={id:this.uid, label:label||'#?', version:CODE_VERSION, params:u.p, sr:u.sr, createdAt:new Date().toISOString(), worldTimeS:0, nodes:0, edges:0, fires:0, ltp:0, ltd:0};
+    if(this.ok){ try{ this.db.transaction('universes','readwrite').objectStore('universes').put(this.meta); }catch(e){} }
+  },
+  flush(u){
+    const nodes=u.nodes.slice(this.nodePtr), act=u.actLog, stim=u.stimLog;
+    const wch={}; for(const e of u.wChanged) wch[e.id]=[+e.wF.toFixed(5), +e.wS.toFixed(5), e.lastUse]; u.wChanged.clear();
+    const pr=u.pruneLog; u.pruneLog=[];
+    this.nodePtr=u.nodes.length; u.actLog=[]; u.stimLog=[];
+    if(!this.ok||!this.uid) return Promise.resolve();
+    try{
+      const tx=this.db.transaction(['universes','nodes','weights','activity','stimuli','prunes'],'readwrite'), id=this.uid;
+      const Pr=tx.objectStore('prunes'); for(const x of pr) Pr.add(Object.assign({u:id},x));
+      const N=tx.objectStore('nodes'), Wt=tx.objectStore('weights'), A=tx.objectStore('activity'), S=tx.objectStore('stimuli');
+      for(const n of nodes) N.add({u:id, id:n.id, lvl:n.lvl, ear:n.ear, W:n.W, thr:n.thr, mag:n.mag, refr:n.refr, born:n.born, x:+n.x.toFixed(1), y:+n.y.toFixed(1), origin:n.origin, in:n.in.map(e=>[e.id,e.from.id,e.d,e.mod])});
+      if(Object.keys(wch).length) Wt.add({u:id, t:u.t, w:wch});
+      for(const a of act) A.add({u:id, t0:a.t0, c:a.c});
+      for(const st of stim) S.add(Object.assign({u:id},st));
+      Object.assign(this.meta,{worldTimeS:+(u.t/u.sr).toFixed(3), nodes:u.nodes.length-2, edges:u.edges.length, fires:u.fireCount, ltp:u.ltp, ltd:u.ltd, consolidations:u.consol, prunedEdges:u.prunedE, prunedNodes:u.prunedN, accesses:u.accesses, updatedAt:new Date().toISOString()});
+      tx.objectStore('universes').put(this.meta);
+      return new Promise(r=>{ tx.oncomplete=r; tx.onerror=r; tx.onabort=r; });
+    }catch(e){ return Promise.resolve(); }
+  },
+  async list(){ if(!this.ok) return []; return await new Promise(res=>{ const r=this.db.transaction('universes').objectStore('universes').getAll(); r.onsuccess=()=>res(r.result||[]); r.onerror=()=>res([]); }); },
+  async getAllFor(store,id){ return await new Promise(res=>{ const r=this.db.transaction(store).objectStore(store).index('u').getAll(IDBKeyRange.only(id)); r.onsuccess=()=>res((r.result||[]).map(x=>{const y=Object.assign({},x); delete y.u; return y;})); r.onerror=()=>res([]); }); },
+  async exportU(id){
+    const meta=(await this.list()).find(m=>m.id===id);
+    return {format:'sdom-universe/3', universe:meta, nodes:await this.getAllFor('nodes',id),
+      weightChanges:await this.getAllFor('weights',id), prunes:await this.getAllFor('prunes',id), thresholdChanges:await this.getAllFor('thr',id),
+      activity:await this.getAllFor('activity',id), stimuli:await this.getAllFor('stimuli',id)};
+  },
+  async del(id){
+    const tx=this.db.transaction(['universes','nodes','thr','weights','activity','stimuli','prunes'],'readwrite');
+    tx.objectStore('universes').delete(id);
+    for(const st of ['nodes','thr','weights','activity','stimuli','prunes']){ const c=tx.objectStore(st).index('u').openKeyCursor(IDBKeyRange.only(id)); const os=tx.objectStore(st); c.onsuccess=()=>{ const cur=c.result; if(cur){ os.delete(cur.primaryKey); cur.continue(); } }; }
+    await new Promise(r=>{tx.oncomplete=r; tx.onerror=r;});
+  },
+};
+</script>
+<script>
+'use strict';
 /* =====================================================================
    Aplicação: laço de vida, observador (DVR), desenho e controles
    ===================================================================== */
@@ -640,7 +880,7 @@ function newUniverse(){
   const keep = Wd ? Wd.sources.map(s=>({inst:s.inst,x:s.x,y:s.y})) : [{inst:'piano',x:1.0,y:1.1},{inst:'viola',x:3.0,y:1.1}];
   if(U) Store.flush(U);
   U=new Universe(Object.assign({},params), seed);
-  Store.begin(U);
+  Store.begin(U,'#'+universeNo);
   Wd=new World(params.sr);
   for(const k of keep) Wd.addSource(k.inst,k.x,k.y);
   selSrc=Wd.sources[0]||null;
@@ -671,11 +911,11 @@ function trigger(src,f,dur,amp,delaySec=0){ // delaySec em tempo do mundo
 }
 
 // ---------- laço de vida (o robô nunca para) ----------
-let lastFrame=performance.now(), carry=0, simRatio=1, fpsAcc=[];
+let lastFrame=performance.now(), carry=0, simRatio=1, fpsAcc=[], lastDrawT=0;
 const xs=[0,0];
 function loop(now){
   const dt=Math.min(0.1,(now-lastFrame)/1000); lastFrame=now;
-  let target=dt*U.sr*worldSpeed+carry; let n=Math.floor(target); carry=target-n;
+  let target=labBusy?0:dt*U.sr*worldSpeed+carry; let n=Math.floor(target); carry=target-n;
   Wd.prepare();
   const t0=performance.now(); let done=0;
   while(done<n){
@@ -690,7 +930,8 @@ function loop(now){
   if(view.live){ view.tv=U.t; }
   else if(view.playing){ view.tv+=dt*U.sr*view.speed; if(view.tv>=U.t){ goLive(); } }
   const lo=U.earliestViewable(); if(view.tv<lo) view.tv=lo;
-  draw();
+  // durante o laboratório o universo atual está em espera: desenha pouco, para não disputar o processador
+  if(!labBusy || now-lastDrawT>500){ lastDrawT=now; draw(); }
   requestAnimationFrame(loop);
 }
 
@@ -944,57 +1185,129 @@ $('reset').onclick=()=>{
 };
 $('copy').onclick=async()=>{ try{ await navigator.clipboard.writeText(JSON.stringify(U.toJSON())); $('copy').textContent='Copiado ✓'; }catch(e){ $('copy').textContent='Não consegui copiar'; } setTimeout(()=>$('copy').textContent='Copiar universo (JSON)',2000); };
 
-// ---------- gravação local (IndexedDB) ----------
-const Store={
-  db:null, ok:false, uid:null, nodePtr:0, meta:null, bytes:0,
-  async open(){
-    try{
-      this.db=await new Promise((res,rej)=>{ const r=indexedDB.open('sdom',3);
-        r.onupgradeneeded=()=>{ const d=r.result; if(!d.objectStoreNames.contains('universes')) d.createObjectStore('universes',{keyPath:'id'});
-          for(const st of ['nodes','thr','weights','activity','stimuli','prunes']){ if(!d.objectStoreNames.contains(st)){ const os=d.createObjectStore(st,{autoIncrement:true}); os.createIndex('u','u'); } } };
-        r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
-      this.ok=true;
-    }catch(e){ this.ok=false; }
-  },
-  begin(u){
-    this.uid=new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'-'+Math.random().toString(36).slice(2,6);
-    this.nodePtr=0;
-    this.meta={id:this.uid, label:'#'+universeNo, version:CODE_VERSION, params:u.p, sr:u.sr, createdAt:new Date().toISOString(), worldTimeS:0, nodes:0, edges:0, fires:0, ltp:0, ltd:0};
-    if(this.ok){ try{ this.db.transaction('universes','readwrite').objectStore('universes').put(this.meta); }catch(e){} }
-  },
-  flush(u){
-    const nodes=u.nodes.slice(this.nodePtr), act=u.actLog, stim=u.stimLog;
-    const wch={}; for(const e of u.wChanged) wch[e.id]=[+e.wF.toFixed(5), +e.wS.toFixed(5), e.lastUse]; u.wChanged.clear();
-    const pr=u.pruneLog; u.pruneLog=[];
-    this.nodePtr=u.nodes.length; u.actLog=[]; u.stimLog=[];
-    if(!this.ok||!this.uid) return;
-    try{
-      const tx=this.db.transaction(['universes','nodes','weights','activity','stimuli','prunes'],'readwrite'), id=this.uid;
-      const Pr=tx.objectStore('prunes'); for(const x of pr) Pr.add(Object.assign({u:id},x));
-      const N=tx.objectStore('nodes'), Wt=tx.objectStore('weights'), A=tx.objectStore('activity'), S=tx.objectStore('stimuli');
-      for(const n of nodes) N.add({u:id, id:n.id, lvl:n.lvl, ear:n.ear, W:n.W, thr:n.thr, mag:n.mag, refr:n.refr, born:n.born, x:+n.x.toFixed(1), y:+n.y.toFixed(1), origin:n.origin, in:n.in.map(e=>[e.id,e.from.id,e.d,e.mod])});
-      if(Object.keys(wch).length) Wt.add({u:id, t:u.t, w:wch});
-      for(const a of act) A.add({u:id, t0:a.t0, c:a.c});
-      for(const st of stim) S.add(Object.assign({u:id},st));
-      Object.assign(this.meta,{worldTimeS:+(u.t/u.sr).toFixed(3), nodes:u.nodes.length-2, edges:u.edges.length, fires:u.fireCount, ltp:u.ltp, ltd:u.ltd, consolidations:u.consol, prunedEdges:u.prunedE, prunedNodes:u.prunedN, accesses:u.accesses, updatedAt:new Date().toISOString()});
-      tx.objectStore('universes').put(this.meta);
-    }catch(e){}
-  },
-  async list(){ if(!this.ok) return []; return await new Promise(res=>{ const r=this.db.transaction('universes').objectStore('universes').getAll(); r.onsuccess=()=>res(r.result||[]); r.onerror=()=>res([]); }); },
-  async getAllFor(store,id){ return await new Promise(res=>{ const r=this.db.transaction(store).objectStore(store).index('u').getAll(IDBKeyRange.only(id)); r.onsuccess=()=>res((r.result||[]).map(x=>{const y=Object.assign({},x); delete y.u; return y;})); r.onerror=()=>res([]); }); },
-  async exportU(id){
-    const meta=(await this.list()).find(m=>m.id===id);
-    return {format:'sdom-universe/3', universe:meta, nodes:await this.getAllFor('nodes',id),
-      weightChanges:await this.getAllFor('weights',id), prunes:await this.getAllFor('prunes',id), thresholdChanges:await this.getAllFor('thr',id),
-      activity:await this.getAllFor('activity',id), stimuli:await this.getAllFor('stimuli',id)};
-  },
-  async del(id){
-    const tx=this.db.transaction(['universes','nodes','thr','weights','activity','stimuli','prunes'],'readwrite');
-    tx.objectStore('universes').delete(id);
-    for(const st of ['nodes','thr','weights','activity','stimuli','prunes']){ const c=tx.objectStore(st).index('u').openKeyCursor(IDBKeyRange.only(id)); const os=tx.objectStore(st); c.onsuccess=()=>{ const cur=c.result; if(cur){ os.delete(cur.primaryKey); cur.continue(); } }; }
-    await new Promise(r=>{tx.oncomplete=r; tx.onerror=r;});
-  },
+// ---------- laboratório (v0.9): roteiro num Web Worker, sem desenhar ----------
+// O código do núcleo (<script id="core">) é o mesmo na página e no laboratório.
+function labWorkerMain(){
+  let L=null, stopReq=false, sent=0, lastFlush=0, info=null;
+  self.onmessage=async e=>{ const m=e.data;
+    if(m.cmd==='start'){
+      try{ await Store.open(); L=new Lab(m.params,m.seed,m.scen,m.durS); }catch(err){ postMessage({type:'error',msg:String(err&&err.stack||err)}); return; }
+      info={scen:m.scen, durS:m.durS, seed:m.seed};
+      Store.begin(L.U, m.label); Store.meta.lab=Object.assign({running:true},info);
+      stopReq=false; sent=0; lastFlush=performance.now(); setTimeout(tick,0); }
+    else if(m.cmd==='stop') stopReq=true; };
+  async function tick(){
+    const w=performance.now(); let done=false;
+    try{ while(!done && performance.now()-w<250) done=L.advance(Math.round(0.05*L.U.sr)); }
+    catch(err){ postMessage({type:'error',msg:String(err&&err.stack||err)}); return; }
+    const c=L.census(), U=L.U, wallS=(performance.now()-L.w0)/1000;
+    postMessage({type:'prog', t:U.t/U.sr, durS:L.durS, wallS, sdom:c.sdom, edges:c.edges, fires:c.fires, add:L.series.slice(sent)}); sent=L.series.length;
+    // grava como a página: a cada 2 s de tempo real (e esvazia os registros já gravados)
+    if(performance.now()-lastFlush>2000){ lastFlush=performance.now(); Store.meta.lab=Object.assign({running:true, series:L.series},info); Store.flush(U); }
+    if(done||stopReq){
+      Store.meta.lab=Object.assign({worldS:+(U.t/U.sr).toFixed(2), wallS:+wallS.toFixed(1), stopped:!done, series:L.series},info);
+      await Store.flush(U);   // termina de gravar antes de entregar
+      U.rng=null;  // função não atravessa para a página; é recriada lá
+      const tr=[U.hT.buffer,U.hN.buffer,U.nmT.buffer,U.nmN.buffer,U.nmF.buffer,U.aud[0].buffer,U.aud[1].buffer];
+      postMessage({type:'done', G:flattenGraph({U, W:L.W}), series:L.series, scen:L.scen, durS:L.durS, seed:L.seed, stopped:!done, wallS, store:{uid:Store.uid, nodePtr:Store.nodePtr, meta:Store.meta}}, tr);
+      L=null;
+    } else setTimeout(tick,0);
+  }
+}
+let labW=null, labBusy=false, labSeries=[], labMeta=null, labResult=null;
+(function(){ const s=$('labScen'); for(const k in SCEN){ const o=document.createElement('option'); o.value=k; o.textContent=SCEN[k].name; s.appendChild(o); }
+  const d=()=>{ $('labDesc').textContent=SCEN[s.value].desc; }; s.onchange=d; d(); })();
+function labSeedVal(){ let v=parseInt($('labSeedIn').value,10); if(!isFinite(v)){ v=(Math.floor(Math.random()*4294967295))>>>0; $('labSeedIn').value=v; } return v>>>0; }
+function labParams(){ const q=Object.assign({},params); for(const inp of document.querySelectorAll('#params input')){ const v=+inp.value; if(isFinite(v)) q[inp.dataset.k]=v; } q.sr=Math.max(4000,Math.min(48000,Math.round(q.sr))); return q; }
+function labStart(scen,durS,sd){
+  if(labBusy) return false;
+  scen=scen||$('labScen').value; durS=+(durS||$('labDur').value); sd=(sd!==undefined)?(sd>>>0):labSeedVal();
+  const src=document.getElementById('core').textContent;
+  const url=URL.createObjectURL(new Blob([src,'\n(',labWorkerMain.toString(),')();'],{type:'text/javascript'}));
+  labW=new Worker(url); URL.revokeObjectURL(url);
+  $('labScen').value=scen; $('labDesc').textContent=SCEN[scen].desc; $('labSeedIn').value=sd; if([...$('labDur').options].some(o=>+o.value===durS)) $('labDur').value=durS;
+  labBusy=true; labSeries=[]; labResult=null; labMeta={scen,durS,seed:sd,sr:labParams().sr};
+  $('labRun').disabled=true; $('labStop').disabled=false; $('labState').textContent='rodando…';
+  $('labProg').textContent=`preparando ${SCEN[scen].name} · ${durS} s · semente ${sd}`;
+  labW.onmessage=e=>{ const m=e.data;
+    if(m.type==='prog'){ for(const x of m.add) labSeries.push(x);
+      const r=m.t/Math.max(1e-6,m.wallS);
+      $('labProg').textContent=`${SCEN[scen].name} · mundo ${m.t.toFixed(1)} de ${m.durS} s (${(100*m.t/m.durS).toFixed(0)}%) · tempo real gasto ${m.wallS.toFixed(1)} s · ritmo ${(r*100).toFixed(0)}% do real · nós do Sdom ${m.sdom} · arestas ${m.edges} · disparos ${m.fires}`;
+      drawLabCharts(); }
+    else if(m.type==='done'){ labFinish(m); }
+    else if(m.type==='error'){ $('labProg').textContent='Erro no laboratório: '+m.msg; labEnd(); } };
+  labW.onerror=e=>{ $('labProg').textContent='Erro no laboratório: '+(e.message||e); labEnd(); };
+  labW.postMessage({cmd:'start', params:labParams(), seed:sd, scen, durS, label:`#${universeNo+1} · laboratório: ${SCEN[scen].name}`});
+  return true;
+}
+function labEnd(){ if(labW){ labW.terminate(); labW=null; } labBusy=false; $('labRun').disabled=false; $('labStop').disabled=true; lastFrame=performance.now(); }
+function labFinish(m){
+  const G=unflattenGraph(m.G), u=G.U; Object.setPrototypeOf(u,Universe.prototype); u.rng=mulberry32((m.seed^0x9e3779b9)>>>0);
+  Object.setPrototypeOf(G.W,World.prototype); m.W=G.W;
+  if(U) Store.flush(U);
+  universeNo++; U=u; Wd=m.W; seed=m.seed; params=Object.assign({},u.p);
+  // o laboratório já gravou tudo; a página continua no mesmo registro
+  Store.uid=m.store.uid; Store.nodePtr=m.store.nodePtr; Store.meta=m.store.meta;
+  labSeries=m.series; labResult={worldS:U.t/U.sr, wallS:m.wallS, stopped:m.stopped};
+  selSrc=Wd.sources[0]||null; view.live=true; view.playing=true; view.tv=U.t; view.sel=null; view.fitted=false;
+  lastFC=U.fireCount; carry=0;
+  srLabel(); $('ver').textContent=`· Sdom ${CODE_VERSION} · universo #${universeNo} (laboratório) · params ${hashStr(JSON.stringify(params))}`;
+  refreshSrcUI(); showInfo(); setTimeout(renderStore,300);
+  $('labState').textContent=m.stopped?'parado antes do fim':'concluído';
+  $('labProg').textContent=`${SCEN[m.scen].name} · ${(U.t/U.sr).toFixed(1)} s de mundo em ${m.wallS.toFixed(1)} s de tempo real (ritmo ${(100*U.t/U.sr/Math.max(1e-6,m.wallS)).toFixed(0)}% do real) · semente ${m.seed}. Este universo agora é o atual e segue vivo.`;
+  labEnd(); drawLabCharts();
+}
+$('labRun').onclick=()=>labStart();
+$('labStop').onclick=()=>{ if(labW){ labW.postMessage({cmd:'stop'}); $('labState').textContent='parando…'; } };
+$('labHear').onclick=()=>{
+  ensureAudio(); if(!audioCtx){ $('labProg').textContent='Este navegador não deixou tocar som.'; return; }
+  const key=$('labScen').value, sd=labSeedVal(), sr=labParams().sr, T=10;
+  const plan=planScenario(key,sd,T), W=new World(sr), src={};
+  for(const [k,i,x,y] of plan.sources) src[k]=W.addSource(i,x,y,k);
+  W.prepare();
+  const N=T*sr, buf=audioCtx.createBuffer(2,N,sr), L=buf.getChannelData(0), R=buf.getChannelData(1), xs=[0,0]; let k=0, mx=1e-9;
+  for(let t=0;t<N;t++){
+    while(k<plan.ev.length && Math.round(plan.ev[k].t*sr)<=t+0.1*sr){ const x=plan.ev[k++]; W.play(src[x.s],x.f,x.dur,x.amp,Math.round(x.t*sr),x.opt); }
+    W.sample(t,xs); L[t]=xs[0]; R[t]=xs[1]; const a=Math.max(Math.abs(xs[0]),Math.abs(xs[1])); if(a>mx)mx=a; if((t&1023)===0) W.gc(t);
+  }
+  const g=Math.min(1,0.9/mx); for(let t=0;t<N;t++){ L[t]*=g; R[t]*=g; }
+  const s=audioCtx.createBufferSource(); s.buffer=buf; s.connect(audioCtx.destination); s.start();
+  $('labProg').textContent=`tocando os primeiros 10 s de "${SCEN[key].name}" (semente ${sd}), como chegam aos dois microfones`;
 };
+// gráficos: uma série por gráfico, eixo único, passe o dedo para ler os valores
+let labHover=null;
+function drawLabChart(id,key,color,fmtV){
+  const c=$(id), d=sizeCanvas(c), g=c.getContext('2d'), W=c.width, H=c.height;
+  g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,W,H);
+  const S=labSeries; g.font=`${10*d}px system-ui`;
+  if(S.length<2){ g.fillStyle='#5d6575'; g.fillText('rode um roteiro para ver a curva', 10*d, H/2); return; }
+  const padL=44*d, padR=8*d, padT=8*d, padB=16*d;
+  const tMax=Math.max(1,(labMeta&&labMeta.durS)||S[S.length-1].t);
+  let vMax=0; for(const p of S) if(p[key]>vMax) vMax=p[key]; vMax=vMax||1;
+  const X=t=>padL+(W-padL-padR)*t/tMax, Y=v=>H-padB-(H-padT-padB)*v/vMax;
+  g.strokeStyle='#1e232d'; g.lineWidth=1; g.fillStyle='#6b7385';
+  for(let i=0;i<=2;i++){ const v=vMax*i/2, y=Y(v); g.beginPath(); g.moveTo(padL,y); g.lineTo(W-padR,y); g.stroke(); g.fillText(fmtV(v), 4*d, y+3*d); }
+  g.fillText('0 s', padL, H-3*d); const tl=fmtS(tMax); g.fillText(tl, W-padR-g.measureText(tl).width, H-3*d);
+  g.strokeStyle=color; g.lineWidth=2*d; g.lineJoin='round'; g.beginPath();
+  S.forEach((p,i)=>{ const x=X(p.t), y=Y(p[key]); i?g.lineTo(x,y):g.moveTo(x,y); }); g.stroke();
+  if(labHover!==null && labHover<S.length){ const p=S[labHover], x=X(p.t);
+    g.strokeStyle='#8a92a3'; g.lineWidth=1*d; g.beginPath(); g.moveTo(x,padT); g.lineTo(x,H-padB); g.stroke();
+    g.fillStyle=color; g.beginPath(); g.arc(x,Y(p[key]),4*d,0,6.2832); g.fill(); }
+  c._geo={padL,padR,tMax,d};
+}
+function fmtS(s){ return s<120? `${Math.round(s)} s` : `${(s/60).toFixed(s<600?1:0)} min`; }
+function drawLabCharts(){ drawLabChart('labC1','sdom','#5b8def',v=>String(Math.round(v))); drawLabChart('labC2','firesPerS','#3fc1b0',v=>v>=1000?(v/1000).toFixed(0)+' mil':String(Math.round(v))); }
+for(const id of ['labC1','labC2']){ const c=$(id);
+  const mv=e=>{ const G=c._geo, S=labSeries; if(!G||S.length<2) return; const r=c.getBoundingClientRect();
+    const x=(e.clientX-r.left)*G.d, t=(x-G.padL)/((c.width-G.padL-G.padR))*G.tMax; let bi=0,bd=1e18; for(let i=0;i<S.length;i++){ const dd=Math.abs(S[i].t-t); if(dd<bd){bd=dd;bi=i} }
+    labHover=bi; drawLabCharts(); const p=S[bi], tip=$('labTip');
+    tip.textContent=`${fmtS(p.t)} de mundo · ${p.sdom} nós do Sdom · ${p.firesPerS.toLocaleString('pt-BR')} disparos/s · ${p.edges} arestas · ${p.wallS.toFixed(1)} s reais`;
+    tip.style.display='block'; tip.style.left=Math.min(innerWidth-260,e.clientX+12)+'px'; tip.style.top=(e.clientY-34)+'px'; };
+  c.addEventListener('pointermove',mv); c.addEventListener('pointerdown',mv);
+  c.addEventListener('pointerleave',()=>{ labHover=null; $('labTip').style.display='none'; drawLabCharts(); }); }
+setTimeout(drawLabCharts,0); addEventListener('resize',()=>drawLabCharts());
+
+// ---------- lista de universos gravados ----------
 async function renderStore(){
   if(!Store.ok){ $('stStatus').textContent='Gravação indisponível neste navegador (IndexedDB bloqueado). A simulação funciona normalmente.'; $('stList').innerHTML=''; return; }
   let est=''; try{ const e=await navigator.storage.estimate(); est=` · espaço usado ≈ ${(e.usage/1048576).toFixed(1)} MB`; }catch(e){}
@@ -1034,7 +1347,7 @@ addEventListener('pagehide',()=>Store.flush(U));
   requestAnimationFrame(t=>{lastFrame=t; requestAnimationFrame(loop)});
   renderStore();
 })();
-window.__sdom={get U(){return U}, get W(){return Wd}, trigger, view, Store, renderStore};
+window.__sdom={get U(){return U}, get W(){return Wd}, trigger, view, Store, renderStore, lab:{start:labStart, get busy(){return labBusy}, get series(){return labSeries}, get result(){return labResult}}};
 </script>
 </body>
 </html>

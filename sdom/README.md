@@ -71,6 +71,58 @@ destino com atrasos exatos) gera estrutura demais e não converge (centenas de n
 nota). É a regra cuja revisão está em discussão (relações + preparação do campo
 representacional relacional).
 
+## Ambiente sonoro e laboratório (v0.9, branch `transducao`)
+
+**Sons novos** (todos sintetizados por fórmula; nenhuma gravação real):
+
+| Som | Como é feito | Base |
+|---|---|---|
+| Voz (vogais) | fonte harmônica (f0) moldada por 3 formantes em cascata; sílabas de 0,12–0,25 s, frases de 1–3 s, entonação descendente | formantes médios de Peterson & Barney (1952); larguras de banda 60/100/150 Hz são escolha minha |
+| Passo | baque grave (60–400 Hz) + arrasto agudo (1–4 kHz), componentes com fase aleatória e decaimento exponencial | escolha minha (não validado) |
+| Porta batendo | baque (40–200 Hz) + vibração (250–2500 Hz) + estalo | escolha minha (não validado) |
+| Campainha | parciais de barra livre (1 : 2,756 : 5,404 : 8,933), "ding-dong" Mi–Dó | razões de modos de barra livre (Rossing) |
+| Chuva (gota) | tom curto amortecido (1,5–6 kHz) + estalo; gotas sorteadas como processo de Poisson | escolha minha (não validado) |
+
+Não há consoantes na voz: é um "balbucio de vogais". Em 8 kHz, a parte aguda da chuva e do
+arrasto some (acima de 3,6 kHz).
+
+**Roteiros** (ambientes programados, repetíveis pela semente; cada fluxo tem seu sorteio, então
+o começo de um roteiro longo é idêntico ao roteiro curto com a mesma semente):
+
+- **Casa**: conversa (voz grave e aguda) em episódios, chuva contínua de intensidade variável,
+  passos a cada 15–30 s (às vezes terminando na porta), campainha a cada 1–2 min e o mesmo
+  motivo no piano (Dó Mi Sol Mi Dó) a cada 20–40 s.
+- **Conversa**, **Música** (piano e viola repetindo o motivo) e **Chuva**.
+
+**Laboratório**: roda um roteiro num Web Worker, sem desenhar. Grava no IndexedDB durante a
+corrida (como a página). No fim, o universo do laboratório vira o atual: dá para ver o Sdom e
+voltar no tempo (os últimos ~90 s em detalhe). As curvas (nós do Sdom e disparos por segundo
+de mundo) ficam gravadas em `universe.lab.series`. "Ouvir 10 s do roteiro" toca o que chega
+aos dois microfones.
+
+Teste: `tests/laboratorio.js [roteiro] [segundos] [semente] [taxa]`.
+
+### Sessão longa: roteiro Casa, 10 min de mundo, semente 2026 (headless, 2 núcleos)
+
+| tempo de mundo | Sdom 16 kHz | Sdom 8 kHz |
+|---|---|---|
+| 1 min | 670 | 795 |
+| 2 min | 830 | 953 |
+| 5 min | 1068 | 1172 |
+| 8 min | 1312 | 1384 |
+| 10 min | 1481 | 1396 |
+| tempo real gasto | 212 s (2,8× mais rápido que o real) | 143 s (4,2×) |
+
+- Sem erros; memória da página ~170–180 MB; gravação completa no IndexedDB (601 pontos de curva,
+  ~5 mil janelas de atividade, 9.812 estímulos).
+- O crescimento desacelera, mas em 16 kHz ainda não parou em 10 min; em 8 kHz quase parou
+  nos últimos 2 min (1384 → 1396).
+- Os disparos por segundo crescem com o Sdom: picos de ~160 mil/s aos 9,5 min (16 kHz).
+- Em silêncio total, depois de ouvir, o Sdom fica em silêncio (0 disparos em 2 s). Todas as
+  arestas vão de um nó mais antigo para um mais novo: o grafo não tem ciclos.
+- Mesma semente, mesmo resultado (verificado: duas corridas idênticas; universo copiado da
+  thread do laboratório para a página continua idêntico ao original).
+
 ## Aprendizado (v0.4–v0.5)
 
 Reforço e enfraquecimento agem **no mesmo lugar e em sentidos opostos: o peso da
