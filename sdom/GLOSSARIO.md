@@ -11,7 +11,7 @@ Status: **aprovado** (definido ou aceito pelo Paulo) · **em discussão**.
 |---|---|---|---|
 | **Sdom** | domínio representacional do sistema: o grafo onde o que o robô percebe é representado. Nasce vazio. | Paulo | aprovado |
 | **nó** | elemento do Sdom que integra incidências e dispara ao atingir o limiar. | Paulo | aprovado |
-| **aresta** | ligação de um nó a outro; leva a incidência com um tempo de propagação. | Paulo | aprovado |
+| **aresta** | ligação de um nó a outro; leva a incidência com um tempo de propagação. | Paulo | aprovado (o Paulo vai propor outro nome depois) |
 | **malha temporotopológica** | pedaço do grafo (num conjunto de grafos) cujos nós se relacionam, e cuja relação tem como conteúdo também o **tempo de percorrimento** entre os nós. Não é só a topologia que tem significado: o tempo também tem. Ex.: o detector do dó é definido pelos atrasos das arestas (≈3,8 ms entre entradas). | Paulo | aprovado |
 | **malha (contagem no painel)** | para contar no painel: malha = estrutura **criada a partir de um mesmo estímulo**. Regra operacional provisória (v0.10): o nó novo pertence ao estímulo que começou por último antes do primeiro disparo que ele relaciona e que ainda soava. Com sons sobrepostos (ex.: chuva + fala), a atribuição pode errar. | Paulo (regra) · Claude (operacionalização) | em discussão |
 | **sinapse** | junção aresta → nó. Hoje cada aresta termina em exatamente um nó, então o número de sinapses é igual ao de arestas. | Paulo | em discussão |
@@ -68,6 +68,7 @@ Status: **aprovado** (definido ou aceito pelo Paulo) · **em discussão**.
 | **recurso operacional** | o que o marcapasso de recursos entrega a cada batida e o que o Sdom gasta para disparar e para aprender (manter não gasta). É medido em operações contadas, para que o resultado possa ser repetido com a mesma semente. "Quanto chega a cada batida" é só o recurso operacional entregue por batida. | Paulo | aprovado |
 | **reserva operacional** | quanto recurso operacional cada nó tem guardado. Recebe mais onde há atividade. Quando está baixa, o nó deixa primeiro de aprender (inclusive de criar estruturas) e depois de disparar; o limiar para disparar cresce com a distância da transdução, então o mais longe cai antes. | Paulo | aprovado |
 | **piso** | nível mínimo de reserva operacional para algo acontecer num nó. Há o **piso de aprender** (o mais alto: aprender, inclusive criar estruturas, é o primeiro a parar) e o **piso de disparar**, que cresce com a distância da transdução (o nó mais longe para antes). Não confundir com **limiar** (soma de incidências que faz o nó disparar). | Paulo (escolha) · Claude (sugestão) | aprovado |
+| **eferência** | o caminho de saída do Sdom: incidências que vão do Sdom para fora dele. A primeira eferência é a que chega ao marcapasso de recursos (excitatórias aceleram, inibitórias freiam); as ligações que a formam são aprendidas. Outras saídas (ex.: motoras) também serão eferências. | Paulo | aprovado |
 
 ## Poda
 
