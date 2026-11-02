@@ -16,11 +16,18 @@ Status: **aprovado** (definido ou aceito pelo Paulo) · **em discussão**.
 | **nível** | camada do Sdom (1 a 4) conforme a distância dos ouvidos. | Claude | em discussão |
 | **universo** | um experimento completo, do nascimento do Sdom até ser destruído; tem versão e parâmetros. | Claude | aprovado |
 
+## Transdução
+
+| termo | definição | origem | status |
+|---|---|---|---|
+| **transdução** | traz para dentro do Sdom, já **normalizados** em incidências, os sinais que vêm de fora dele. É a primeira normalização do domínio representacional. Ex.: a cóclea no ouvido, os cones no olho — fazem parte do grupo de transdução, não do Sdom. Cada sentido tem a sua, fixa. | Paulo | aprovado |
+| **exógeno / endógeno** | origem do sinal que chega à transdução: externo ao sistema (exógeno) ou interno ao sistema (endógeno). Os dois são externos ao Sdom. | Paulo | aprovado |
+
 ## Dinâmica
 
 | termo | definição | origem | status |
 |---|---|---|---|
-| **incidência** | o que circula pelas arestas: excitatória ou inibitória, com magnitude. | Paulo | aprovado |
+| **incidência** | o que circula pelas arestas: excitatória ou inibitória, com magnitude. É a **moeda comum** do Sdom: tudo o que entra, de qualquer sentido, entra como incidência. | Paulo | aprovado |
 | **magnitude** | intensidade da incidência, de 0 (inerte) a 1. O nó dispara com uma magnitude própria, definida pela transdução que o criou. | Paulo | aprovado |
 | **limiar** | soma de incidências que faz o nó disparar. | Paulo | aprovado |
 | **janela de integração** | por quanto tempo, depois de chegar, uma incidência ainda soma no nó. | Paulo | aprovado |
