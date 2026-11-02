@@ -1,0 +1,59 @@
+# Glossário do Sdom
+
+Os nomes daqui vão para a teoria e para o artigo, por isso são combinados antes
+de serem usados. **Termo novo só entra depois de aprovado pelo Paulo.**
+
+Status: **aprovado** (definido ou aceito pelo Paulo) · **proposto** (sugerido
+pelo Claude, aguardando aprovação).
+
+## Estrutura
+
+| termo | definição | origem | status |
+|---|---|---|---|
+| **Sdom** | domínio representacional do sistema: o grafo onde o que o robô percebe é representado. Nasce vazio. | Paulo | aprovado |
+| **nó** | elemento do Sdom que integra incidências e dispara ao atingir o limiar. | Paulo | aprovado |
+| **aresta** | ligação de um nó a outro; leva a incidência com um tempo de propagação. | Paulo | aprovado |
+| **nível** | camada do Sdom (1 a 4) conforme a distância dos ouvidos. | Claude | proposto |
+| **universo** | um experimento completo, do nascimento do Sdom até ser destruído; tem versão e parâmetros. | Claude | proposto |
+
+## Dinâmica
+
+| termo | definição | origem | status |
+|---|---|---|---|
+| **incidência** | o que circula pelas arestas: excitatória ou inibitória, com magnitude. | Paulo | aprovado |
+| **magnitude** | intensidade da incidência, de 0 (inerte) a 1. O nó dispara com uma magnitude própria, definida pela transdução que o criou. | Paulo | aprovado |
+| **limiar** | soma de incidências que faz o nó disparar. | Paulo | aprovado |
+| **janela de integração** | por quanto tempo, depois de chegar, uma incidência ainda soma no nó. | Paulo | aprovado |
+| **refratariedade** | tempo depois do disparo em que o nó não faz nada. | Paulo | aprovado |
+| **tempo de propagação** | atraso da aresta para entregar a incidência; tem um valor basal e pode ser modulado. | Paulo | aprovado |
+| **percorrer** | um estímulo semelhante ao que criou uma estrutura passa de novo por ela. | Paulo | aprovado |
+| **lóbulo** | trecho positivo da onda que chega ao ouvido; um lóbulo que não encontra caminho cria um nó do nível 1. | Claude | proposto |
+| **janela de agrupamento** | tempo em que disparos que não levaram a nenhum disparo seguinte são juntados para criar um nó novo. | Claude | proposto |
+| **absorvida** | incidência que ajudou algum nó a disparar. | Claude | proposto |
+
+## Aprendizado
+
+| termo | definição | origem | status |
+|---|---|---|---|
+| **peso** | quanto a aresta modula a magnitude que passa por ela (0 a 1). Incidência entregue = magnitude do nó × peso. | Paulo (nome) | aprovado |
+| **peso recente / peso consolidado** | as duas partes do peso: a recente se apaga em horas, a consolidada em semanas. | Claude | proposto |
+| **reforço / enfraquecimento por sincronia** | o peso sobe quando a incidência chegou antes do disparo do nó seguinte e ajudou; desce quando chegou depois. | Claude | proposto |
+| **consolidação** | passagem do peso recente para o consolidado. | Claude | proposto |
+| **janela de consolidação** | tempo, a partir do primeiro reforço, em que o reforço acumulado pode consolidar. | Paulo | aprovado |
+| **decaimento** | perda de peso com o tempo sem a aresta ser percorrida. | Paulo | aprovado |
+| **inerte** | aresta com peso perto de zero (não entrega nada); nó que não participa da dinâmica. | Paulo | aprovado |
+
+## Poda
+
+| termo | definição | origem | status |
+|---|---|---|---|
+| **poda** | eliminação do Sdom de arestas inertes por um certo tempo, e dos nós que ficam órfãos. | Paulo | aprovado |
+| **candidata à poda** | aresta inerte, ainda não podada. | Paulo | aprovado |
+| **órfão** | nó sem nenhuma aresta; é podado. | Paulo | aprovado |
+| **acesso** | o nó de origem dispara e a incidência passa por uma aresta candidata à poda: reforça o peso, aumenta a janela de consolidação e tira a aresta da fila da poda. | Paulo | aprovado |
+
+## Observação
+
+| termo | definição | origem | status |
+|---|---|---|---|
+| **pulo no tempo** | avançar o mundo em silêncio; só o decaimento acontece, calculado pelo tempo passado. | Claude | proposto |

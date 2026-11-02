@@ -8,7 +8,9 @@ que começa vazio. O que ele ouve é representado num grafo: uma estrutura é
 - `web/index.html` — simulação completa numa página só. Publicada no GitHub Pages:
   https://paulosince.github.io/CLEAR/sdom/web/
 - `tests/convergencia.js` — experimento automático piano → viola (Playwright).
-- `tests/decaimento.js` — aprender, ficar em silêncio, ouvir de novo (Playwright).
+- `tests/decaimento.js` — aprender, pular no tempo, ouvir de novo (Playwright).
+- `tests/poda.js` — arestas inertes, acesso e poda (Playwright).
+- `GLOSSARIO.md` — os nomes combinados (aprovados e propostos).
 
 ## Regras do modelo (definidas pelo Paulo)
 
@@ -48,7 +50,7 @@ Todas as características de nós e arestas podem ser modificadas por aprendizad
    formava, para evitar cópias do mesmo padrão.
 6. Ainda sem divisão e sem arestas inibitórias.
 
-## Aprendizado (v0.4)
+## Aprendizado (v0.4–v0.5)
 
 Reforço e enfraquecimento agem **no mesmo lugar e em sentidos opostos: o peso da
 aresta** (a modulação da magnitude, de 0 = inerte a 1 = máximo), como LTP e LTD
@@ -68,14 +70,22 @@ representando o que a transdução definiu.
   A recente se apaga com meia-vida de 1 h sem uso (LTP inicial dura < 3 h); a
   consolidada, com meia-vida de 14 dias (LTP tardio dura de dias a semanas, às
   vezes meses). Abaixo de 0,01 a aresta fica inerte (a estrutura permanece).
-- **Consolidação:** o primeiro reforço põe uma *etiqueta* na sinapse, válida por
-  3 h (Frey & Morris, 1997). Se o reforço acumulado dentro da etiqueta chegar a
+- **Consolidação:** o primeiro reforço abre a *janela de consolidação*, de 3 h
+  (inspirada na etiqueta sináptica de Frey & Morris, 1997). Se o reforço acumulado dentro da etiqueta chegar a
   0,3, a parte recente passa para a consolidada. Uma sinapse nova, sem reforço,
   só tem a parte recente.
 - **Pular no tempo:** como no silêncio só o decaimento acontece, e ele é calculado
   pelo tempo passado, dá para avançar 1 h, 1 dia, 1 semana ou 4 semanas na hora.
 - Arestas nascem com peso 0,5 (todo recente); o limiar do nó novo é calibrado com esse peso.
 - A ligação ouvido → nível 1 é transdução fixa: não aprende nem decai.
+
+## Poda (v0.5)
+
+- **Aresta inerte** (peso < 0,01) vira **candidata à poda**. Inerte por 7 dias, é podada.
+- **Nó** só é podado quando fica **órfão**: sem nenhuma aresta.
+- **Acesso:** se o nó de origem dispara e a incidência passa por uma candidata, ela
+  ganha +0,1 no peso recente, +3 h de janela de consolidação e sai da fila da poda.
+- Os nós do nível 1 nunca ficam órfãos: a ligação ouvido → nível 1 é transdução fixa.
 
 Janelas de 17 ms e 34 ms: médias de Bi & Poo (1998). Os números de reforço,
 consolidação e meias-vidas são escolhas iniciais, ajustáveis como parâmetros.
@@ -128,6 +138,13 @@ do pulo (0 = reconheceu; ~22 = reaprendeu do zero).
 
 Observação: ouvido uma vez só, o caminho já falha em 10 min. O limiar do nó novo é
 80% do que o criou; com meia-vida de 1 h, o peso cai abaixo disso em ~20 min.
+
+Poda (`tests/poda.js`): ouvido 1×, depois de 1 dia as 39 arestas aprendidas são
+candidatas. Ouvir de novo acessa 17 delas (as que saem do nível 1), mas o reforço
+de acesso (0,11) não basta para o caminho disparar: nascem 22 nós novos. Uma semana
+depois, tudo o que foi aprendido está podado (103 arestas, 36 nós); restam os 4
+nós do nível 1. Ouvido 6×, a estrutura resiste a 4 semanas (só 15 arestas podadas)
+e some entre 4 e 14 semanas.
 
 Seletividade: num nó detector do período do dó, as arestas de um receptor
 foram a ~0,99 (0,80 consolidado) e as de outro ficaram em ~0,46 e ~0,24.

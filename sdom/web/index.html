@@ -94,7 +94,7 @@
   </div>
   <div class="small mut" id="stStatus">—</div>
   <div id="stList" style="margin-top:6px"></div>
-  <div class="note">Fica tudo só aqui (IndexedDB). Grava a cada 2 s: estrutura, mudanças de peso das arestas (recente e consolidado), pulos no tempo, atividade resumida (disparos por nó a cada 100 ms) e estímulos tocados. "Baixar JSON" gera o arquivo para análise.</div>
+  <div class="note">Fica tudo só aqui (IndexedDB). Grava a cada 2 s: estrutura, mudanças de peso das arestas (recente e consolidado), pulos no tempo, podas, atividade resumida (disparos por nó a cada 100 ms) e estímulos tocados. "Baixar JSON" gera o arquivo para análise.</div>
 </section>
 
 <section id="secPar">
@@ -167,7 +167,7 @@
      observados, para que tudo chegue junto ao nó novo.
    - Sem aprendizado nem divisão ainda.
    ===================================================================== */
-const CODE_VERSION = 'v0.4';
+const CODE_VERSION = 'v0.5';
 const DEFAULTS = {
   sr: 8000,            // taxa do microfone (amostras/s)
   floor: 0.02,         // sensibilidade: lóbulo abaixo disso é ignorado
@@ -190,8 +190,12 @@ const DEFAULTS = {
   // decaimento em duas fases (LTP inicial × tardio; etiqueta sináptica de Frey & Morris)
   fastHalfLifeS: 3600,   // parte recente do peso: meia-vida de 1 h sem uso
   slowHalfLifeDays: 14,  // parte consolidada: meia-vida de 2 semanas sem uso
-  tagHours: 3,           // janela da etiqueta: reforço acumulado nela pode consolidar
-  consolThr: 0.3,        // reforço acumulado dentro da etiqueta para consolidar
+  tagHours: 3,           // janela de consolidação: reforço acumulado nela pode consolidar
+  consolThr: 0.3,        // reforço acumulado dentro da janela de consolidação para consolidar
+  // poda (v0.5)
+  pruneDays: 7,          // aresta inerte por esse tempo é podada; nó órfão (sem arestas) também
+  accessBoost: 0.1,      // acesso a uma aresta candidata à poda: reforço no peso recente
+  accessWindowH: 3,      // acesso: aumento da janela de consolidação da aresta
   inertW: 0.01,          // peso abaixo disso = inerte (não entrega nada)
   actWindowMs: 100,      // janela da atividade gravada
 };
@@ -203,7 +207,8 @@ const PARAM_UI = [
   ['maxLevel','níveis máximos (1–4)'],['maxNodes','teto de nós'],['histSeconds','histórico gravado (s)'],
   ['wBirth','peso de nascimento da aresta'],['aPlus','reforço por sincronia (chegou antes)'],['aMinus','enfraquecimento por sincronia (chegou depois)'],
   ['tauPlusMs','janela do reforço (ms)'],['tauMinusMs','janela do enfraquecimento (ms)'],
-  ['fastHalfLifeS','meia-vida do peso recente (s)'],['slowHalfLifeDays','meia-vida do peso consolidado (dias)'],['tagHours','janela da etiqueta (h)'],['consolThr','reforço acumulado para consolidar'],['inertW','peso inerte abaixo de'],['actWindowMs','janela da atividade gravada (ms)'],
+  ['fastHalfLifeS','meia-vida do peso recente (s)'],['slowHalfLifeDays','meia-vida do peso consolidado (dias)'],['tagHours','janela de consolidação (h)'],['consolThr','reforço acumulado para consolidar'],
+  ['pruneDays','poda: dias inerte até podar'],['accessBoost','acesso: reforço da candidata'],['accessWindowH','acesso: +janela de consolidação (h)'],['inertW','peso inerte abaixo de'],['actWindowMs','janela da atividade gravada (ms)'],
 ];
 
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -244,6 +249,8 @@ class Universe{
     // aprendizado e registros para gravação
     this.hlF = Math.max(1, p.fastHalfLifeS*sr); this.hlS = Math.max(1, p.slowHalfLifeDays*86400*sr);
     this.tagLen = p.tagHours*3600*sr; this.consol = 0;
+    this.pruneLen = p.pruneDays*86400*sr; this.accessWin = p.accessWindowH*3600*sr;
+    this.sweepEvery = Math.round(0.5*sr); this.candidates = 0; this.prunedE = 0; this.prunedN = 0; this.accesses = 0; this.pruneLog = [];
     this.tauP = Math.max(1e-9, p.tauPlusMs*sr/1000); this.tauM = Math.max(1e-9, p.tauMinusMs*sr/1000);
     this.ltp = 0; this.ltd = 0; this.wChanged = new Set();
     this.actLog = []; this.stimLog = [];
@@ -254,14 +261,14 @@ class Universe{
   }
   addNode(o){
     const n = Object.assign({id:this.nodes.length, out:[], in:[], contrib:[], refUntil:0, fires:0, nmT:-1e9, origin:null}, o);
-    n.lastFire=-1e12;
+    n.lastFire=-1e12; n.diedAt=Infinity;
     this.nodes.push(n); return n;
   }
   addEdge(from, to, d){
     // peso (mod) só aprende em arestas que saem de nós; ouvido→nível 1 é transdução fixa
     // peso = parte recente (wF, apaga em horas) + parte consolidada (wS, apaga em semanas). Nasce só recente.
     const w0 = from.lvl===0 ? 1 : this.p.wBirth;
-    const e = {id:this.edges.length, from, to, d, wF:w0, wS:0, mod:w0, acc:0, tagUntil:-1, effect:0, born:to.born, lastUse:to.born}; // effect 0 = mantém
+    const e = {id:this.edges.length, from, to, d, wF:w0, wS:0, mod:w0, acc:0, tagUntil:-1, winExtra:0, inertSince:null, diedAt:Infinity, effect:0, born:to.born, lastUse:to.born}; // effect 0 = mantém
     from.out.push(e); to.in.push(e); this.edges.push(e); return e;
   }
   // ---- peso das arestas ----
@@ -273,7 +280,7 @@ class Universe{
     this.decayEdge(e,t);
     const dw=this.p.aPlus*(1-e.mod)*timing; if(dw<=0) return;
     e.wF+=dw;
-    if(t>e.tagUntil){ e.tagUntil=t+this.tagLen; e.acc=0; }   // etiqueta nova
+    if(t>e.tagUntil){ e.tagUntil=t+this.tagLen+e.winExtra; e.acc=0; }   // abre a janela de consolidação
     e.acc+=dw;
     if(e.acc>=this.p.consolThr){ e.wS+=e.wF; e.wF=0; e.acc=0; this.consol++; }   // consolidação
     e.mod=e.wF+e.wS; this.ltp++; this.wChanged.add(e);
@@ -282,6 +289,36 @@ class Universe{
     this.decayEdge(e,t);
     let dw=frac*e.mod; const a=Math.min(dw,e.wF); e.wF-=a; dw-=a; if(dw>0) e.wS=Math.max(0,e.wS-dw);
     e.mod=e.wF+e.wS; this.ltd++; this.wChanged.add(e);
+  }
+  // ---- poda ----
+  // acesso: o nó de origem disparou e a incidência passou por uma aresta candidata à poda
+  access(e,t){
+    e.wF=Math.min(1-e.wS, e.wF+this.p.accessBoost); e.mod=e.wF+e.wS;
+    e.winExtra+=this.accessWin; if(e.tagUntil>=t) e.tagUntil+=this.accessWin;
+    e.inertSince=null; this.accesses++; this.wChanged.add(e);
+  }
+  crossTime(e,t){ // quando o peso cruzou o limite de inerte (por bisseção)
+    let lo=e.lastUse, hi=t; if(this.wAt(e,lo)<this.p.inertW) return lo;
+    for(let i=0;i<40;i++){ const m=(lo+hi)/2; if(this.wAt(e,m)<this.p.inertW) hi=m; else lo=m; }
+    return hi;
+  }
+  sweep(t){
+    let cand=0;
+    for(const e of this.edges){
+      if(e.diedAt!==Infinity || e.from.lvl===0) continue;
+      if(this.wAt(e,t)<this.p.inertW){
+        if(e.inertSince===null) e.inertSince=this.crossTime(e,t);
+        if(t-e.inertSince>=this.pruneLen) this.pruneEdge(e, Math.min(t, e.inertSince+this.pruneLen)); else cand++;
+      } else e.inertSince=null;
+    }
+    this.candidates=cand;
+  }
+  pruneEdge(e,when){
+    e.diedAt=when; this.prunedE++; this.pruneLog.push({t:Math.round(when), kind:'aresta', id:e.id, from:e.from.id, to:e.to.id});
+    e.from.out=e.from.out.filter(x=>x!==e); e.to.in=e.to.in.filter(x=>x!==e);
+    for(const n of [e.from,e.to]) if(n.lvl>0 && n.diedAt===Infinity && n.in.length===0 && n.out.length===0){
+      n.diedAt=when; this.prunedN++; this.pruneLog.push({t:Math.round(when), kind:'nó', id:n.id});
+    }
   }
   // pulo no tempo: o mundo fica em silêncio; só o decaimento (calculado pelo tempo passado) acontece
   jump(samples){
@@ -294,6 +331,7 @@ class Universe{
     if(this.actCounts.size){ const c={}; for(const [k,v] of this.actCounts) c[k]=v; this.actLog.push({t0:this.actStart,c}); this.actCounts.clear(); }
     this.actStart=this.t;
     this.stimLog.push({t:t0, jumpS:samples/this.sr});
+    this.sweep(this.t);
   }
   // um passo de tempo = uma amostra do microfone
   step(xL, xR){
@@ -345,6 +383,7 @@ class Universe{
     }
     // criação nos níveis 2+: disparos que ninguém absorveu
     for(let l=2;l<=this.maxLevel;l++) this.groupLevel(l,t);
+    if(t%this.sweepEvery===0) this.sweep(t);
     if(t-this.actStart>=this.actWin){
       if(this.actCounts.size){ const c={}; for(const [k,v] of this.actCounts) c[k]=v; this.actLog.push({t0:this.actStart, c}); this.actCounts.clear(); }
       this.actStart=t;
@@ -384,6 +423,7 @@ class Universe{
       const o=n.out[i];
       // DECAIMENTO: o peso cai com o tempo sem a aresta ser percorrida (calculado agora, de forma preguiçosa)
       this.decayEdge(o,t);
+      if(o.mod<this.p.inertW) this.access(o,t);   // candidata à poda acessada
       if(o.mod<this.p.inertW) continue;      // inerte: a estrutura fica, mas não entrega nada
       let v = mag*o.mod; if(o.effect===2) v=-Math.abs(v);
       this.wheel[(t+o.d)&this.wmask].push({n:o.to, v, ev, t0:t+o.d, e:o});
@@ -653,7 +693,7 @@ function drawSdom(){
     // arestas pelo peso: fraca, média, forte; inertes tracejadas
     const B=[['rgba(140,150,170,0.06)',0.6],['rgba(150,170,210,0.16)',1],['rgba(120,190,255,0.45)',1.4]];
     const paths=[new Path2D(),new Path2D(),new Path2D()], inert=new Path2D(), cons=new Path2D();
-    for(let i=0;i<ne;i++){const e=U.edges[i]; if(e.from.lvl===0)continue; let w=U.wAt(e,tv); if(w===null) w=e.mod; let ws=U.wsAt(e,tv); if(ws===null) ws=e.wS;
+    for(let i=0;i<ne;i++){const e=U.edges[i]; if(e.from.lvl===0||e.diedAt<=tv)continue; let w=U.wAt(e,tv); if(w===null) w=e.mod; let ws=U.wsAt(e,tv); if(ws===null) ws=e.wS;
       const p = w<U.p.inertW ? inert : (ws>0.5*w && w>=0.35 ? cons : paths[w<0.35?0:(w<0.7?1:2)]);
       p.moveTo(X(e.from.x),Y(e.from.y)); p.lineTo(X(e.to.x),Y(e.to.y)); }
     for(let k=0;k<3;k++){ g.strokeStyle=B[k][0]; g.lineWidth=B[k][1]*d; g.stroke(paths[k]); }
@@ -662,7 +702,7 @@ function drawSdom(){
   }
   // trilha percorrida: aresta entre dois nós que acabaram de disparar
   g.strokeStyle='rgba(255,226,122,0.55)'; g.lineWidth=1.3*d; g.beginPath();
-  for(let i=0;i<ne;i++){const e=U.edges[i]; if(glow[e.to.id]>0 && (glow[e.from.id]>0 || e.from.lvl===0)){ g.moveTo(X(e.from.x),Y(e.from.y)); g.lineTo(X(e.to.x),Y(e.to.y)); }}
+  for(let i=0;i<ne;i++){const e=U.edges[i]; if(e.diedAt<=tv) continue; if(glow[e.to.id]>0 && (glow[e.from.id]>0 || e.from.lvl===0)){ g.moveTo(X(e.from.x),Y(e.from.y)); g.lineTo(X(e.to.x),Y(e.to.y)); }}
   g.stroke();
   if(sel && sel.id<nv){
     g.lineWidth=1.6*d;
@@ -673,13 +713,13 @@ function drawSdom(){
   for(let l=0;l<=4;l++){
     g.fillStyle=COL[l]; g.globalAlpha=l===0?0.9:0.45; g.beginPath();
     const r=RAD[l]*d*Math.max(0.7,Math.min(2.2,view.s*1.2));
-    for(let i=0;i<nv;i++){const n=U.nodes[i]; if(n.lvl!==l)continue; const x=X(n.x),y=Y(n.y); if(x<-10||y<-10||x>W+10||y>H+10)continue; g.moveTo(x+r,y); g.arc(x,y,r,0,6.2832);} g.fill();
+    for(let i=0;i<nv;i++){const n=U.nodes[i]; if(n.lvl!==l||n.diedAt<=tv)continue; const x=X(n.x),y=Y(n.y); if(x<-10||y<-10||x>W+10||y>H+10)continue; g.moveTo(x+r,y); g.arc(x,y,r,0,6.2832);} g.fill();
   }
   g.globalAlpha=1;
   const zr=Math.max(0.7,Math.min(2.2,view.s*1.2));
 
   for(let i=0;i<nv;i++){
-    const n=U.nodes[i], x=X(n.x), y=Y(n.y); if(x<-10||y<-10||x>W+10||y>H+10)continue;
+    const n=U.nodes[i]; if(n.diedAt<=tv) continue; const x=X(n.x), y=Y(n.y); if(x<-10||y<-10||x>W+10||y>H+10)continue;
     const r=RAD[n.lvl]*d*zr;
     if(glow[i]>0){ g.fillStyle=`rgba(255,226,122,${0.35+0.65*glow[i]})`; g.beginPath(); g.arc(x,y,r*1.9,0,6.2832); g.fill(); }
     else if(part[i]>0){ g.strokeStyle='rgba(255,226,122,0.85)'; g.lineWidth=2*d; g.beginPath(); g.arc(x,y,r*2.2,-Math.PI/2,-Math.PI/2+6.2832*Math.min(1,part[i])); g.stroke(); }
@@ -747,8 +787,8 @@ function drawStats(){
   const now=performance.now(); if(now-lastStatT<500) return;
   const dtR=(now-lastStatT)/1000; lastStatT=now;
   fireRate=(U.fireCount-lastFC)/dtR; lastFC=U.fireCount;
-  const per=[0,0,0,0,0]; for(const n of U.nodes) per[n.lvl]++;
-  $('stats').textContent=`nós: ${U.nodes.length-2} (n1 ${per[1]} · n2 ${per[2]} · n3 ${per[3]} · n4 ${per[4]}) · arestas ${U.edges.length} · disparos/s ${Math.round(fireRate)} · reforços ${U.ltp} · enfraquecimentos ${U.ltd} · consolidações ${U.consol} · tempo do mundo ${fmt(U.t)} · ritmo ${(simRatio*100).toFixed(0)}% do real`;
+  const per=[0,0,0,0,0]; for(const n of U.nodes) if(n.diedAt===Infinity) per[n.lvl]++;
+  $('stats').textContent=`nós: ${per[1]+per[2]+per[3]+per[4]} (n1 ${per[1]} · n2 ${per[2]} · n3 ${per[3]} · n4 ${per[4]}) · arestas ${U.edges.length-U.prunedE} · disparos/s ${Math.round(fireRate)} · reforços ${U.ltp} · enfraquecimentos ${U.ltd} · consolidações ${U.consol} · candidatas à poda ${U.candidates} · podadas: ${U.prunedE} arestas, ${U.prunedN} nós · acessos ${U.accesses} · tempo do mundo ${fmt(U.t)} · ritmo ${(simRatio*100).toFixed(0)}% do real`;
   if(view.sel) showInfo();
 }
 function showInfo(){
@@ -757,7 +797,7 @@ function showInfo(){
   const lv=['ouvido','nível 1','nível 2','nível 3','nível 4'][n.lvl];
   let s=`#${n.id} · ${lv}${n.lvl<=1?(n.ear?' · ouvido direito':' · ouvido esquerdo'):''}\n`;
   if(n.lvl===0){ s+=`microfone: transduz pressão em incidências\n(positivo = excitatória, negativo = inibitória)\nsaídas: ${n.out.length}`; $('info').textContent=s; return; }
-  s+=`nasceu em ${fmt(n.born)}\n`;
+  s+=`nasceu em ${fmt(n.born)}`+(n.diedAt!==Infinity?` · PODADO em ${fmt(n.diedAt)} (ficou órfão)`:'')+`\n`;
   s+=`janela de integração ${ms(n.W)} · refratariedade ${ms(n.refr)}\n`;
   s+=`limiar ${n.thr.toFixed(4)} (fixo) · magnitude ${n.mag.toFixed(4)} (fixa)\n`;
   s+=`disparos até agora ${n.fires}`+(n.fires?` · último há ${((U.t-n.lastFire)/U.sr).toFixed(1)} s`:'')+`\n`;
@@ -767,7 +807,7 @@ function showInfo(){
   const tvv=Math.floor(view.tv);
   for(const e of n.in.slice(0,12)){ let w=U.wAt(e,tvv); if(w===null)w=e.mod;
     let ws=U.wsAt(e,tvv); if(ws===null) ws=e.wS;
-    s+=`  de #${e.from.id} (${['ouvido','n1','n2','n3','n4'][e.from.lvl]}) atraso ${ms(e.d)}`+(e.from.lvl? ` · peso ${w.toFixed(3)} (recente ${(w-ws).toFixed(3)} · consolidado ${ws.toFixed(3)})${w<U.p.inertW?' INERTE':''}`:'')+`\n`; }
+    s+=`  de #${e.from.id} (${['ouvido','n1','n2','n3','n4'][e.from.lvl]}) atraso ${ms(e.d)}`+(e.from.lvl? ` · peso ${w.toFixed(3)} (recente ${(w-ws).toFixed(3)} · consolidado ${ws.toFixed(3)})${w<U.p.inertW?' INERTE'+(e.inertSince!==null?`, candidata à poda há ${fmt(U.t-e.inertSince)}`:''):''}`:'')+`\n`; }
   if(n.in.length>12) s+=`  …\n`;
   s+=`saídas: ${n.out.length}`;
   $('info').textContent=s;
@@ -787,7 +827,7 @@ function showInfo(){
 function zoomAt(cx,cy,ns,base){ ns=Math.max(0.15,Math.min(12,ns)); const b=base||{s:view.s,ox:view.ox,oy:view.oy}; const wx=(cx-b.ox)/b.s, wy=(cy-b.oy)/b.s; view.s=ns; view.ox=cx-wx*ns; view.oy=cy-wy*ns; }
 function pick(px,py){
   const nv=U.visibleCount(Math.floor(view.tv)); let best=null, bd=18;
-  for(let i=0;i<nv;i++){ const n=U.nodes[i]; const dd=Math.hypot(n.x*view.s+view.ox-px, n.y*view.s+view.oy-py); if(dd<bd){bd=dd;best=n} }
+  for(let i=0;i<nv;i++){ const n=U.nodes[i]; if(n.diedAt<=view.tv) continue; const dd=Math.hypot(n.x*view.s+view.ox-px, n.y*view.s+view.oy-py); if(dd<bd){bd=dd;best=n} }
   view.sel=best; showInfo();
 }
 $('zin').onclick=()=>{const r=$('sdom').getBoundingClientRect(); zoomAt(r.width/2,r.height/2,view.s*1.4)};
@@ -861,9 +901,9 @@ const Store={
   db:null, ok:false, uid:null, nodePtr:0, meta:null, bytes:0,
   async open(){
     try{
-      this.db=await new Promise((res,rej)=>{ const r=indexedDB.open('sdom',2);
+      this.db=await new Promise((res,rej)=>{ const r=indexedDB.open('sdom',3);
         r.onupgradeneeded=()=>{ const d=r.result; if(!d.objectStoreNames.contains('universes')) d.createObjectStore('universes',{keyPath:'id'});
-          for(const st of ['nodes','thr','weights','activity','stimuli']){ if(!d.objectStoreNames.contains(st)){ const os=d.createObjectStore(st,{autoIncrement:true}); os.createIndex('u','u'); } } };
+          for(const st of ['nodes','thr','weights','activity','stimuli','prunes']){ if(!d.objectStoreNames.contains(st)){ const os=d.createObjectStore(st,{autoIncrement:true}); os.createIndex('u','u'); } } };
         r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
       this.ok=true;
     }catch(e){ this.ok=false; }
@@ -877,16 +917,18 @@ const Store={
   flush(u){
     const nodes=u.nodes.slice(this.nodePtr), act=u.actLog, stim=u.stimLog;
     const wch={}; for(const e of u.wChanged) wch[e.id]=[+e.wF.toFixed(5), +e.wS.toFixed(5), e.lastUse]; u.wChanged.clear();
+    const pr=u.pruneLog; u.pruneLog=[];
     this.nodePtr=u.nodes.length; u.actLog=[]; u.stimLog=[];
     if(!this.ok||!this.uid) return;
     try{
-      const tx=this.db.transaction(['universes','nodes','weights','activity','stimuli'],'readwrite'), id=this.uid;
+      const tx=this.db.transaction(['universes','nodes','weights','activity','stimuli','prunes'],'readwrite'), id=this.uid;
+      const Pr=tx.objectStore('prunes'); for(const x of pr) Pr.add(Object.assign({u:id},x));
       const N=tx.objectStore('nodes'), Wt=tx.objectStore('weights'), A=tx.objectStore('activity'), S=tx.objectStore('stimuli');
       for(const n of nodes) N.add({u:id, id:n.id, lvl:n.lvl, ear:n.ear, W:n.W, thr:n.thr, mag:n.mag, refr:n.refr, born:n.born, x:+n.x.toFixed(1), y:+n.y.toFixed(1), origin:n.origin, in:n.in.map(e=>[e.id,e.from.id,e.d,e.mod])});
       if(Object.keys(wch).length) Wt.add({u:id, t:u.t, w:wch});
       for(const a of act) A.add({u:id, t0:a.t0, c:a.c});
       for(const st of stim) S.add(Object.assign({u:id},st));
-      Object.assign(this.meta,{worldTimeS:+(u.t/u.sr).toFixed(3), nodes:u.nodes.length-2, edges:u.edges.length, fires:u.fireCount, ltp:u.ltp, ltd:u.ltd, consolidations:u.consol, updatedAt:new Date().toISOString()});
+      Object.assign(this.meta,{worldTimeS:+(u.t/u.sr).toFixed(3), nodes:u.nodes.length-2, edges:u.edges.length, fires:u.fireCount, ltp:u.ltp, ltd:u.ltd, consolidations:u.consol, prunedEdges:u.prunedE, prunedNodes:u.prunedN, accesses:u.accesses, updatedAt:new Date().toISOString()});
       tx.objectStore('universes').put(this.meta);
     }catch(e){}
   },
@@ -894,14 +936,14 @@ const Store={
   async getAllFor(store,id){ return await new Promise(res=>{ const r=this.db.transaction(store).objectStore(store).index('u').getAll(IDBKeyRange.only(id)); r.onsuccess=()=>res((r.result||[]).map(x=>{const y=Object.assign({},x); delete y.u; return y;})); r.onerror=()=>res([]); }); },
   async exportU(id){
     const meta=(await this.list()).find(m=>m.id===id);
-    return {format:'sdom-universe/2', universe:meta, nodes:await this.getAllFor('nodes',id),
-      weightChanges:await this.getAllFor('weights',id), thresholdChanges:await this.getAllFor('thr',id),
+    return {format:'sdom-universe/3', universe:meta, nodes:await this.getAllFor('nodes',id),
+      weightChanges:await this.getAllFor('weights',id), prunes:await this.getAllFor('prunes',id), thresholdChanges:await this.getAllFor('thr',id),
       activity:await this.getAllFor('activity',id), stimuli:await this.getAllFor('stimuli',id)};
   },
   async del(id){
-    const tx=this.db.transaction(['universes','nodes','thr','weights','activity','stimuli'],'readwrite');
+    const tx=this.db.transaction(['universes','nodes','thr','weights','activity','stimuli','prunes'],'readwrite');
     tx.objectStore('universes').delete(id);
-    for(const st of ['nodes','thr','weights','activity','stimuli']){ const c=tx.objectStore(st).index('u').openKeyCursor(IDBKeyRange.only(id)); const os=tx.objectStore(st); c.onsuccess=()=>{ const cur=c.result; if(cur){ os.delete(cur.primaryKey); cur.continue(); } }; }
+    for(const st of ['nodes','thr','weights','activity','stimuli','prunes']){ const c=tx.objectStore(st).index('u').openKeyCursor(IDBKeyRange.only(id)); const os=tx.objectStore(st); c.onsuccess=()=>{ const cur=c.result; if(cur){ os.delete(cur.primaryKey); cur.continue(); } }; }
     await new Promise(r=>{tx.oncomplete=r; tx.onerror=r;});
   },
 };
