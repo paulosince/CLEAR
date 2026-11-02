@@ -4,9 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sdom · robô que ouve</title>
+<!-- Proteção: só código e arquivos deste próprio site; nenhuma conexão com outros endereços (o som não sai do aparelho). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
+<div id="micBanner" hidden role="status"><span>🎙️ <b>Ouvindo o mundo real</b> pelo microfone deste aparelho · <span id="micInfo"></span></span><button id="micStop" class="danger">⏹ parar</button></div>
 <header>
   <h1>Sdom · robô que ouve <span class="mut small" id="ver"></span></h1>
 </header>
@@ -64,6 +68,13 @@
       <b>Controle do ambiente</b>
       <label class="small"><input type="checkbox" id="audioOn" checked> 🔊 ouvir</label>
     </div>
+    <h3>Ouvir o mundo</h3>
+    <div class="row">
+      <button id="micBtn">🎙️ Ouvir o mundo (microfone)</button>
+      <label class="small"><input type="checkbox" id="micRec"> gravar o som bruto (para repetir o experimento)</label>
+    </div>
+    <div class="small mut" id="micStatus"></div>
+    <div class="note">O som fica só neste aparelho: a página não tem servidor e não se conecta a nenhum outro endereço. O microfone começa desligado e para sozinho quando a aba sai de foco. Enquanto ele estiver ligado, os sons sintéticos ficam pausados. Quando o navegador perguntar, prefira <b>permitir só desta vez</b>: a permissão vale para todas as páginas de paulosince.github.io. O som bruto só é guardado se você marcar a opção acima; ele não entra no JSON e pode ser baixado à parte (WAV) ou apagado junto com o universo. Avise quem estiver por perto: o robô aprende com o que ouve.</div>
     <h3>Instrumentos</h3>
     <div class="chips" id="chipsInstr"></div>
     <div class="note">Cânone em Ré, de Pachelbel (domínio público), um instrumento por fonte. Transcrição de memória, simplificada; o cravo é arranjo meu.</div>

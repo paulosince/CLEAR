@@ -77,3 +77,6 @@ footer{position:fixed;left:0;right:0;bottom:0;background:#12151cf2;border-top:1p
 footer input[type=range]{width:100%;padding:0;margin:6px 0 2px}
 #live.on{background:#7a2f38;border-color:#b5444f}
 .legend[hidden]{display:none}
+#micBanner{position:sticky;top:0;z-index:6;display:flex;gap:8px;align-items:center;justify-content:space-between;background:#5a1f26;border-bottom:1px solid #8a2f3a;padding:8px 12px;font-size:13px}
+#micBanner[hidden]{display:none}
+button:disabled{opacity:.45}

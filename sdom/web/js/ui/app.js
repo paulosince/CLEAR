@@ -12,6 +12,7 @@ import { drawPanel, drawWave, drawTimeline, initPanels } from './panels.js';
 import { initControls, drawRoom, renderChips, trigger } from './controls.js';
 import { initLab, labApi } from './labui.js';
 import { renderStore, initStoreUI } from './storeui.js';
+import { mic, initMic, feedFromMic } from './mic.js';
 
 function setVersion(extra=''){ $('ver').textContent=`· ${CODE_VERSION} · universo #${S.universeNo}${extra} · params ${hashStr(JSON.stringify(S.params))}`; }
 
@@ -36,6 +37,11 @@ const xs=[0,0];
 function loop(now){
   const U=S.U, A=S.amb, v=S.view;
   const dt=Math.min(0.1,(now-lastFrame)/1000); lastFrame=now;
+  // com o microfone, quem dita o tempo é o mundo real: entram as amostras que chegaram
+  if(mic.on){ const done=feedFromMic(U,13); S.simRatio=S.simRatio*0.9+0.1*(mic.queue.available()>0.05*U.sr?0.5:1); carry=0;
+    if(v.live) v.tv=U.t; else if(v.playing){ v.tv+=dt*U.sr*v.speed; if(v.tv>=U.t){ v.live=true; v.playing=true; v.tv=U.t; } }
+    const lo0=U.earliestViewable(); if(v.tv<lo0) v.tv=lo0;
+    drawSdom(); drawRoom(); drawWave(); drawTimeline(); drawPanel(); requestAnimationFrame(loop); return; }
   const target=S.labBusy?0:dt*U.sr*S.worldSpeed+carry; const n=Math.floor(target); carry=target-n;
   // eventos dos fluxos ligados que começam até um pouco à frente
   if(n>0) A.pump(U.t+n+Math.round(0.15*U.sr),(nt,src,x,start)=>{ logStimulus(U,nt,src,x,start); if(S.worldSpeed===1) playNote(nt,U.sr,(start-U.t)/U.sr); });
@@ -71,7 +77,7 @@ on('laboratorioFim',()=>{ lastFrame=performance.now(); });
 (async()=>{
   await Store.open();
   newUniverse();
-  initSdomView(); initPanels(); initControls(); initLab(); initStoreUI(); initParams();
+  initSdomView(); initPanels(); initControls(); initLab(); initStoreUI(); initParams(); initMic();
   emit('universo');
   setInterval(()=>{ if(!S.labBusy) Store.flush(S.U); },2000);
   addEventListener('pagehide',()=>Store.flush(S.U));
@@ -80,5 +86,5 @@ on('laboratorioFim',()=>{ lastFrame=performance.now(); });
 })();
 
 // acesso para testes e experimentos (Playwright)
-window.__sdom={ get U(){ return S.U; }, get W(){ return S.amb.W; }, get amb(){ return S.amb; }, trigger, view:S.view, Store, renderStore, lab:labApi,
+window.__sdom={ mic, get U(){ return S.U; }, get W(){ return S.amb.W; }, get amb(){ return S.amb; }, trigger, view:S.view, Store, renderStore, lab:labApi,
   toggle:k=>{ import('./controls.js').then(m=>m.toggleStream(k)); }, Universe, S };

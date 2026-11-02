@@ -20,6 +20,7 @@ function labStart(scen,durS,sd){
   scen=scen||$('labScen').value; durS=+(durS||$('labDur').value); sd=(sd!==undefined)?(sd>>>0):seedVal();
   $('labScen').value=scen; $('labDesc').textContent=SCEN[scen].desc; $('labSeedIn').value=sd;
   if([...$('labDur').options].some(o=>+o.value===durS)) $('labDur').value=durS;
+  emit('laboratorioInicio');
   labW=new Worker(new URL('../lab/worker.js', import.meta.url), {type:'module'});
   S.labBusy=true; series=[]; result=null; meta={scen,durS,seed:sd};
   $('labRun').disabled=true; $('labStop').disabled=false; $('labState').textContent='rodando…';

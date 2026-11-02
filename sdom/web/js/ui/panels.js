@@ -1,5 +1,6 @@
 /* Painel de números, nó selecionado, onda nos ouvidos e linha do tempo. */
 import { S, $, sizeCanvas, fmt, fmtInt, goLive, seek, on } from './state.js';
+import { micInfo } from './mic.js';
 
 let lastStatT=0, lastFC=0, lastMp=null;
 const mpSnap=U=>U.mp?{bf:U.mp.blockedFire,bl:U.mp.blockedLearn,bc:U.mp.blockedCreate,t:U.t}:null;
@@ -23,6 +24,8 @@ export function drawPanel(){
     falta=` · faltas por segundo de mundo: disparar ${fmtInt(rf)}, aprender ${fmtInt(rl)}, criar ${fmtInt(rc)}`; }
   else { $('tBpm').textContent='desligado'; $('tRes').textContent='—'; $('tFalta').textContent='—'; }
   $('statsMore').textContent=`tempo do mundo ${fmt(U.t)} · ritmo ${S.labBusy?'em espera (laboratório)':(S.simRatio*100).toFixed(0)+'% do real'} · Sdom perto ${per[2]} · médio ${per[3]} · longe ${per[4]} · reforços ${fmtInt(U.ltp)} · enfraquecimentos ${fmtInt(U.ltd)} · consolidações ${fmtInt(U.consol)} · candidatas à poda ${U.candidates} · podadas ${U.prunedE} arestas, ${U.prunedN} nós${falta}`;
+  const mi=micInfo();
+  if(mi){ $('micInfo').textContent=`${mi.stereo?'estéreo':'mono (os dois ouvidos recebem o mesmo som)'} · som perdido por atraso: ${mi.lostS.toFixed(1)} s`; }
   if(S.view.sel) showInfo();
 }
 

@@ -16,6 +16,10 @@ export async function renderStore(){
     bD.onclick=async()=>{ if(cur) await Store.flush(S.U); const data=await Store.exportU(m.id); const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
       const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`sdom-${m.id}.json`; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },2000); };
     row.appendChild(lbl); row.appendChild(bD);
+    if(m.hasAudio){ const bW=document.createElement('button'); bW.textContent='Baixar som bruto (WAV)';
+      bW.onclick=async()=>{ if(cur) await Store.flush(S.U); const blob=await Store.audioWav(m.id); if(!blob) return;
+        const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`sdom-${m.id}-som.wav`; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },2000); };
+      row.appendChild(bW); }
     if(!cur){ const bX=document.createElement('button'); bX.textContent='Apagar'; let arm=0;
       bX.onclick=async()=>{ const now=performance.now(); if(now-arm>3000){ arm=now; bX.textContent='Toque de novo'; setTimeout(()=>bX.textContent='Apagar',3000); return; } await Store.del(m.id); renderStore(); };
       row.appendChild(bX); }

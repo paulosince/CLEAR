@@ -13,6 +13,35 @@ que começa vazio. O que ele ouve é representado num grafo: uma estrutura é
 - `experimentos/poda.cjs` — arestas inertes, acesso e poda (Playwright).
 - `GLOSSARIO.md` — os nomes combinados (aprovados e propostos).
 
+## Ouvir o mundo pelo microfone (v0.12) e proteções
+
+O robô pode ouvir o mundo real pelo microfone do aparelho. Com o microfone ligado, quem dita o tempo é o
+mundo: entram as amostras que chegaram; se o computador não der conta, o atraso acima de 0,25 s é
+descartado e contado ("som perdido por atraso"). Os sons sintéticos ficam pausados, para o robô não
+ouvir os próprios alto-falantes. Mono: os dois ouvidos recebem o mesmo som (sem direção).
+
+**Proteções no código**
+- Microfone **desligado ao abrir**; só liga pelo botão (um teste confere isso a cada push).
+- Faixa vermelha fixa "Ouvindo o mundo real", com botão de parar; para sozinho quando a aba sai de foco ou a página fecha.
+- **Nada sai do aparelho**: não há servidor, e a política de segurança da página (CSP) proíbe conexões com
+  outros endereços e scripts de fora. Um teste falha se algum código passar a usar `fetch`, XHR, WebSocket ou `sendBeacon`.
+- Sem cabeçalho de origem (`referrer`) ao abrir links.
+- **Som bruto só com opção marcada** ("gravar o som bruto"); fica no IndexedDB deste navegador, não entra no
+  JSON exportado, pode ser baixado à parte (WAV) e é apagado junto com o universo.
+- O áudio do microfone nunca vai para o alto-falante.
+
+**O que só o Paulo pode fazer (não é possível daqui)**
+1. Ativar a autenticação em dois fatores na conta do GitHub.
+2. Proteger a `main` (Settings → Branches → Add rule → `main`): proibir *force push* e exclusão; se quiser,
+   exigir que o teste "Sdom — testes" passe antes de aceitar mudanças.
+3. Ao permitir o microfone, preferir "permitir só desta vez": a permissão vale para todas as páginas de
+   `paulosince.github.io`. Separação mais forte: publicar o Sdom num subdomínio próprio.
+
+Limite honesto: a CSP protege contra código de terceiros, não contra quem tem permissão de escrita no repositório
+(essa pessoa poderia remover a CSP). Por isso os itens 1 e 2 são os mais importantes.
+
+Experimento com microfone falso do Chromium: `NODE_PATH=$(npm root -g) node experimentos/microfone.cjs`.
+
 ## Marcapasso de recursos (v0.11)
 
 Desenho e respaldo: [`DESENHO-marcapasso-de-recursos.md`](DESENHO-marcapasso-de-recursos.md). Termos: `GLOSSARIO.md`.
