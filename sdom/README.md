@@ -57,26 +57,26 @@ aresta** (a modulação da magnitude, de 0 = inerte a 1 = máximo), como LTP e L
 na sinapse. A magnitude do nó e o limiar ficam fixos: a magnitude continua
 representando o que a transdução definiu.
 
-- **Sincronia, reforço:** a incidência chegou *antes* do disparo do nó seguinte e
+- **Reforço:** a incidência chegou *antes* do disparo do nó seguinte e
   contribuiu → o peso sobe `aPlus·(1−peso)·e^(−Δt/17 ms)`. O `(1−peso)` é o freio:
   quanto mais forte, menos sobe (dependência do peso observada por Bi & Poo, 1998).
-- **Sincronia, enfraquecimento:** a incidência chegou *depois* de o nó já ter
+- **Enfraquecimento:** a incidência chegou *depois* de o nó já ter
   disparado → o peso desce `aMinus·peso·e^(−Δt/34 ms)`. Fica pendente: se ela
   ainda ajudar o próximo disparo, o reforço vence (modelo de Sjöström, Turrigiano
   & Nelson, 2001). Sem essa regra, em sons periódicos cada incidência era ao mesmo
   tempo "atrasada" para o disparo anterior e "a tempo" para o seguinte, e os pesos
   ficavam presos no valor de nascimento.
-- **Decaimento em duas fases:** peso = parte **recente** + parte **consolidada**.
-  A recente se apaga com meia-vida de 1 h sem uso (LTP inicial dura < 3 h); a
-  consolidada, com meia-vida de 14 dias (LTP tardio dura de dias a semanas, às
+- **Decaimento em duas fases:** peso = **peso basal** + **peso consolidado**.
+  O basal se apaga com meia-vida de 1 h sem uso (LTP inicial dura < 3 h); o
+  consolidado, com meia-vida de 14 dias (LTP tardio dura de dias a semanas, às
   vezes meses). Abaixo de 0,01 a aresta fica inerte (a estrutura permanece).
 - **Consolidação:** o primeiro reforço abre a *janela de consolidação*, de 3 h
   (inspirada na etiqueta sináptica de Frey & Morris, 1997). Se o reforço acumulado dentro da etiqueta chegar a
-  0,3, a parte recente passa para a consolidada. Uma sinapse nova, sem reforço,
-  só tem a parte recente.
+  0,3, o peso basal passa para o consolidado. Uma sinapse nova, sem reforço,
+  só tem peso basal.
 - **Pular no tempo:** como no silêncio só o decaimento acontece, e ele é calculado
   pelo tempo passado, dá para avançar 1 h, 1 dia, 1 semana ou 4 semanas na hora.
-- Arestas nascem com peso 0,5 (todo recente); o limiar do nó novo é calibrado com esse peso.
+- Arestas nascem com peso 0,5 (todo basal); o limiar do nó novo é calibrado com esse peso.
 - A ligação ouvido → nível 1 é transdução fixa: não aprende nem decai.
 
 ## Poda (v0.5)
@@ -84,7 +84,7 @@ representando o que a transdução definiu.
 - **Aresta inerte** (peso < 0,01) vira **candidata à poda**. Inerte por 7 dias, é podada.
 - **Nó** só é podado quando fica **órfão**: sem nenhuma aresta.
 - **Acesso:** se o nó de origem dispara e a incidência passa por uma candidata, ela
-  ganha +0,1 no peso recente, +3 h de janela de consolidação e sai da fila da poda.
+  ganha +0,1 no peso basal, +3 h de janela de consolidação e sai da fila da poda.
 - Os nós do nível 1 nunca ficam órfãos: a ligação ouvido → nível 1 é transdução fixa.
 
 Janelas de 17 ms e 34 ms: médias de Bi & Poo (1998). Os números de reforço,
@@ -99,7 +99,7 @@ consolidação e meias-vidas são escolhas iniciais, ajustáveis como parâmetro
 
 Só local, no navegador (IndexedDB). A cada 2 s grava: o universo (versão e
 parâmetros), os nós com suas arestas de entrada, as mudanças de peso das arestas
-(`[recente, consolidado, momento da última mudança]`, para recalcular o decaimento), os pulos no tempo, a atividade
+(`[basal, consolidado, momento da última mudança]`, para recalcular o decaimento), os pulos no tempo, a atividade
 resumida (disparos por nó a cada 100 ms) e os estímulos tocados.
 "Baixar JSON" exporta um universo no formato `sdom-universe/2`.
 

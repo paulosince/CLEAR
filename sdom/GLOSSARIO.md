@@ -3,8 +3,7 @@
 Os nomes daqui vão para a teoria e para o artigo, por isso são combinados antes
 de serem usados. **Termo novo só entra depois de aprovado pelo Paulo.**
 
-Status: **aprovado** (definido ou aceito pelo Paulo) · **proposto** (sugerido
-pelo Claude, aguardando aprovação).
+Status: **aprovado** (definido ou aceito pelo Paulo) · **em discussão**.
 
 ## Estrutura
 
@@ -13,8 +12,8 @@ pelo Claude, aguardando aprovação).
 | **Sdom** | domínio representacional do sistema: o grafo onde o que o robô percebe é representado. Nasce vazio. | Paulo | aprovado |
 | **nó** | elemento do Sdom que integra incidências e dispara ao atingir o limiar. | Paulo | aprovado |
 | **aresta** | ligação de um nó a outro; leva a incidência com um tempo de propagação. | Paulo | aprovado |
-| **nível** | camada do Sdom (1 a 4) conforme a distância dos ouvidos. | Claude | proposto |
-| **universo** | um experimento completo, do nascimento do Sdom até ser destruído; tem versão e parâmetros. | Claude | proposto |
+| **nível** | camada do Sdom (1 a 4) conforme a distância dos ouvidos. | Claude | em discussão |
+| **universo** | um experimento completo, do nascimento do Sdom até ser destruído; tem versão e parâmetros. | Claude | aprovado |
 
 ## Dinâmica
 
@@ -27,18 +26,18 @@ pelo Claude, aguardando aprovação).
 | **refratariedade** | tempo depois do disparo em que o nó não faz nada. | Paulo | aprovado |
 | **tempo de propagação** | atraso da aresta para entregar a incidência; tem um valor basal e pode ser modulado. | Paulo | aprovado |
 | **percorrer** | um estímulo semelhante ao que criou uma estrutura passa de novo por ela. | Paulo | aprovado |
-| **lóbulo** | trecho positivo da onda que chega ao ouvido; um lóbulo que não encontra caminho cria um nó do nível 1. | Claude | proposto |
-| **janela de agrupamento** | tempo em que disparos que não levaram a nenhum disparo seguinte são juntados para criar um nó novo. | Claude | proposto |
-| **absorvida** | incidência que ajudou algum nó a disparar. | Claude | proposto |
+| **lóbulo** | trecho positivo da onda que chega ao ouvido; um lóbulo que não encontra caminho cria um nó do nível 1. Não tem relação com lobos cerebrais: precisa de outro nome. | Claude | em discussão |
+| **janela de agrupamento** | tempo em que disparos que não levaram a nenhum disparo seguinte são juntados para criar um nó novo. | Claude | em discussão |
+| **absorvida** | incidência que ajudou algum nó a disparar. | Claude | aprovado |
 
 ## Aprendizado
 
 | termo | definição | origem | status |
 |---|---|---|---|
 | **peso** | quanto a aresta modula a magnitude que passa por ela (0 a 1). Incidência entregue = magnitude do nó × peso. | Paulo (nome) | aprovado |
-| **peso recente / peso consolidado** | as duas partes do peso: a recente se apaga em horas, a consolidada em semanas. | Claude | proposto |
-| **reforço / enfraquecimento por sincronia** | o peso sobe quando a incidência chegou antes do disparo do nó seguinte e ajudou; desce quando chegou depois. | Claude | proposto |
-| **consolidação** | passagem do peso recente para o consolidado. | Claude | proposto |
+| **peso basal / peso consolidado** | as duas partes do peso: o basal se apaga em horas, o consolidado em semanas. Toda aresta nasce só com peso basal. | Claude (Paulo: "basal") | aprovado |
+| **reforço / enfraquecimento** | o peso sobe quando a incidência chegou antes do disparo do nó seguinte e ajudou; desce quando chegou depois sem ajudar. | Claude | aprovado |
+| **consolidação** | passagem do peso basal para o consolidado. | Claude | aprovado |
 | **janela de consolidação** | tempo, a partir do primeiro reforço, em que o reforço acumulado pode consolidar. | Paulo | aprovado |
 | **decaimento** | perda de peso com o tempo sem a aresta ser percorrida. | Paulo | aprovado |
 | **inerte** | aresta com peso perto de zero (não entrega nada); nó que não participa da dinâmica. | Paulo | aprovado |
@@ -56,4 +55,4 @@ pelo Claude, aguardando aprovação).
 
 | termo | definição | origem | status |
 |---|---|---|---|
-| **pulo no tempo** | avançar o mundo em silêncio; só o decaimento acontece, calculado pelo tempo passado. | Claude | proposto |
+| **pulo no tempo** | avançar o mundo em silêncio; só o decaimento acontece, calculado pelo tempo passado. | Claude | em discussão |

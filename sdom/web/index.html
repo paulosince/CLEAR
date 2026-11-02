@@ -94,7 +94,7 @@
   </div>
   <div class="small mut" id="stStatus">—</div>
   <div id="stList" style="margin-top:6px"></div>
-  <div class="note">Fica tudo só aqui (IndexedDB). Grava a cada 2 s: estrutura, mudanças de peso das arestas (recente e consolidado), pulos no tempo, podas, atividade resumida (disparos por nó a cada 100 ms) e estímulos tocados. "Baixar JSON" gera o arquivo para análise.</div>
+  <div class="note">Fica tudo só aqui (IndexedDB). Grava a cada 2 s: estrutura, mudanças de peso das arestas (basal e consolidado), pulos no tempo, podas, atividade resumida (disparos por nó a cada 100 ms) e estímulos tocados. "Baixar JSON" gera o arquivo para análise.</div>
 </section>
 
 <section id="secPar">
@@ -188,13 +188,13 @@ const DEFAULTS = {
   tauPlusMs: 17,         // janelas de tempo (valores médios de Bi & Poo, 1998)
   tauMinusMs: 34,
   // decaimento em duas fases (LTP inicial × tardio; etiqueta sináptica de Frey & Morris)
-  fastHalfLifeS: 3600,   // parte recente do peso: meia-vida de 1 h sem uso
-  slowHalfLifeDays: 14,  // parte consolidada: meia-vida de 2 semanas sem uso
+  fastHalfLifeS: 3600,   // peso basal: meia-vida de 1 h sem uso
+  slowHalfLifeDays: 14,  // peso consolidado: meia-vida de 2 semanas sem uso
   tagHours: 3,           // janela de consolidação: reforço acumulado nela pode consolidar
   consolThr: 0.3,        // reforço acumulado dentro da janela de consolidação para consolidar
   // poda (v0.5)
   pruneDays: 7,          // aresta inerte por esse tempo é podada; nó órfão (sem arestas) também
-  accessBoost: 0.1,      // acesso a uma aresta candidata à poda: reforço no peso recente
+  accessBoost: 0.1,      // acesso a uma aresta candidata à poda: reforço no peso basal
   accessWindowH: 3,      // acesso: aumento da janela de consolidação da aresta
   inertW: 0.01,          // peso abaixo disso = inerte (não entrega nada)
   actWindowMs: 100,      // janela da atividade gravada
@@ -205,9 +205,9 @@ const PARAM_UI = [
   ['coincMs2','integração nível 2 (ms)'],['coincMs3','integração nível 3 (ms)'],['coincMs4','integração nível 4 (ms)'],
   ['bindMs2','agrupamento nível 2 (ms)'],['bindMs3','agrupamento nível 3 (ms)'],['bindMs4','agrupamento nível 4 (ms)'],
   ['maxLevel','níveis máximos (1–4)'],['maxNodes','teto de nós'],['histSeconds','histórico gravado (s)'],
-  ['wBirth','peso de nascimento da aresta'],['aPlus','reforço por sincronia (chegou antes)'],['aMinus','enfraquecimento por sincronia (chegou depois)'],
+  ['wBirth','peso de nascimento da aresta'],['aPlus','reforço (chegou antes)'],['aMinus','enfraquecimento (chegou depois)'],
   ['tauPlusMs','janela do reforço (ms)'],['tauMinusMs','janela do enfraquecimento (ms)'],
-  ['fastHalfLifeS','meia-vida do peso recente (s)'],['slowHalfLifeDays','meia-vida do peso consolidado (dias)'],['tagHours','janela de consolidação (h)'],['consolThr','reforço acumulado para consolidar'],
+  ['fastHalfLifeS','meia-vida do peso basal (s)'],['slowHalfLifeDays','meia-vida do peso consolidado (dias)'],['tagHours','janela de consolidação (h)'],['consolThr','reforço acumulado para consolidar'],
   ['pruneDays','poda: dias inerte até podar'],['accessBoost','acesso: reforço da candidata'],['accessWindowH','acesso: +janela de consolidação (h)'],['inertW','peso inerte abaixo de'],['actWindowMs','janela da atividade gravada (ms)'],
 ];
 
@@ -266,7 +266,7 @@ class Universe{
   }
   addEdge(from, to, d){
     // peso (mod) só aprende em arestas que saem de nós; ouvido→nível 1 é transdução fixa
-    // peso = parte recente (wF, apaga em horas) + parte consolidada (wS, apaga em semanas). Nasce só recente.
+    // peso = peso basal (wF, apaga em horas) + peso consolidado (wS, apaga em semanas). Nasce só basal.
     const w0 = from.lvl===0 ? 1 : this.p.wBirth;
     const e = {id:this.edges.length, from, to, d, wF:w0, wS:0, mod:w0, acc:0, tagUntil:-1, winExtra:0, inertSince:null, diedAt:Infinity, effect:0, born:to.born, lastUse:to.born}; // effect 0 = mantém
     from.out.push(e); to.in.push(e); this.edges.push(e); return e;
@@ -368,7 +368,7 @@ class Universe{
         const it=b[i];
         if(it.chk) { this.tryFire(it.n,t); continue; }
         const n=it.n, e=it.e;
-        // SINCRONIA (enfraquece): a incidência chegou DEPOIS de o nó já ter disparado.
+        // ENFRAQUECIMENTO (sincronia): a incidência chegou DEPOIS de o nó já ter disparado.
         // Fica pendente: se ela ainda ajudar o PRÓXIMO disparo, o reforço vence (Sjöström et al., 2001);
         // se expirar sem ajudar, o enfraquecimento é aplicado.
         if(e && n.fires>0){ const dt=t-n.lastFire; if(dt>=1 && dt<5*this.tauM) it.dep=this.p.aMinus*Math.exp(-dt/this.tauM); }
@@ -402,7 +402,7 @@ class Universe{
     if(s>=n.thr-1e-9){
       for(let i=0;i<c.length;i++){
         const x=c[i]; if(x.ev) x.ev.a=true; x.used=true;
-        // SINCRONIA (reforça): chegou ANTES do disparo e contribuiu; freio: quanto mais forte, menos sobe
+        // REFORÇO (sincronia): chegou ANTES do disparo e contribuiu; freio: quanto mais forte, menos sobe
         if(x.e) this.potentiate(x.e,t,Math.exp(-(t-x.t0)/this.tauP));
       }
       this.fire(n,t);
@@ -807,7 +807,7 @@ function showInfo(){
   const tvv=Math.floor(view.tv);
   for(const e of n.in.slice(0,12)){ let w=U.wAt(e,tvv); if(w===null)w=e.mod;
     let ws=U.wsAt(e,tvv); if(ws===null) ws=e.wS;
-    s+=`  de #${e.from.id} (${['ouvido','n1','n2','n3','n4'][e.from.lvl]}) atraso ${ms(e.d)}`+(e.from.lvl? ` · peso ${w.toFixed(3)} (recente ${(w-ws).toFixed(3)} · consolidado ${ws.toFixed(3)})${w<U.p.inertW?' INERTE'+(e.inertSince!==null?`, candidata à poda há ${fmt(U.t-e.inertSince)}`:''):''}`:'')+`\n`; }
+    s+=`  de #${e.from.id} (${['ouvido','n1','n2','n3','n4'][e.from.lvl]}) atraso ${ms(e.d)}`+(e.from.lvl? ` · peso ${w.toFixed(3)} (basal ${(w-ws).toFixed(3)} · consolidado ${ws.toFixed(3)})${w<U.p.inertW?' INERTE'+(e.inertSince!==null?`, candidata à poda há ${fmt(U.t-e.inertSince)}`:''):''}`:'')+`\n`; }
   if(n.in.length>12) s+=`  …\n`;
   s+=`saídas: ${n.out.length}`;
   $('info').textContent=s;
