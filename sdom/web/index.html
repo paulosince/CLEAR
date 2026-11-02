@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sdom · robô que ouve</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --line:#262b36; --ink:#e7e9ee; --mut:#8a92a3;
+    --l0:#9aa3b2; --l1:#3fc1b0; --l2:#5b8def; --l3:#a77bf3; --l4:#f0a04b; --new:#ffffff; --hot:#ffe27a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  body{padding-bottom:110px}
+  header{padding:10px 12px 6px;border-bottom:1px solid var(--line)}
+  h1{font-size:16px;margin:0 0 2px}
+  .mut{color:var(--mut)}
+  .small{font-size:12px}
+  section{padding:8px 12px;border-bottom:1px solid var(--line)}
+  .row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  button,select,input{font:inherit;color:var(--ink);background:#222734;border:1px solid #333a4a;border-radius:8px;padding:6px 9px}
+  button:active{background:#2d3446}
+  button.on{background:#2f4f7a;border-color:#4a76b5}
+  button.key{min-width:38px;padding:10px 6px}
+  button.danger{background:#4a1f25;border-color:#7a2f38}
+  canvas{display:block;width:100%;touch-action:none;background:#0b0d11;border:1px solid var(--line);border-radius:10px}
+  #room{height:180px}
+  #sdom{height:58vh;min-height:320px}
+  #wave{height:70px}
+  .grid2{display:grid;grid-template-columns:1fr;grid-template-areas:"env" "sdom" "info" "par"}
+  #secEnv{grid-area:env} #secSdom{grid-area:sdom} #secInfo{grid-area:info} #secPar{grid-area:par}
+  @media (min-width:900px){ .grid2{grid-template-columns:360px 1fr;grid-template-areas:"env sdom" "info sdom" "par sdom";align-items:start} #secSdom{border-left:1px solid var(--line)} #sdom{height:72vh} }
+  #info{white-space:pre-wrap;font:12px/1.45 ui-monospace,Menlo,Consolas,monospace;color:#cfd5e1;min-height:2em}
+  .legend span{display:inline-flex;align-items:center;gap:4px;margin-right:10px;font-size:12px}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+  footer{position:fixed;left:0;right:0;bottom:0;background:#12151cf2;border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom));backdrop-filter:blur(6px)}
+  .tl{display:flex;gap:4px;align-items:center}
+  .tl button,.tl select{padding:7px 6px;font-size:13px;flex:1 1 auto;min-width:0}
+  footer input[type=range]{width:100%;padding:0;margin:6px 0 2px}
+  #live.on{background:#7a2f38;border-color:#b5444f}
+  details summary{cursor:pointer;color:var(--mut)}
+  .params{display:grid;grid-template-columns:auto 90px;gap:6px 10px;align-items:center;margin-top:8px;max-width:420px}
+  .params input{width:90px}
+  .note{font-size:12px;color:var(--mut);margin-top:6px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Sdom · robô que ouve <span class="mut small" id="ver"></span></h1>
+  <div class="small mut" id="stats">—</div>
+</header>
+
+<div class="grid2">
+<section id="secEnv">
+  <div class="row" style="justify-content:space-between">
+    <b>Ambiente</b>
+    <label class="small"><input type="checkbox" id="audioOn" checked> 🔊 ouvir o que as fontes tocam</label>
+  </div>
+  <canvas id="room"></canvas>
+  <div class="row" style="margin-top:6px">
+    <button id="addSrc">+ fonte</button>
+    <select id="srcInst"></select>
+    <button id="delSrc">remover</button>
+    <span class="small mut" id="srcLbl"></span>
+  </div>
+  <div class="row" style="margin-top:6px" id="keys"></div>
+  <div class="row" style="margin-top:6px">
+    <label class="small">duração <select id="dur"><option value="0.3">0,3 s</option><option value="0.8" selected>0,8 s</option><option value="1.5">1,5 s</option></select></label>
+    <label class="small">intensidade <select id="amp"><option value="0.35">suave</option><option value="0.7" selected>média</option><option value="1">forte</option></select></label>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <button id="expPV">▶ Experimento: piano, depois viola</button>
+    <button id="expDir">▶ Mesmo som, outra direção</button>
+  </div>
+  <div class="note">Arraste as fontes na sala. O robô (centro) olha para cima; ● azul = microfone esquerdo, ● vermelho = direito.</div>
+</section>
+
+<section id="secInfo">
+  <b>Nó selecionado</b>
+  <div id="info" class="mut">Toque num nó do grafo para inspecionar.</div>
+</section>
+
+<section id="secPar">
+  <details>
+    <summary>Parâmetros do universo · destruir e recomeçar</summary>
+    <div class="params" id="params"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="danger" id="reset">💥 Destruir universo e criar outro</button>
+      <button id="copy">Copiar universo (JSON)</button>
+    </div>
+    <div class="note" id="resetNote">Mudar parâmetros só vale num universo novo. O robô atual segue vivo até você destruir.</div>
+  </details>
+</section>
+
+<section id="secSdom">
+  <div class="row" style="justify-content:space-between">
+    <b>Sdom — domínio representacional</b>
+    <div class="row">
+      <button id="zin">+</button><button id="zout">−</button><button id="zfit">ajustar</button>
+    </div>
+  </div>
+  <div class="legend" style="margin:4px 0 6px">
+    <span><i class="dot" style="background:var(--l0)"></i>ouvidos</span>
+    <span><i class="dot" style="background:var(--l1)"></i>nível 1</span>
+    <span><i class="dot" style="background:var(--l2)"></i>2</span>
+    <span><i class="dot" style="background:var(--l3)"></i>3</span>
+    <span><i class="dot" style="background:var(--l4)"></i>4</span>
+    <span><i class="dot" style="background:var(--hot)"></i>disparou</span>
+    <span><i class="dot" style="border:2px solid #fff;background:none"></i>acabou de nascer</span>
+    <span class="mut">arco = percorrido em parte</span>
+  </div>
+  <canvas id="sdom"></canvas>
+  <div class="small mut" style="margin-top:6px">O que cada ouvido está captando (últimos 40 ms):</div>
+  <canvas id="wave"></canvas>
+</section>
+</div>
+
+<footer>
+  <div class="tl">
+      <button id="bBack1" title="voltar 1 s">⏪1s</button>
+      <button id="bBackS" title="voltar 1 ms">◀1ms</button>
+      <button id="bPlay">⏸</button>
+      <button id="bFwdS" title="avançar 1 ms">1ms▶</button>
+      <button id="bFwd1" title="avançar 1 s">1s⏩</button>
+      <select id="vspeed" title="velocidade de exibição"><option value="0.01">0,01×</option><option value="0.05">0,05×</option><option value="0.25">0,25×</option><option value="1" selected>1×</option></select>
+      <button id="live" class="on">● vivo</button>
+  </div>
+  <input type="range" id="scrub" min="0" max="1" step="1" value="1">
+  <div class="small mut" id="tlbl">—</div>
+</footer>
+
+<script>
+'use strict';
+/* =====================================================================
+   Sdom v0.1 — núcleo
+   Regras (do Paulo):
+   - Incidência: excitatória ou inibitória, magnitude 0..1.
+   - Nó: integra incidências; cada uma vale pela janela do nó a partir da chegada.
+     Atingiu o limiar -> dispara para todas as arestas (sempre excitatório,
+     com a magnitude própria do nó). Depois, refratariedade: não faz nada.
+     Passada a refratariedade, incidências ainda na janela continuam valendo.
+   - Aresta: atraso basal (modulável), pode manter / forçar excit. / forçar inib.,
+     pode modular a magnitude.
+   - Criação: quando um estímulo não encontra caminho.
+   Escolhas da v0 (minhas, a revisar):
+   - Ouvido = microfone: cada amostra vira incidência (sinal->efeito, |x|->magnitude).
+   - Nível 1 nasce de um "lóbulo" positivo da onda que nenhum nó do ouvido captou.
+   - Níveis 2+ nascem agrupando disparos do nível de baixo que ninguém absorveu
+     dentro da janela de agrupamento; os atrasos das arestas são os intervalos
+     observados, para que tudo chegue junto ao nó novo.
+   - Sem aprendizado nem divisão ainda.
+   ===================================================================== */
+const CODE_VERSION = 'v0.1';
+const DEFAULTS = {
+  sr: 8000,            // taxa do microfone (amostras/s)
+  floor: 0.02,         // sensibilidade: lóbulo abaixo disso é ignorado
+  thrFrac: 0.8,        // limiar do nó novo = fração do que o criou
+  basalMs: 0.125,      // atraso basal das arestas
+  coincMs2: 0.25, coincMs3: 0.5, coincMs4: 5,     // janela de integração por nível
+  bindMs2: 20, bindMs3: 40, bindMs4: 400,         // janela de agrupamento por nível
+  gapMs2: 1, gapMs3: 5, gapMs4: 50,               // intervalo mínimo entre criações
+  maxGroup2: 4, maxGroup3: 6, maxGroup4: 6,
+  maxLevel: 4,
+  maxWms: 20,          // lóbulo mais longo considerado (≈ 25 Hz)
+  maxNodes: 6000,
+  histSeconds: 90,
+};
+const PARAM_UI = [
+  ['sr','taxa do microfone (Hz)'],['floor','sensibilidade mínima'],['thrFrac','limiar do nó novo (fração)'],
+  ['basalMs','atraso basal da aresta (ms)'],
+  ['coincMs2','integração nível 2 (ms)'],['coincMs3','integração nível 3 (ms)'],['coincMs4','integração nível 4 (ms)'],
+  ['bindMs2','agrupamento nível 2 (ms)'],['bindMs3','agrupamento nível 3 (ms)'],['bindMs4','agrupamento nível 4 (ms)'],
+  ['maxLevel','níveis máximos (1–4)'],['maxNodes','teto de nós'],['histSeconds','histórico gravado (s)'],
+];
+
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function pow2(n){let p=1;while(p<n)p<<=1;return p}
+function hashStr(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36).slice(0,5)}
+
+class Universe{
+  constructor(p, seed){
+    this.p = p; const sr = this.sr = p.sr;
+    const ms = v => Math.max(1, Math.round(v*sr/1000));
+    this.basal = ms(p.basalMs);
+    this.maxLevel = Math.max(1, Math.min(4, p.maxLevel|0));
+    this.coinc = [0,0,ms(p.coincMs2),ms(p.coincMs3),ms(p.coincMs4)];
+    this.bind  = [0,0,ms(p.bindMs2),ms(p.bindMs3),ms(p.bindMs4)];
+    this.gap   = [0,0,ms(p.gapMs2),ms(p.gapMs3),ms(p.gapMs4)];
+    this.maxGroup = [0,0,p.maxGroup2,p.maxGroup3,p.maxGroup4];
+    this.maxW = ms(p.maxWms);
+    this.t = 0;
+    this.rng = mulberry32(seed);
+    this.nodes = []; this.edges = []; this.receptors = [[],[]];
+    const maxD = Math.max(...this.bind) + this.basal + Math.max(...this.coinc) + 8;
+    this.wsize = pow2(maxD+1); this.wmask = this.wsize-1;
+    this.wheel = Array.from({length:this.wsize}, ()=>[]);
+    this.psize = pow2(this.maxW + this.basal + 8); this.pmask = this.psize-1;
+    this.pre = [new Float64Array(this.psize), new Float64Array(this.psize)];
+    this.lobe = [{on:false,start:0,int:0,peak:0},{on:false,start:0,int:0,peak:0}];
+    this.pending = [];
+    this.lastRecFire = [-1e12,-1e12];
+    this.Q = []; this.qh = [];
+    for(let l=0;l<=4;l++){this.Q.push([]);this.qh.push(0)}
+    this.lastCreate = [-1e12,-1e12,-1e12,-1e12,-1e12];
+    // histórico (gravação do observador, não do robô)
+    this.hCap = Math.min(6e6, Math.max(2e5, Math.round(p.histSeconds*60000)));
+    this.hT = new Int32Array(this.hCap); this.hN = new Int32Array(this.hCap); this.hCount = 0;
+    this.nmCap = 400000; this.nmT = new Int32Array(this.nmCap); this.nmN = new Int32Array(this.nmCap); this.nmF = new Float32Array(this.nmCap); this.nmCount = 0;
+    this.aCap = Math.round(sr*p.histSeconds); this.aud = [new Float32Array(this.aCap), new Float32Array(this.aCap)];
+    this.fireCount = 0; this.capHit = false;
+    // os dois ouvidos (nível 0)
+    this.addNode({lvl:0, ear:0, W:0, thr:0, mag:0, refr:0, born:0, x:60, y:250});
+    this.addNode({lvl:0, ear:1, W:0, thr:0, mag:0, refr:0, born:0, x:60, y:750});
+  }
+  addNode(o){
+    const n = Object.assign({id:this.nodes.length, out:[], in:[], contrib:[], refUntil:0, fires:0, nmT:-1e9, origin:null}, o);
+    this.nodes.push(n); return n;
+  }
+  addEdge(from, to, d){
+    const e = {from, to, d, mod:1, effect:0, born:to.born}; // effect 0 = mantém
+    from.out.push(e); to.in.push(e); this.edges.push(e); return e;
+  }
+  // um passo de tempo = uma amostra do microfone
+  step(xL, xR){
+    const t = this.t, pm = this.pmask;
+    const xs = [xL, xR];
+    for(let e=0;e<2;e++){
+      let x = xs[e]; if(x>1)x=1; else if(x<-1)x=-1;
+      const pre = this.pre[e];
+      pre[t&pm] = pre[(t-1)&pm] + x;
+      this.aud[e][t % this.aCap] = x;
+      const L = this.lobe[e];
+      if(x>0){ if(!L.on){L.on=true;L.start=t;L.int=0;L.peak=0} L.int+=x; if(x>L.peak)L.peak=x; }
+      else if(L.on){
+        L.on=false; const w=t-L.start;
+        if(L.peak>=this.p.floor && w<=this.maxW) this.pending.push({e, start:L.start, w, int:L.int, peak:L.peak, at:t+this.basal+1});
+      }
+    }
+    // nível 1: integra as incidências vindas do ouvido (chegam com o atraso basal)
+    const ta = t - this.basal;
+    if(ta>=0){
+      for(let e=0;e<2;e++){
+        const pre=this.pre[e], R=this.receptors[e], a=pre[ta&pm];
+        for(let i=0;i<R.length;i++){
+          const r=R[i]; if(t<r.refUntil) continue;
+          const s = a - pre[(ta-r.W)&pm];
+          if(s>=r.thr) this.fire(r,t);
+        }
+      }
+    }
+    // entrega das incidências agendadas para agora
+    const b = this.wheel[t&this.wmask];
+    if(b.length){
+      for(let i=0;i<b.length;i++){
+        const it=b[i];
+        if(it.chk) this.tryFire(it.n,t);
+        else { it.n.contrib.push(it); this.tryFire(it.n,t); }
+      }
+      b.length=0;
+    }
+    // criação no nível 1: lóbulo que não encontrou caminho
+    while(this.pending.length && this.pending[0].at<=t){
+      const L=this.pending.shift();
+      if(this.lastRecFire[L.e] < L.start) this.createReceptor(L,t);
+    }
+    // criação nos níveis 2+: disparos que ninguém absorveu
+    for(let l=2;l<=this.maxLevel;l++) this.groupLevel(l,t);
+    this.t = t+1;
+  }
+  tryFire(n,t){
+    if(t<n.refUntil) return;
+    const c=n.contrib; let k=0;
+    while(k<c.length && t-c[k].t0>=n.W) k++;
+    if(k) c.splice(0,k);
+    let s=0; for(let i=0;i<c.length;i++) s+=c[i].v;
+    if(s>=n.thr-1e-9){
+      for(let i=0;i<c.length;i++) if(c[i].ev) c[i].ev.a=true;
+      this.fire(n,t);
+    } else if(n.lvl>=2 && s>0){
+      const f=s/n.thr;
+      if(f>=0.4 && t-n.nmT>40){ n.nmT=t; const k2=this.nmCount%this.nmCap; this.nmT[k2]=t; this.nmN[k2]=n.id; this.nmF[k2]=f; this.nmCount++; }
+    }
+  }
+  fire(n,t){
+    n.refUntil=t+n.refr; n.fires++; this.fireCount++;
+    if(n.lvl===1) this.lastRecFire[n.ear]=t;
+    const k=this.hCount%this.hCap; this.hT[k]=t; this.hN[k]=n.id; this.hCount++;
+    let ev=null;
+    if(n.lvl<this.maxLevel){ ev={n, t, m:n.mag, a:false}; this.Q[n.lvl].push(ev); }
+    for(let i=0;i<n.out.length;i++){
+      const o=n.out[i];
+      let v = n.mag*o.mod; if(o.effect===2) v=-Math.abs(v);
+      this.wheel[(t+o.d)&this.wmask].push({n:o.to, v, ev, t0:t+o.d});
+    }
+    if(n.lvl>=2) this.wheel[(t+n.refr)&this.wmask].push({n, chk:true});
+  }
+  createReceptor(L,t){
+    if(this.nodes.length>=this.p.maxNodes){this.capHit=true;return}
+    const W=L.w, thr=this.p.thrFrac*L.int, mag=Math.min(1,L.peak);
+    const yb = L.e===0 ? 40 : 540;
+    const y = yb + 420*(Math.log(W)/Math.log(this.maxW+1));
+    const x = 230 + 110*Math.min(1,Math.max(0,-Math.log10(thr+1e-6)/2.5)) + this.rng()*30;
+    const n=this.addNode({lvl:1, ear:L.e, W, thr, mag, refr:W, born:t, x, y,
+      origin:{lobeMs:W*1000/this.sr, hz:this.sr/(2*W), int:L.int, peak:L.peak}});
+    this.receptors[L.e].push(n);
+    this.addEdge(this.nodes[L.e], n, this.basal);
+  }
+  groupLevel(l,t){
+    const Q=this.Q[l-1], B=this.bind[l]; let h=this.qh[l-1];
+    while(h<Q.length && t-Q[h].t>=B){
+      const seed=Q[h]; h++;
+      if(seed.a) continue;
+      if(t-this.lastCreate[l]<this.gap[l] || this.nodes.length>=this.p.maxNodes){ if(this.nodes.length>=this.p.maxNodes)this.capHit=true; continue; }
+      const group=[seed], used=new Set([seed.n.id]);
+      for(let j=h;j<Q.length && group.length<this.maxGroup[l];j++){
+        const e=Q[j]; if(e.t-seed.t>B) break; if(e.a) continue;
+        if(l>=3 && used.has(e.n.id)) continue;
+        group.push(e); used.add(e.n.id);
+      }
+      if(group.length>=2) this.createGroup(l,group,t,h);
+    }
+    if(h>2048){Q.splice(0,h);h=0}
+    this.qh[l-1]=h;
+  }
+  createGroup(l,group,t,h){
+    let tLast=-1e12, sm=0, sy=0;
+    for(const e of group){ if(e.t>tLast)tLast=e.t; sm+=e.m; sy+=e.n.y; }
+    const n=this.addNode({lvl:l, W:this.coinc[l], refr:this.coinc[l], thr:this.p.thrFrac*sm, mag:Math.min(1,sm/group.length), born:t,
+      x: [0,0,520,780,1030][l] + this.rng()*130, y: Math.max(20,Math.min(980, sy/group.length + (this.rng()-0.5)*40)),
+      origin:{span:(tLast-group[0].t)*1000/this.sr, k:group.length}});
+    for(const e of group){ this.addEdge(e.n, n, tLast-e.t+this.basal); e.a=true; }
+    this.lastCreate[l]=t;
+    this.retroAbsorb(n,l,h);
+  }
+  // O nó recém-nascido "reconhece" o que aconteceu enquanto ele se formava,
+  // para não nascerem cópias do mesmo padrão.
+  retroAbsorb(n,l,h){
+    const Q=this.Q[l-1], bySrc=new Map();
+    for(let j=Math.max(0,h-64);j<Q.length;j++){const e=Q[j]; let a=bySrc.get(e.n.id); if(!a){a=[];bySrc.set(e.n.id,a)} a.push(e)}
+    const taus=new Set();
+    for(const ed of n.in){ const a=bySrc.get(ed.from.id); if(a) for(const e of a) if(!e.a) taus.add(e.t+ed.d); }
+    for(const tau of taus){
+      let s=0; const used=[];
+      for(const ed of n.in){ const a=bySrc.get(ed.from.id); if(!a)continue;
+        for(const e of a){ const arr=e.t+ed.d; if(tau-arr>=0 && tau-arr<n.W){ s+=e.m; used.push(e); } } }
+      if(s>=n.thr-1e-9) for(const e of used) e.a=true;
+    }
+  }
+  // ---- consultas para o observador ----
+  histRange(){ const lo=Math.max(0,this.hCount-this.hCap); return lo; }
+  firstHistIdx(time){ // primeiro índice com tempo >= time
+    let lo=Math.max(0,this.hCount-this.hCap), hi=this.hCount;
+    while(lo<hi){const m=(lo+hi)>>1; if(this.hT[m%this.hCap]<time) lo=m+1; else hi=m;}
+    return lo;
+  }
+  firstNmIdx(time){
+    let lo=Math.max(0,this.nmCount-this.nmCap), hi=this.nmCount;
+    while(lo<hi){const m=(lo+hi)>>1; if(this.nmT[m%this.nmCap]<time) lo=m+1; else hi=m;}
+    return lo;
+  }
+  visibleCount(time){ let lo=0,hi=this.nodes.length; while(lo<hi){const m=(lo+hi)>>1; if(this.nodes[m].born<=time) lo=m+1; else hi=m;} return lo; }
+  visibleEdges(time){ let lo=0,hi=this.edges.length; while(lo<hi){const m=(lo+hi)>>1; if(this.edges[m].born<=time) lo=m+1; else hi=m;} return lo; }
+  earliestViewable(){
+    const a=Math.max(0,this.t-this.aCap+1);
+    const lo=Math.max(0,this.hCount-this.hCap);
+    const h = this.hCount>this.hCap ? this.hT[lo%this.hCap] : 0;
+    return Math.max(a,h);
+  }
+  toJSON(){
+    return {version:CODE_VERSION, params:this.p, worldTimeS:this.t/this.sr,
+      nodes:this.nodes.map(n=>({id:n.id,lvl:n.lvl,ear:n.ear,W:n.W,thr:+n.thr.toFixed(5),mag:+n.mag.toFixed(4),refr:n.refr,born:n.born,fires:n.fires,
+        in:n.in.map(e=>[e.from.id,e.d])}))};
+  }
+}
+
+/* =====================================================================
+   Ambiente: sala 4×4 m, robô com dois microfones, fontes sonoras sintéticas
+   ===================================================================== */
+const INST = {
+  piano:{name:'Piano', letter:'P', color:'#e6c35c', tail:0.5},
+  viola:{name:'Viola', letter:'V', color:'#d9805f', tail:0.15},
+  tom:{name:'Tom puro', letter:'T', color:'#7fd1e8', tail:0.04},
+  ruido:{name:'Ruído', letter:'R', color:'#b0b0b0', tail:0.03},
+};
+function makeNote(inst,f,dur,amp,sr){
+  const parts=[]; const ny=0.45*sr;
+  if(inst==='piano'){
+    for(let h=1;h<=10;h++){ const fh=f*h*Math.sqrt(1+0.0004*h*h); if(fh>ny)break; parts.push([2*Math.PI*fh, 1/Math.pow(h,1.1), 1.2+0.9*h]); }
+  } else if(inst==='viola'){
+    for(let h=1;h<=14;h++){ const fh=f*h; if(fh>ny)break; const form=1+1.2*Math.exp(-Math.pow((fh-900)/350,2)); parts.push([2*Math.PI*fh, form/h, 0]); }
+  } else if(inst==='tom'){ parts.push([2*Math.PI*f,1,0]); }
+  let norm=0; for(const p of parts) norm+=p[1]; norm=norm||1;
+  return {inst,f,dur,amp,parts,norm};
+}
+function noteValue(nt,tt,sr){
+  if(tt<0) return 0;
+  const d=nt.dur; let env;
+  switch(nt.inst){
+    case 'piano': env=Math.min(1,tt/0.002)*(tt>d?Math.exp(-(tt-d)/0.08):1); break;
+    case 'viola': env=Math.min(1,tt/0.08)*(tt>d?Math.max(0,1-(tt-d)/0.12):1); break;
+    case 'tom':   env=Math.min(1,tt/0.005)*(tt>d?Math.max(0,1-(tt-d)/0.03):1); break;
+    case 'ruido': { env=Math.min(1,tt/0.002)*(tt>d?Math.max(0,1-(tt-d)/0.02):1);
+      let k=Math.floor(tt*sr)|0; k=Math.imul(k^0x9e3779b9,0x85ebca6b); k^=k>>>13; k=Math.imul(k,0xc2b2ae35); k^=k>>>16;
+      return nt.amp*env*((k>>>0)/4294967296*2-1)*0.8; }
+  }
+  if(env<=0) return 0;
+  let s=0; const P=nt.parts;
+  if(nt.inst==='piano'){ for(let i=0;i<P.length;i++){const p=P[i]; s+=p[1]*Math.exp(-p[2]*tt)*Math.sin(p[0]*tt);} }
+  else { for(let i=0;i<P.length;i++){const p=P[i]; s+=p[1]*Math.sin(p[0]*tt);} }
+  return nt.amp*env*s/nt.norm;
+}
+class World{
+  constructor(sr){
+    this.sr=sr; this.c=343; this.robot={x:2,y:2.4}; this.earSep=0.2;
+    this.sources=[]; this.nextId=1;
+  }
+  ears(){ const r=this.robot; return [{x:r.x-this.earSep/2,y:r.y},{x:r.x+this.earSep/2,y:r.y}]; }
+  addSource(inst,x,y){ const s={id:this.nextId++,inst,x,y,notes:[]}; this.sources.push(s); return s; }
+  play(src,f,dur,amp,start){ const nt=makeNote(src.inst,f,dur,amp,this.sr); nt.start=start; src.notes.push(nt); return nt; }
+  prepare(){ // geometria do quadro atual
+    const E=this.ears();
+    for(const s of this.sources){
+      s.g=[0,0]; s.dl=[0,0];
+      for(let e=0;e<2;e++){ const r=Math.hypot(s.x-E[e].x,s.y-E[e].y); s.dl[e]=r/this.c; s.g[e]=0.5/Math.max(r,0.25); }
+    }
+  }
+  sample(t,out){
+    const sr=this.sr; let L=0,R=0;
+    for(let i=0;i<this.sources.length;i++){
+      const s=this.sources[i];
+      for(let j=0;j<s.notes.length;j++){
+        const nt=s.notes[j]; const base=(t-nt.start)/sr;
+        if(base<0) continue;
+        L+=s.g[0]*noteValue(nt,base-s.dl[0],sr);
+        R+=s.g[1]*noteValue(nt,base-s.dl[1],sr);
+      }
+    }
+    out[0]=L; out[1]=R;
+  }
+  gc(t){ for(const s of this.sources){ s.notes=s.notes.filter(n=>(t-n.start)/this.sr < n.dur+INST[n.inst].tail+0.05); } }
+  activeAt(s,t){ return s.notes.some(n=>{const a=(t-n.start)/this.sr; return a>=0 && a<n.dur+0.05;}); }
+}
+
+/* =====================================================================
+   Aplicação: laço de vida, observador (DVR), desenho e controles
+   ===================================================================== */
+const $=id=>document.getElementById(id);
+let params=Object.assign({},DEFAULTS);
+let U, Wd, universeNo=0, seed=12345;
+let worldSpeed=1;
+const view={live:true, playing:true, tv:0, speed:1, sel:null, ox:0, oy:0, s:1, fitted:false};
+let audioCtx=null;
+const NOTES=[['Dó',261.63],['Ré',293.66],['Mi',329.63],['Fá',349.23],['Sol',392.0],['Lá',440.0],['Si',493.88],['Dó⁺',523.25]];
+
+function newUniverse(){
+  universeNo++; seed=(seed*1103515245+12345)>>>0;
+  const keep = Wd ? Wd.sources.map(s=>({inst:s.inst,x:s.x,y:s.y})) : [{inst:'piano',x:1.0,y:1.1},{inst:'viola',x:3.0,y:1.1}];
+  U=new Universe(Object.assign({},params), seed);
+  Wd=new World(params.sr);
+  for(const k of keep) Wd.addSource(k.inst,k.x,k.y);
+  selSrc=Wd.sources[0]||null;
+  view.live=true; view.playing=true; view.tv=0; view.sel=null; view.fitted=false;
+  $('ver').textContent=`· Sdom ${CODE_VERSION} · universo #${universeNo} · params ${hashStr(JSON.stringify(params))}`;
+  refreshSrcUI(); showInfo();
+}
+
+// ---------- som (só para você ouvir o que a fonte toca) ----------
+function ensureAudio(){ if(!audioCtx){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){audioCtx=null} } if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume().catch(()=>{}); }
+function playAudio(nt,delaySec){
+  if(!$('audioOn').checked) return; ensureAudio(); if(!audioCtx) return;
+  try{
+    const sr=Wd.sr, len=Math.ceil((nt.dur+INST[nt.inst].tail)*sr);
+    const buf=audioCtx.createBuffer(1,len,sr); const d=buf.getChannelData(0);
+    for(let i=0;i<len;i++) d[i]=0.5*noteValue(nt,i/sr,sr);
+    const src=audioCtx.createBufferSource(); src.buffer=buf; src.connect(audioCtx.destination);
+    src.start(audioCtx.currentTime+Math.max(0,delaySec));
+  }catch(e){}
+}
+function trigger(src,f,dur,amp,delaySec=0){
+  if(!src) return;
+  const nt=Wd.play(src,f,dur,amp,U.t+Math.round(delaySec*U.sr/worldSpeed));
+  playAudio(nt,delaySec);
+}
+
+// ---------- laço de vida (o robô nunca para) ----------
+let lastFrame=performance.now(), carry=0, simRatio=1, fpsAcc=[];
+const xs=[0,0];
+function loop(now){
+  const dt=Math.min(0.1,(now-lastFrame)/1000); lastFrame=now;
+  let target=dt*U.sr*worldSpeed+carry; let n=Math.floor(target); carry=target-n;
+  Wd.prepare();
+  const t0=performance.now(); let done=0;
+  while(done<n){
+    const lim=Math.min(n,done+64);
+    for(;done<lim;done++){ Wd.sample(U.t,xs); U.step(xs[0],xs[1]); }
+    if(performance.now()-t0>13) break;
+  }
+  if(done<n) carry=0;
+  simRatio = simRatio*0.9 + 0.1*(n>0? done/n : 1);
+  if((U.t&1023)<64) Wd.gc(U.t);
+  // observador
+  if(view.live){ view.tv=U.t; }
+  else if(view.playing){ view.tv+=dt*U.sr*view.speed; if(view.tv>=U.t){ goLive(); } }
+  const lo=U.earliestViewable(); if(view.tv<lo) view.tv=lo;
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// ---------- desenho ----------
+const COL=['#9aa3b2','#3fc1b0','#5b8def','#a77bf3','#f0a04b'];
+const RAD=[9,3.4,4,5,6.5];
+function sizeCanvas(c){ const r=c.getBoundingClientRect(), d=window.devicePixelRatio||1; const w=Math.round(r.width*d), h=Math.round(r.height*d); if(c.width!==w||c.height!==h){c.width=w;c.height=h} return d; }
+let glow=new Float32Array(8192), part=new Float32Array(8192);
+function draw(){ drawRoom(); drawSdom(); drawWave(); drawTimeline(); drawStats(); }
+
+function drawSdom(){
+  const c=$('sdom'), d=sizeCanvas(c), g=c.getContext('2d');
+  const W=c.width,H=c.height;
+  if(!view.fitted){ fitView(); view.fitted=true; }
+  g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,W,H);
+  const s=view.s*d, ox=view.ox*d, oy=view.oy*d;
+  const X=x=>x*s+ox, Y=y=>y*s+oy;
+  const tv=Math.floor(view.tv);
+  const nv=U.visibleCount(tv), ne=U.visibleEdges(tv);
+  if(glow.length<U.nodes.length){glow=new Float32Array(U.nodes.length*2);part=new Float32Array(U.nodes.length*2)}
+  glow.fill(0,0,nv); part.fill(0,0,nv);
+  const spd = view.live ? worldSpeed : view.speed;
+  const gw = Math.max(4, Math.round(U.sr*Math.min(0.04,Math.max(0.0005,0.04*spd))));
+  for(let k=U.firstHistIdx(tv-gw); k<U.hCount; k++){
+    const tt=U.hT[k%U.hCap]; if(tt>tv) break; const id=U.hN[k%U.hCap];
+    if(id<nv){ const a=1-(tv-tt)/gw; if(a>glow[id]) glow[id]=a; }
+  }
+  const pw=Math.round(U.sr*0.25*Math.max(0.05,Math.min(1,spd)));
+  for(let k=U.firstNmIdx(tv-pw); k<U.nmCount; k++){
+    const tt=U.nmT[k%U.nmCap]; if(tt>tv) break; const id=U.nmN[k%U.nmCap];
+    if(id<nv && glow[id]===0){ const f=U.nmF[k%U.nmCap]; if(f>part[id]) part[id]=f; }
+  }
+  // colunas
+  g.font=`${11*d}px system-ui`; g.fillStyle='#5d6575';
+  const labels=[[60,'ouvidos'],[290,'nível 1'],[585,'nível 2'],[845,'nível 3'],[1095,'nível 4']];
+  for(const [x,t] of labels){ g.fillText(t, X(x)-18*d, Math.max(14*d,Y(0)-6*d)); }
+  g.fillText('esq.', X(20), Y(250)+24*d); g.fillText('dir.', X(20), Y(750)+24*d);
+  // arestas
+  const sel=view.sel;
+  g.lineWidth=Math.max(0.5,0.6*d);
+  if(ne<=12000){
+    g.strokeStyle='rgba(140,150,170,0.07)'; g.beginPath();
+    for(let i=0;i<ne;i++){const e=U.edges[i]; if(e.from.lvl===0)continue; g.moveTo(X(e.from.x),Y(e.from.y)); g.lineTo(X(e.to.x),Y(e.to.y));}
+    g.stroke();
+  }
+  // trilha percorrida: aresta entre dois nós que acabaram de disparar
+  g.strokeStyle='rgba(255,226,122,0.55)'; g.lineWidth=1.3*d; g.beginPath();
+  for(let i=0;i<ne;i++){const e=U.edges[i]; if(glow[e.to.id]>0 && (glow[e.from.id]>0 || e.from.lvl===0)){ g.moveTo(X(e.from.x),Y(e.from.y)); g.lineTo(X(e.to.x),Y(e.to.y)); }}
+  g.stroke();
+  if(sel && sel.id<nv){
+    g.lineWidth=1.6*d;
+    g.strokeStyle='rgba(120,200,255,0.9)'; g.beginPath(); for(const e of sel.in){ g.moveTo(X(e.from.x),Y(e.from.y)); g.lineTo(X(sel.x),Y(sel.y)); } g.stroke();
+    g.strokeStyle='rgba(255,140,200,0.8)'; g.beginPath(); for(const e of sel.out){ if(e.to.id<nv){ g.moveTo(X(sel.x),Y(sel.y)); g.lineTo(X(e.to.x),Y(e.to.y)); } } g.stroke();
+  }
+  // nós
+  for(let l=0;l<=4;l++){
+    g.fillStyle=COL[l]; g.globalAlpha=l===0?0.9:0.45; g.beginPath();
+    const r=RAD[l]*d*Math.max(0.7,Math.min(2.2,view.s*1.2));
+    for(let i=0;i<nv;i++){const n=U.nodes[i]; if(n.lvl!==l)continue; const x=X(n.x),y=Y(n.y); if(x<-10||y<-10||x>W+10||y>H+10)continue; g.moveTo(x+r,y); g.arc(x,y,r,0,6.2832);} g.fill();
+  }
+  g.globalAlpha=1;
+  const zr=Math.max(0.7,Math.min(2.2,view.s*1.2));
+  for(let i=0;i<nv;i++){
+    const n=U.nodes[i], x=X(n.x), y=Y(n.y); if(x<-10||y<-10||x>W+10||y>H+10)continue;
+    const r=RAD[n.lvl]*d*zr;
+    if(glow[i]>0){ g.fillStyle=`rgba(255,226,122,${0.35+0.65*glow[i]})`; g.beginPath(); g.arc(x,y,r*1.9,0,6.2832); g.fill(); }
+    else if(part[i]>0){ g.strokeStyle='rgba(255,226,122,0.85)'; g.lineWidth=2*d; g.beginPath(); g.arc(x,y,r*2.2,-Math.PI/2,-Math.PI/2+6.2832*Math.min(1,part[i])); g.stroke(); }
+    const age=tv-n.born;
+    if(n.lvl>0 && age>=0 && age<U.sr*0.4){ g.strokeStyle=`rgba(255,255,255,${1-age/(U.sr*0.4)})`; g.lineWidth=1.5*d; g.beginPath(); g.arc(x,y,r*3.2,0,6.2832); g.stroke(); }
+  }
+  if(sel && sel.id<nv){ g.strokeStyle='#78c8ff'; g.lineWidth=2*d; g.beginPath(); g.arc(X(sel.x),Y(sel.y),RAD[sel.lvl]*d*zr*2.8,0,6.2832); g.stroke(); }
+  if(U.capHit){ g.fillStyle='#ff8a8a'; g.font=`${12*d}px system-ui`; g.fillText('teto de nós atingido: criação parada', 10*d, H-10*d); }
+}
+function fitView(){
+  const c=$('sdom'), r=c.getBoundingClientRect();
+  const s=Math.min(r.width/1180, r.height/1010);
+  view.s=s; view.ox=(r.width-1180*s)/2+10*s; view.oy=(r.height-1000*s)/2;
+}
+
+let selSrc=null;
+function roomGeom(){ const c=$('room'), r=c.getBoundingClientRect(); const sz=Math.min(r.width-20, (r.height-16)*1.6); const sx=sz/4, sy=(r.height-16)/4; return {r, sx, sy, ox:(r.width-4*sx)/2, oy:8}; }
+function drawRoom(){
+  const c=$('room'), d=sizeCanvas(c), g=c.getContext('2d'); const G=roomGeom();
+  g.setTransform(d,0,0,d,0,0); g.clearRect(0,0,G.r.width,G.r.height);
+  g.strokeStyle='#2a3140'; g.lineWidth=1; g.strokeRect(G.ox,G.oy,4*G.sx,4*G.sy);
+  const P=(x,y)=>[G.ox+x*G.sx, G.oy+y*G.sy];
+  const [rx,ry]=P(Wd.robot.x,Wd.robot.y);
+  g.fillStyle='#2b3344'; g.beginPath(); g.arc(rx,ry,13,0,6.2832); g.fill();
+  g.fillStyle='#9aa3b2'; g.beginPath(); g.moveTo(rx,ry-17); g.lineTo(rx-5,ry-10); g.lineTo(rx+5,ry-10); g.fill();
+  const E=Wd.ears(); for(let e=0;e<2;e++){ const [x,y]=P(E[e].x,E[e].y); g.fillStyle=e?'#f08080':'#80c0f0'; g.beginPath(); g.arc(x+(e?6:-6),y,4,0,6.2832); g.fill(); }
+  for(const s of Wd.sources){
+    const [x,y]=P(s.x,s.y); const act=Wd.activeAt(s,U.t);
+    if(act){ g.fillStyle='rgba(255,226,122,0.25)'; g.beginPath(); g.arc(x,y,20,0,6.2832); g.fill(); }
+    g.fillStyle=INST[s.inst].color; g.beginPath(); g.arc(x,y,12,0,6.2832); g.fill();
+    if(s===selSrc){ g.strokeStyle='#fff'; g.lineWidth=2; g.beginPath(); g.arc(x,y,15,0,6.2832); g.stroke(); }
+    g.fillStyle='#111'; g.font='bold 12px system-ui'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(INST[s.inst].letter,x,y);
+  }
+  g.textAlign='start'; g.textBaseline='alphabetic';
+}
+function drawWave(){
+  const c=$('wave'), d=sizeCanvas(c), g=c.getContext('2d'), W=c.width, H=c.height;
+  g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,W,H);
+  const n=Math.round(U.sr*0.04), tv=Math.floor(view.tv);
+  const cols=['#80c0f0','#f08080'];
+  for(let e=0;e<2;e++){
+    const yb=H*(e?0.75:0.25), A=H*0.22;
+    g.strokeStyle='#222833'; g.beginPath(); g.moveTo(0,yb); g.lineTo(W,yb); g.stroke();
+    g.strokeStyle=cols[e]; g.lineWidth=1.2*d; g.beginPath();
+    for(let i=0;i<n;i++){ const t=tv-n+1+i; const v= t<0||U.t-t>=U.aCap ? 0 : U.aud[e][t%U.aCap]; const x=i/(n-1)*W, y=yb-Math.max(-1,Math.min(1,v*2.5))*A; i?g.lineTo(x,y):g.moveTo(x,y); }
+    g.stroke();
+  }
+}
+function fmt(t){ return (t/U.sr).toFixed(3)+' s'; }
+function drawTimeline(){
+  const lo=U.earliestViewable(), sc=$('scrub');
+  sc.min=lo; sc.max=U.t; if(!scrubbing) sc.value=Math.floor(view.tv);
+  const back=(U.t-view.tv)/U.sr;
+  $('tlbl').textContent = view.live ? `mundo: ${fmt(U.t)} · vendo ao vivo · gravado: últimos ${((U.t-lo)/U.sr).toFixed(1)} s`
+    : `mundo: ${fmt(U.t)} · vendo: ${fmt(view.tv)} (${back.toFixed(3)} s atrás) · ${view.playing?'reproduzindo':'pausado'}`;
+  $('bPlay').textContent = (view.live||view.playing)?'⏸':'▶';
+  $('live').classList.toggle('on',view.live);
+}
+let fireRate=0, lastFC=0, lastStatT=0;
+function drawStats(){
+  const now=performance.now(); if(now-lastStatT<500) return;
+  const dtR=(now-lastStatT)/1000; lastStatT=now;
+  fireRate=(U.fireCount-lastFC)/dtR; lastFC=U.fireCount;
+  const per=[0,0,0,0,0]; for(const n of U.nodes) per[n.lvl]++;
+  $('stats').textContent=`nós: ${U.nodes.length-2} (n1 ${per[1]} · n2 ${per[2]} · n3 ${per[3]} · n4 ${per[4]}) · arestas ${U.edges.length} · disparos/s ${Math.round(fireRate)} · tempo do mundo ${(U.t/U.sr).toFixed(1)} s · ritmo ${(simRatio*100).toFixed(0)}% do real`;
+  if(view.sel) showInfo();
+}
+function showInfo(){
+  const n=view.sel; if(!n){ $('info').textContent='Toque num nó do grafo para inspecionar.'; return; }
+  const ms=v=>(v*1000/U.sr).toFixed(3)+' ms';
+  const lv=['ouvido','nível 1','nível 2','nível 3','nível 4'][n.lvl];
+  let s=`#${n.id} · ${lv}${n.lvl<=1?(n.ear?' · ouvido direito':' · ouvido esquerdo'):''}\n`;
+  if(n.lvl===0){ s+=`microfone: transduz pressão em incidências\n(positivo = excitatória, negativo = inibitória)\nsaídas: ${n.out.length}`; $('info').textContent=s; return; }
+  s+=`nasceu em ${fmt(n.born)}\n`;
+  s+=`janela de integração ${ms(n.W)} · refratariedade ${ms(n.refr)}\n`;
+  s+=`limiar ${n.thr.toFixed(4)} · magnitude do disparo ${n.mag.toFixed(3)}\n`;
+  s+=`disparos até agora ${n.fires}\n`;
+  if(n.lvl===1&&n.origin) s+=`origem: lóbulo de ${n.origin.lobeMs.toFixed(3)} ms (≈ ${Math.round(n.origin.hz)} Hz se fosse tom puro), pico ${n.origin.peak.toFixed(3)}\n`;
+  if(n.lvl>=2&&n.origin) s+=`origem: agrupou ${n.origin.k} disparos espalhados em ${n.origin.span.toFixed(2)} ms\n`;
+  s+=`entradas (${n.in.length}):\n`;
+  for(const e of n.in.slice(0,12)) s+=`  de #${e.from.id} (${['ouvido','n1','n2','n3','n4'][e.from.lvl]}) atraso ${ms(e.d)}\n`;
+  if(n.in.length>12) s+=`  …\n`;
+  s+=`saídas: ${n.out.length}`;
+  $('info').textContent=s;
+}
+
+// ---------- interação: grafo ----------
+(function(){
+  const c=$('sdom'); const ptrs=new Map(); let start=null, pinch=null;
+  c.addEventListener('pointerdown',e=>{ c.setPointerCapture(e.pointerId); ptrs.set(e.pointerId,{x:e.offsetX,y:e.offsetY}); if(ptrs.size===1) start={x:e.offsetX,y:e.offsetY,t:performance.now(),ox:view.ox,oy:view.oy,moved:false}; if(ptrs.size===2){ const [a,b]=[...ptrs.values()]; pinch={d:Math.hypot(a.x-b.x,a.y-b.y),s:view.s,cx:(a.x+b.x)/2,cy:(a.y+b.y)/2,ox:view.ox,oy:view.oy}; } });
+  c.addEventListener('pointermove',e=>{ if(!ptrs.has(e.pointerId))return; ptrs.set(e.pointerId,{x:e.offsetX,y:e.offsetY});
+    if(ptrs.size===2&&pinch){ const [a,b]=[...ptrs.values()]; const k=Math.hypot(a.x-b.x,a.y-b.y)/pinch.d; zoomAt(pinch.cx,pinch.cy,pinch.s*k,pinch); }
+    else if(ptrs.size===1&&start){ const dx=e.offsetX-start.x, dy=e.offsetY-start.y; if(Math.abs(dx)+Math.abs(dy)>6) start.moved=true; if(start.moved){view.ox=start.ox+dx;view.oy=start.oy+dy;} } });
+  const up=e=>{ if(ptrs.size===1&&start&&!start.moved) pick(e.offsetX,e.offsetY); ptrs.delete(e.pointerId); if(ptrs.size<2)pinch=null; if(ptrs.size===0)start=null; };
+  c.addEventListener('pointerup',up); c.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);pinch=null;start=null});
+  c.addEventListener('wheel',e=>{ e.preventDefault(); zoomAt(e.offsetX,e.offsetY,view.s*Math.exp(-e.deltaY*0.0015)); },{passive:false});
+})();
+function zoomAt(cx,cy,ns,base){ ns=Math.max(0.15,Math.min(12,ns)); const b=base||{s:view.s,ox:view.ox,oy:view.oy}; const wx=(cx-b.ox)/b.s, wy=(cy-b.oy)/b.s; view.s=ns; view.ox=cx-wx*ns; view.oy=cy-wy*ns; }
+function pick(px,py){
+  const nv=U.visibleCount(Math.floor(view.tv)); let best=null, bd=18;
+  for(let i=0;i<nv;i++){ const n=U.nodes[i]; const dd=Math.hypot(n.x*view.s+view.ox-px, n.y*view.s+view.oy-py); if(dd<bd){bd=dd;best=n} }
+  view.sel=best; showInfo();
+}
+$('zin').onclick=()=>{const r=$('sdom').getBoundingClientRect(); zoomAt(r.width/2,r.height/2,view.s*1.4)};
+$('zout').onclick=()=>{const r=$('sdom').getBoundingClientRect(); zoomAt(r.width/2,r.height/2,view.s/1.4)};
+$('zfit').onclick=()=>fitView();
+
+// ---------- interação: sala ----------
+(function(){
+  const c=$('room'); let drag=null;
+  c.addEventListener('pointerdown',e=>{ const G=roomGeom(); let best=null,bd=22; for(const s of Wd.sources){ const dd=Math.hypot(G.ox+s.x*G.sx-e.offsetX, G.oy+s.y*G.sy-e.offsetY); if(dd<bd){bd=dd;best=s} } if(best){ selSrc=best; drag=best; c.setPointerCapture(e.pointerId); refreshSrcUI(); } });
+  c.addEventListener('pointermove',e=>{ if(!drag)return; const G=roomGeom(); drag.x=Math.max(0.1,Math.min(3.9,(e.offsetX-G.ox)/G.sx)); drag.y=Math.max(0.1,Math.min(3.9,(e.offsetY-G.oy)/G.sy)); if(Math.hypot(drag.x-Wd.robot.x,drag.y-Wd.robot.y)<0.3){ drag.y=Wd.robot.y-0.3; } });
+  const up=()=>{drag=null}; c.addEventListener('pointerup',up); c.addEventListener('pointercancel',up);
+})();
+function refreshSrcUI(){
+  const sel=$('srcInst'); sel.innerHTML=''; for(const k in INST){ const o=document.createElement('option'); o.value=k; o.textContent=INST[k].name; sel.appendChild(o); }
+  if(selSrc){ sel.value=selSrc.inst; sel.disabled=false; $('srcLbl').textContent=`fonte ${selSrc.id} selecionada`; } else { sel.disabled=true; $('srcLbl').textContent='nenhuma fonte'; }
+}
+$('srcInst').onchange=e=>{ if(selSrc){ selSrc.inst=e.target.value; } };
+$('addSrc').onclick=()=>{ const s=Wd.addSource($('srcInst').value||'tom', 0.5+Math.random()*3, 0.4+Math.random()*1.4); selSrc=s; refreshSrcUI(); };
+$('delSrc').onclick=()=>{ if(!selSrc)return; Wd.sources=Wd.sources.filter(s=>s!==selSrc); selSrc=Wd.sources[0]||null; refreshSrcUI(); };
+(function(){ const k=$('keys'); for(const [nm,f] of NOTES){ const b=document.createElement('button'); b.className='key'; b.textContent=nm; b.onclick=()=>{ ensureAudio(); trigger(selSrc,f,+$('dur').value,+$('amp').value); }; k.appendChild(b); } })();
+$('expPV').onclick=()=>{
+  ensureAudio();
+  const p=Wd.sources.find(s=>s.inst==='piano')||Wd.addSource('piano',1.0,1.1);
+  const v=Wd.sources.find(s=>s.inst==='viola')||Wd.addSource('viola',3.0,1.1);
+  const f=261.63, a=0.7;
+  trigger(p,f,0.6,a,0); trigger(p,f,0.6,a,1.2); trigger(p,f,0.6,a,2.4);
+  trigger(v,f,0.6,a,3.8); trigger(v,f,0.6,a,5.0); trigger(p,f,0.6,a,6.2);
+};
+$('expDir').onclick=()=>{
+  ensureAudio();
+  const s=selSrc||Wd.sources[0]; if(!s)return; const f=329.63, a=0.7;
+  const ox=s.x, oy=s.y;
+  trigger(s,f,0.5,a,0); trigger(s,f,0.5,a,1.0);
+  setTimeout(()=>{ s.x=Math.max(0.2,Math.min(3.8,4-ox)); }, 1800/worldSpeed);
+  trigger(s,f,0.5,a,2.2); trigger(s,f,0.5,a,3.2);
+  setTimeout(()=>{ s.x=ox; s.y=oy; }, 4200/worldSpeed);
+};
+
+// ---------- linha do tempo (observador) ----------
+let scrubbing=false;
+function goLive(){ view.live=true; view.playing=true; view.tv=U.t; }
+function seek(t){ view.live=false; view.tv=Math.max(U.earliestViewable(),Math.min(U.t,t)); if(view.tv>=U.t) goLive(); }
+$('bPlay').onclick=()=>{ if(view.live){ view.live=false; view.playing=false; } else view.playing=!view.playing; };
+$('live').onclick=goLive;
+$('bBack1').onclick=()=>{ const p=view.playing&&!view.live; seek(view.tv-U.sr); view.playing=p; };
+$('bFwd1').onclick=()=>{ const p=view.playing; seek(view.tv+U.sr); if(!view.live) view.playing=p; };
+$('bBackS').onclick=()=>{ seek(view.tv-U.sr/1000); view.playing=false; };
+$('bFwdS').onclick=()=>{ seek(view.tv+U.sr/1000); if(!view.live) view.playing=false; };
+$('vspeed').onchange=e=>{ view.speed=+e.target.value; };
+const sc=$('scrub');
+sc.addEventListener('input',()=>{ scrubbing=true; view.live=false; view.playing=false; view.tv=+sc.value; });
+sc.addEventListener('change',()=>{ scrubbing=false; seek(+sc.value); if(!view.live) view.playing=false; });
+
+// ---------- parâmetros / novo universo ----------
+(function(){ const box=$('params'); for(const [k,l] of PARAM_UI){ const lab=document.createElement('label'); lab.textContent=l; lab.className='small'; const inp=document.createElement('input'); inp.type='number'; inp.step='any'; inp.value=params[k]; inp.dataset.k=k; box.appendChild(lab); box.appendChild(inp); } })();
+let resetArm=0;
+$('reset').onclick=()=>{
+  const now=performance.now();
+  if(now-resetArm>3000){ resetArm=now; $('reset').textContent='Tem certeza? Toque de novo para destruir'; setTimeout(()=>{ $('reset').textContent='💥 Destruir universo e criar outro'; },3000); return; }
+  resetArm=0;
+  for(const inp of document.querySelectorAll('#params input')){ const v=+inp.value; if(isFinite(v)) params[inp.dataset.k]=v; }
+  params.sr=Math.max(4000,Math.min(48000,Math.round(params.sr)));
+  params.maxLevel=Math.max(1,Math.min(4,Math.round(params.maxLevel)));
+  newUniverse(); $('reset').textContent='💥 Destruir universo e criar outro';
+};
+$('copy').onclick=async()=>{ try{ await navigator.clipboard.writeText(JSON.stringify(U.toJSON())); $('copy').textContent='Copiado ✓'; }catch(e){ $('copy').textContent='Não consegui copiar'; } setTimeout(()=>$('copy').textContent='Copiar universo (JSON)',2000); };
+
+newUniverse();
+requestAnimationFrame(t=>{lastFrame=t; requestAnimationFrame(loop)});
+window.__sdom={get U(){return U}, get W(){return Wd}, trigger, view};
+</script>
+</body>
+</html>
