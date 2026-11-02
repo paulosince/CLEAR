@@ -120,9 +120,9 @@
   <div class="legend" style="margin:4px 0 6px">
     <span><i class="dot" style="background:var(--l0)"></i>ouvidos</span>
     <span><i class="dot" style="background:var(--l1)"></i>transdução (fibras da cóclea)</span>
-    <span><i class="dot" style="background:var(--l2)"></i>2</span>
-    <span><i class="dot" style="background:var(--l3)"></i>3</span>
-    <span><i class="dot" style="background:var(--l4)"></i>4</span>
+    <span><i class="dot" style="background:var(--l2)"></i>Sdom: perto</span>
+    <span><i class="dot" style="background:var(--l3)"></i>médio</span>
+    <span><i class="dot" style="background:var(--l4)"></i>longe dos ouvidos</span>
     <span><i class="dot" style="background:var(--hot)"></i>disparou</span>
     <span><i class="dot" style="border:2px solid #fff;background:none"></i>acabou de nascer</span>
     <span class="mut">arco = percorrido em parte · aresta: apagada = fraca, azul = forte, laranja = consolidada, tracejada = inerte</span>
@@ -168,7 +168,7 @@
      observados, para que tudo chegue junto ao nó novo.
    - Sem aprendizado nem divisão ainda.
    ===================================================================== */
-const CODE_VERSION = 'v0.6';
+const CODE_VERSION = 'v0.7';
 const DEFAULTS = {
   sr: 16000,           // taxa do microfone (amostras/s); botão alterna 16k/8k
   // transdução auditiva (v0.6): cóclea fixa, fora do Sdom
@@ -180,11 +180,14 @@ const DEFAULTS = {
   ihcLowpassHz: 3000,  // célula ciliada: perda de sincronia em frequências altas
   thrFrac: 0.8,        // limiar do nó novo = fração do que o criou
   basalMs: 0.125,      // atraso basal das arestas
-  coincMs2: 0.25, coincMs3: 0.5, coincMs4: 5,     // janela de integração por nível
-  bindMs2: 20, bindMs3: 40, bindMs4: 400,         // janela de agrupamento por nível
-  gapMs2: 1, gapMs3: 5, gapMs4: 50,               // intervalo mínimo entre criações
-  maxGroup2: 4, maxGroup3: 6, maxGroup4: 6,
-  maxLevel: 4,
+  // criação sem níveis (v0.7): relacionar o que acontece junto e ainda não tem relação
+  bindMs: 50,          // até que distância no tempo disparos podem ser relacionados
+  weber: 0.1,          // tolerância proporcional ao intervalo relacionado (propriedade escalar)
+  minCoincMs: 0.25,    // tolerância mínima (escala da diferença de tempo entre os ouvidos)
+  prepFrac: 0.5,       // nó que recebe ≥ 50% do limiar está preparado: o que chegou nele tem relação
+  gapMs: 1,            // intervalo mínimo entre criações
+  maxGroup: 6,         // disparos relacionados por um nó novo, no máximo
+  maxDepth: 12,        // trava de segurança contra fuga (não é regra de agrupamento)
   maxNodes: 6000,
   histSeconds: 90,
   // aprendizado (v0.3): tudo no PESO da aresta (modulação da magnitude), 0 = inerte, 1 = máximo
@@ -208,9 +211,8 @@ const DEFAULTS = {
 const PARAM_UI = [
   ['sr','taxa do microfone (Hz)'],['cochChannels','canais da cóclea'],['baseThr','limiar da fibra sensível'],['fiberDb2','fibra média (+dB)'],['fiberDb3','fibra pouco sensível (+dB)'],['fiberRefrMs','refratariedade da fibra (ms)'],['ihcLowpassHz','célula ciliada: corte (Hz)'],['thrFrac','limiar do nó novo (fração)'],
   ['basalMs','atraso basal da aresta (ms)'],
-  ['coincMs2','integração nível 2 (ms)'],['coincMs3','integração nível 3 (ms)'],['coincMs4','integração nível 4 (ms)'],
-  ['bindMs2','agrupamento nível 2 (ms)'],['bindMs3','agrupamento nível 3 (ms)'],['bindMs4','agrupamento nível 4 (ms)'],
-  ['maxLevel','níveis máximos (1–4)'],['maxNodes','teto de nós'],['histSeconds','histórico gravado (s)'],
+  ['bindMs','alcance da relação no tempo (ms)'],['weber','tolerância proporcional (fração)'],['minCoincMs','tolerância mínima (ms)'],
+  ['prepFrac','preparado a partir de (fração do limiar)'],['maxGroup','disparos por nó novo (máx.)'],['maxDepth','trava de profundidade'],['maxNodes','teto de nós'],['histSeconds','histórico gravado (s)'],
   ['wBirth','peso de nascimento da aresta'],['aPlus','reforço (chegou antes)'],['aMinus','enfraquecimento (chegou depois)'],
   ['tauPlusMs','janela do reforço (ms)'],['tauMinusMs','janela do enfraquecimento (ms)'],
   ['fastHalfLifeS','meia-vida do peso basal (s)'],['slowHalfLifeDays','meia-vida do peso consolidado (dias)'],['tagHours','janela de consolidação (h)'],['consolThr','reforço acumulado para consolidar'],
@@ -226,19 +228,15 @@ class Universe{
     this.p = p; const sr = this.sr = p.sr;
     const ms = v => Math.max(1, Math.round(v*sr/1000));
     this.basal = ms(p.basalMs);
-    this.maxLevel = Math.max(1, Math.min(4, p.maxLevel|0));
-    this.coinc = [0,0,ms(p.coincMs2),ms(p.coincMs3),ms(p.coincMs4)];
-    this.bind  = [0,0,ms(p.bindMs2),ms(p.bindMs3),ms(p.bindMs4)];
-    this.gap   = [0,0,ms(p.gapMs2),ms(p.gapMs3),ms(p.gapMs4)];
-    this.maxGroup = [0,0,p.maxGroup2,p.maxGroup3,p.maxGroup4];
+    this.bindS = ms(p.bindMs); this.gapS = ms(p.gapMs); this.minW = Math.max(1, Math.round(p.minCoincMs*sr/1000));
+    this.maxW = Math.max(this.minW, Math.round(p.weber*this.bindS)); this.lastCreateT = -1e12;
     this.t = 0;
     this.rng = mulberry32(seed);
     this.nodes = []; this.edges = [];
-    const maxD = Math.max(...this.bind) + this.basal + Math.max(...this.coinc) + 8;
+    const maxD = this.bindS + this.basal + 2*this.maxW + 8;
     this.wsize = pow2(maxD+1); this.wmask = this.wsize-1;
     this.wheel = Array.from({length:this.wsize}, ()=>[]);
-    this.Q = []; this.qh = [];
-    for(let l=0;l<=4;l++){this.Q.push([]);this.qh.push(0)}
+    this.Qe = []; this.qh = 0;
     this.lastCreate = [-1e12,-1e12,-1e12,-1e12,-1e12];
     // histórico (gravação do observador, não do robô)
     this.hCap = Math.min(6e6, Math.max(2e5, Math.round(p.histSeconds*60000)));
@@ -327,7 +325,7 @@ class Universe{
     for(const b of this.wheel) b.length=0;
     for(const n of this.nodes){ n.contrib=[]; n.refUntil=0; }
     for(const st of this.cochState) st.fill(0); for(const ih of this.ihc) ih.fill(0);
-    for(let l=0;l<=4;l++){ this.Q[l]=[]; this.qh[l]=0; }
+    this.Qe=[]; this.qh=0;
     if(this.actCounts.size){ const c={}; for(const [k,v] of this.actCounts) c[k]=v; this.actLog.push({t0:this.actStart,c}); this.actCounts.clear(); }
     this.actStart=this.t;
     this.stimLog.push({t:t0, jumpS:samples/this.sr});
@@ -354,7 +352,7 @@ class Universe{
       this.coch.push({k, fc, erb, active, pr:a*Math.cos(w), pi:a*Math.sin(w), g:Math.pow(1-a,4)});
       for(let e=0;e<2;e++) for(let c=0;c<3;c++){
         const yb = e===0 ? 470 : 970;
-        const n=this.addNode({lvl:1, ear:e, W:1, thr:thr[c], mag:1, refr, born:0,
+        const n=this.addNode({lvl:1, depth:1, ear:e, W:1, thr:thr[c], mag:1, refr, born:0,
           x: 225 + c*45, y: yb - 430*(k/Math.max(1,N-1)), fiber:{k, fc, cls:c, db:[0,this.p.fiberDb2,this.p.fiberDb3][c], active}});
         this.fibers[e].push(n);
         this.addEdge(this.nodes[e], n, this.basal);
@@ -402,7 +400,7 @@ class Universe{
       b.length=0;
     }
     // criação nos níveis 2+: disparos que ninguém absorveu
-    for(let l=2;l<=this.maxLevel;l++) this.groupLevel(l,t);
+    this.groupAll(t);
     if(t%this.sweepEvery===0) this.sweep(t);
     if(t-this.actStart>=this.actWin){
       if(this.actCounts.size){ const c={}; for(const [k,v] of this.actCounts) c[k]=v; this.actLog.push({t0:this.actStart, c}); this.actCounts.clear(); }
@@ -428,6 +426,8 @@ class Universe{
       this.fire(n,t);
     } else if(n.lvl>=2 && s>0){
       const f=s/n.thr;
+      // PREPARAÇÃO do campo representacional relacional: o que chegou junto a um nó preparado já tem relação
+      if(f>=this.p.prepFrac) for(let i=0;i<c.length;i++){ const x=c[i]; if(x.ev) x.ev.a=true; }
       if(f>=0.4 && t-n.nmT>40){ n.nmT=t; const k2=this.nmCount%this.nmCap; this.nmT[k2]=t; this.nmN[k2]=n.id; this.nmF[k2]=f; this.nmCount++; }
     }
   }
@@ -437,7 +437,7 @@ class Universe{
     this.actCounts.set(n.id,(this.actCounts.get(n.id)||0)+1);
     const k=this.hCount%this.hCap; this.hT[k]=t; this.hN[k]=n.id; this.hCount++;
     let ev=null;
-    if(n.lvl<this.maxLevel){ ev={n, t, m:mag, a:false}; this.Q[n.lvl].push(ev); }
+    if((n.depth||1)<this.p.maxDepth){ ev={n, t, m:mag, a:false}; this.Qe.push(ev); }
     for(let i=0;i<n.out.length;i++){
       const o=n.out[i];
       // DECAIMENTO: o peso cai com o tempo sem a aresta ser percorrida (calculado agora, de forma preguiçosa)
@@ -449,37 +449,56 @@ class Universe{
     }
     if(n.lvl>=2) this.wheel[(t+n.refr)&this.wmask].push({n, chk:true});
   }
-  groupLevel(l,t){
-    const Q=this.Q[l-1], B=this.bind[l]; let h=this.qh[l-1];
+  // ---- CRIAÇÃO: relacionar disparos que acontecem juntos e ainda não têm relação ----
+  // Um disparo tem relação se ajudou um nó a disparar ou o deixou preparado. Os que não têm,
+  // ao fim do alcance no tempo, são relacionados por um nó novo, com tolerância proporcional
+  // ao intervalo que ele relaciona.
+  tol(span){ return Math.max(this.minW, Math.round(this.p.weber*span)); }
+  // a relação de um nó consigo mesmo no intervalo d já está representada se ele é definido por d
+  definedBy(N,d){
+    const tl=this.tol(d), I=N.in;
+    for(let i=0;i<I.length;i++) for(let j=0;j<I.length;j++){
+      if(i===j || I[i].from!==I[j].from) continue;
+      if(Math.abs((I[i].d-I[j].d)-d)<=tl) return true;
+    }
+    return false;
+  }
+  groupAll(t){
+    const Q=this.Qe, B=this.bindS; let h=this.qh;
     while(h<Q.length && t-Q[h].t>=B){
       const seed=Q[h]; h++;
       if(seed.a) continue;
-      if(t-this.lastCreate[l]<this.gap[l] || this.nodes.length>=this.p.maxNodes){ if(this.nodes.length>=this.p.maxNodes)this.capHit=true; continue; }
-      const group=[seed], used=new Set([seed.n.id]);
-      for(let j=h;j<Q.length && group.length<this.maxGroup[l];j++){
-        const e=Q[j]; if(e.t-seed.t>B) break; if(e.a) continue;
-        if(l>=3 && used.has(e.n.id)) continue;
+      if(t-this.lastCreateT<this.gapS) continue;
+      if(this.nodes.length>=this.p.maxNodes){ this.capHit=true; continue; }
+      const group=[seed], used=new Set([seed.n.id]); let self=null;
+      for(let j=h;j<Q.length && group.length<this.p.maxGroup;j++){
+        const e=Q[j]; if(e.t-seed.t>B) break;
+        if(e.n===seed.n){ if(!self && e.t>seed.t) self=e; continue; }
+        if(e.a || used.has(e.n.id)) continue;
         group.push(e); used.add(e.n.id);
       }
-      if(group.length>=2) this.createGroup(l,group,t,h);
+      // sozinho: pode relacionar-se consigo mesmo no tempo, se isso ainda não estiver representado
+      if(group.length===1 && self && !this.definedBy(seed.n, self.t-seed.t)) group.push(self);
+      if(group.length>=2) this.createGroup(group,t,h);
     }
-    if(h>2048){Q.splice(0,h);h=0}
-    this.qh[l-1]=h;
+    if(h>4096){Q.splice(0,h);h=0}
+    this.qh=h;
   }
-  createGroup(l,group,t,h){
-    let tLast=-1e12, sm=0, sy=0;
-    for(const e of group){ if(e.t>tLast)tLast=e.t; sm+=e.m; sy+=e.n.y; }
-    const n=this.addNode({lvl:l, W:this.coinc[l], refr:this.coinc[l], thr:this.p.thrFrac*sm*this.p.wBirth, mag:Math.min(1,sm/group.length), born:t,
-      x: [0,0,520,780,1030][l] + this.rng()*130, y: Math.max(20,Math.min(980, sy/group.length + (this.rng()-0.5)*40)),
-      origin:{span:(tLast-group[0].t)*1000/this.sr, k:group.length}});
+  createGroup(group,t,h){
+    let tLast=-1e12, tFirst=1e12, sm=0, sy=0, dep=1;
+    for(const e of group){ if(e.t>tLast)tLast=e.t; if(e.t<tFirst)tFirst=e.t; sm+=e.m; sy+=e.n.y; dep=Math.max(dep,(e.n.depth||1)); }
+    const span=tLast-tFirst, W=this.tol(span), depth=dep+1;
+    const n=this.addNode({lvl:Math.min(4,depth), depth, W, refr:W, thr:this.p.thrFrac*sm*this.p.wBirth, mag:Math.min(1,sm/group.length), born:t,
+      x: Math.min(1150, 330 + 175*(depth-1)) + this.rng()*110, y: Math.max(20,Math.min(980, sy/group.length + (this.rng()-0.5)*40)),
+      origin:{span:span*1000/this.sr, k:group.length, tolMs:W*1000/this.sr, self:group.length===2&&group[0].n===group[1].n}});
     for(const e of group){ this.addEdge(e.n, n, tLast-e.t+this.basal); e.a=true; }
-    this.lastCreate[l]=t;
-    this.retroAbsorb(n,l,h);
+    this.lastCreateT=t;
+    this.retroAbsorb(n,h);
   }
   // O nó recém-nascido "reconhece" o que aconteceu enquanto ele se formava,
   // para não nascerem cópias do mesmo padrão.
-  retroAbsorb(n,l,h){
-    const Q=this.Q[l-1], bySrc=new Map();
+  retroAbsorb(n,h){
+    const Q=this.Qe, bySrc=new Map();
     for(let j=Math.max(0,h-64);j<Q.length;j++){const e=Q[j]; let a=bySrc.get(e.n.id); if(!a){a=[];bySrc.set(e.n.id,a)} a.push(e)}
     const taus=new Set();
     for(const ed of n.in){ const a=bySrc.get(ed.from.id); if(a) for(const e of a) if(!e.a) taus.add(e.t+ed.d); }
@@ -487,7 +506,7 @@ class Universe{
       let s=0; const used=[];
       for(const ed of n.in){ const a=bySrc.get(ed.from.id); if(!a)continue;
         for(const e of a){ const arr=e.t+ed.d; if(tau-arr>=0 && tau-arr<n.W){ s+=e.m*ed.mod; used.push(e); } } }
-      if(s>=n.thr-1e-9) for(const e of used) e.a=true;
+      if(s>=this.p.prepFrac*n.thr-1e-9) for(const e of used) e.a=true;
     }
   }
   // ---- consultas para o observador ----
@@ -692,7 +711,7 @@ function drawSdom(){
   }
   // colunas
   g.font=`${11*d}px system-ui`; g.fillStyle='#5d6575';
-  const labels=[[60,'ouvidos'],[270,'transdução'],[585,'nível 2'],[845,'nível 3'],[1095,'nível 4']];
+  const labels=[[60,'ouvidos'],[270,'transdução'],[520,'Sdom: mais longe dos ouvidos →']];
   for(const [x,t] of labels){ g.fillText(t, X(x)-18*d, Math.max(14*d,Y(0)-6*d)); }
   g.fillText('esq.', X(20), Y(250)+24*d); g.fillText('dir.', X(20), Y(750)+24*d);
   // arestas
@@ -799,13 +818,13 @@ function drawStats(){
   const dtR=(now-lastStatT)/1000; lastStatT=now;
   fireRate=(U.fireCount-lastFC)/dtR; lastFC=U.fireCount;
   const per=[0,0,0,0,0]; for(const n of U.nodes) if(n.diedAt===Infinity) per[n.lvl]++;
-  $('stats').textContent=`nós: ${per[1]+per[2]+per[3]+per[4]} (n1 ${per[1]} · n2 ${per[2]} · n3 ${per[3]} · n4 ${per[4]}) · arestas ${U.edges.length-U.prunedE} · disparos/s ${Math.round(fireRate)} · reforços ${U.ltp} · enfraquecimentos ${U.ltd} · consolidações ${U.consol} · candidatas à poda ${U.candidates} · podadas: ${U.prunedE} arestas, ${U.prunedN} nós · acessos ${U.accesses} · tempo do mundo ${fmt(U.t)} · ritmo ${(simRatio*100).toFixed(0)}% do real`;
+  $('stats').textContent=`fibras ${per[1]} · nós do Sdom ${per[2]+per[3]+per[4]} (perto ${per[2]} · médio ${per[3]} · longe ${per[4]}) · arestas ${U.edges.length-U.prunedE} · disparos/s ${Math.round(fireRate)} · reforços ${U.ltp} · enfraquecimentos ${U.ltd} · consolidações ${U.consol} · candidatas à poda ${U.candidates} · podadas: ${U.prunedE} arestas, ${U.prunedN} nós · acessos ${U.accesses} · tempo do mundo ${fmt(U.t)} · ritmo ${(simRatio*100).toFixed(0)}% do real`;
   if(view.sel) showInfo();
 }
 function showInfo(){
   const n=view.sel; if(!n){ $('info').textContent='Toque num nó do grafo para inspecionar.'; return; }
   const ms=v=>(v*1000/U.sr).toFixed(3)+' ms';
-  const lv=['ouvido','transdução (fibra)','nível 2','nível 3','nível 4'][n.lvl];
+  const lv=n.lvl===0?'ouvido':n.lvl===1?'transdução (fibra)':`Sdom · distância dos ouvidos ${n.depth}`;
   let s=`#${n.id} · ${lv}${n.lvl<=1?(n.ear?' · ouvido direito':' · ouvido esquerdo'):''}\n`;
   if(n.lvl===0){ s+=`microfone (${U.sr/1000} kHz): entrega o som à cóclea (transdução)\nfibras: ${n.out.length}`; $('info').textContent=s; return; }
   if(n.fiber){ const F=n.fiber;
@@ -817,7 +836,7 @@ function showInfo(){
   s+=`janela de integração ${ms(n.W)} · refratariedade ${ms(n.refr)}\n`;
   s+=`limiar ${n.thr.toFixed(4)} (fixo) · magnitude ${n.mag.toFixed(4)} (fixa)\n`;
   s+=`disparos até agora ${n.fires}`+(n.fires?` · último há ${((U.t-n.lastFire)/U.sr).toFixed(1)} s`:'')+`\n`;
-  if(n.lvl>=2&&n.origin) s+=`origem: agrupou ${n.origin.k} disparos espalhados em ${n.origin.span.toFixed(2)} ms\n`;
+  if(n.lvl>=2&&n.origin) s+=`origem: relacionou ${n.origin.k} disparos${n.origin.self?' (o mesmo nó consigo, no tempo)':''} espalhados em ${n.origin.span.toFixed(2)} ms · tolerância ${n.origin.tolMs.toFixed(2)} ms\n`;
   s+=`entradas (${n.in.length}):\n`;
   const tvv=Math.floor(view.tv);
   for(const e of n.in.slice(0,12)){ let w=U.wAt(e,tvv); if(w===null)w=e.mod;
@@ -906,7 +925,7 @@ $('reset').onclick=()=>{
   resetArm=0;
   for(const inp of document.querySelectorAll('#params input')){ const v=+inp.value; if(isFinite(v)) params[inp.dataset.k]=v; }
   params.sr=Math.max(4000,Math.min(48000,Math.round(params.sr)));
-  params.maxLevel=Math.max(1,Math.min(4,Math.round(params.maxLevel)));
+
   newUniverse(); $('reset').textContent='💥 Destruir universo e criar outro'; setTimeout(renderStore,300);
 };
 $('copy').onclick=async()=>{ try{ await navigator.clipboard.writeText(JSON.stringify(U.toJSON())); $('copy').textContent='Copiado ✓'; }catch(e){ $('copy').textContent='Não consegui copiar'; } setTimeout(()=>$('copy').textContent='Copiar universo (JSON)',2000); };
