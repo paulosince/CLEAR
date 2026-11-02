@@ -42,6 +42,13 @@ Status: **aprovado** (definido ou aceito pelo Paulo) · **em discussão**.
 | **decaimento** | perda de peso com o tempo sem a aresta ser percorrida. | Paulo | aprovado |
 | **inerte** | aresta com peso perto de zero (não entrega nada); nó que não participa da dinâmica. | Paulo | aprovado |
 
+## Antecipação
+
+| termo | definição | origem | status |
+|---|---|---|---|
+| **preparação do campo semântico** | o que a neurobiologia costuma chamar de "previsão": o caminho que está sendo percorrido deixa preparado o que costuma vir a seguir. Não é um estado futuro representado. Mecânica a definir. | Paulo | aprovado (mecânica em discussão) |
+| **previsão** | reservado: projeção de um estado em tempo futuro, calculada a partir de dados históricos (probabilidade). **Não** usar para a preparação do campo semântico. | Paulo | aprovado |
+
 ## Poda
 
 | termo | definição | origem | status |
