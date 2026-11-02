@@ -27,9 +27,11 @@
   #room{height:180px}
   #sdom{height:58vh;min-height:320px}
   #wave{height:70px}
-  .grid2{display:grid;grid-template-columns:1fr;grid-template-areas:"env" "sdom" "info" "par"}
-  #secEnv{grid-area:env} #secSdom{grid-area:sdom} #secInfo{grid-area:info} #secPar{grid-area:par}
-  @media (min-width:900px){ .grid2{grid-template-columns:360px 1fr;grid-template-areas:"env sdom" "info sdom" "par sdom";align-items:start} #secSdom{border-left:1px solid var(--line)} #sdom{height:72vh} }
+  .grid2{display:grid;grid-template-columns:1fr;grid-template-areas:"env" "sdom" "info" "store" "par"}
+  #secEnv{grid-area:env} #secSdom{grid-area:sdom} #secInfo{grid-area:info} #secPar{grid-area:par} #secStore{grid-area:store}
+  .uni{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 0;border-top:1px solid var(--line);font-size:12px}
+  .uni .lbl{flex:1 1 200px}
+  @media (min-width:900px){ .grid2{grid-template-columns:360px 1fr;grid-template-areas:"env sdom" "info sdom" "store sdom" "par sdom";align-items:start} #secSdom{border-left:1px solid var(--line)} #sdom{height:72vh} }
   #info{white-space:pre-wrap;font:12px/1.45 ui-monospace,Menlo,Consolas,monospace;color:#cfd5e1;min-height:2em}
   .legend span{display:inline-flex;align-items:center;gap:4px;margin-right:10px;font-size:12px}
   .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
@@ -66,6 +68,7 @@
   <div class="row" style="margin-top:6px" id="keys"></div>
   <div class="row" style="margin-top:6px">
     <label class="small">duração <select id="dur"><option value="0.3">0,3 s</option><option value="0.8" selected>0,8 s</option><option value="1.5">1,5 s</option></select></label>
+    <label class="small">mundo <select id="wspeed"><option value="0.25">0,25×</option><option value="1" selected>1×</option><option value="4">4×</option><option value="10">10×</option></select></label>
     <label class="small">intensidade <select id="amp"><option value="0.35">suave</option><option value="0.7" selected>média</option><option value="1">forte</option></select></label>
   </div>
   <div class="row" style="margin-top:8px">
@@ -78,6 +81,16 @@
 <section id="secInfo">
   <b>Nó selecionado</b>
   <div id="info" class="mut">Toque num nó do grafo para inspecionar.</div>
+</section>
+
+<section id="secStore">
+  <div class="row" style="justify-content:space-between">
+    <b>Universos gravados neste navegador</b>
+    <button id="stRefresh">atualizar</button>
+  </div>
+  <div class="small mut" id="stStatus">—</div>
+  <div id="stList" style="margin-top:6px"></div>
+  <div class="note">Fica tudo só aqui (IndexedDB). Grava a cada 2 s: estrutura, mudanças de limiar, atividade resumida (disparos por nó a cada 100 ms) e estímulos tocados. "Baixar JSON" gera o arquivo para análise.</div>
 </section>
 
 <section id="secPar">
@@ -107,7 +120,7 @@
     <span><i class="dot" style="background:var(--l4)"></i>4</span>
     <span><i class="dot" style="background:var(--hot)"></i>disparou</span>
     <span><i class="dot" style="border:2px solid #fff;background:none"></i>acabou de nascer</span>
-    <span class="mut">arco = percorrido em parte</span>
+    <span class="mut">arco = percorrido em parte · escurecido = magnitude decaindo · anel cinza = inerte</span>
   </div>
   <canvas id="sdom"></canvas>
   <div class="small mut" style="margin-top:6px">O que cada ouvido está captando (últimos 40 ms):</div>
@@ -150,7 +163,7 @@
      observados, para que tudo chegue junto ao nó novo.
    - Sem aprendizado nem divisão ainda.
    ===================================================================== */
-const CODE_VERSION = 'v0.1';
+const CODE_VERSION = 'v0.2';
 const DEFAULTS = {
   sr: 8000,            // taxa do microfone (amostras/s)
   floor: 0.02,         // sensibilidade: lóbulo abaixo disso é ignorado
@@ -164,6 +177,13 @@ const DEFAULTS = {
   maxWms: 20,          // lóbulo mais longo considerado (≈ 25 Hz)
   maxNodes: 6000,
   histSeconds: 90,
+  // aprendizado (v0.2)
+  reinfRate: 0.05,       // reforço: cada nova travessia baixa o limiar em 5%
+  thrFloorFrac: 0.3,     // piso do limiar: 30% do valor de nascimento
+  episodeGapMs: 100,     // só conta como "percorrida de novo" após 100 ms sem disparar
+  decayHalfLifeS: 30,    // decaimento: meia-vida da magnitude sem ser percorrida
+  inertFrac: 0.01,       // abaixo de 1% da magnitude de nascimento = inerte
+  actWindowMs: 100,      // janela da atividade resumida gravada
 };
 const PARAM_UI = [
   ['sr','taxa do microfone (Hz)'],['floor','sensibilidade mínima'],['thrFrac','limiar do nó novo (fração)'],
@@ -171,6 +191,8 @@ const PARAM_UI = [
   ['coincMs2','integração nível 2 (ms)'],['coincMs3','integração nível 3 (ms)'],['coincMs4','integração nível 4 (ms)'],
   ['bindMs2','agrupamento nível 2 (ms)'],['bindMs3','agrupamento nível 3 (ms)'],['bindMs4','agrupamento nível 4 (ms)'],
   ['maxLevel','níveis máximos (1–4)'],['maxNodes','teto de nós'],['histSeconds','histórico gravado (s)'],
+  ['reinfRate','reforço: queda do limiar por travessia'],['thrFloorFrac','piso do limiar (fração)'],['episodeGapMs','intervalo que define nova travessia (ms)'],
+  ['decayHalfLifeS','meia-vida da magnitude (s)'],['inertFrac','inerte abaixo de (fração)'],['actWindowMs','janela da atividade gravada (ms)'],
 ];
 
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -208,12 +230,19 @@ class Universe{
     this.nmCap = 400000; this.nmT = new Int32Array(this.nmCap); this.nmN = new Int32Array(this.nmCap); this.nmF = new Float32Array(this.nmCap); this.nmCount = 0;
     this.aCap = Math.round(sr*p.histSeconds); this.aud = [new Float32Array(this.aCap), new Float32Array(this.aCap)];
     this.fireCount = 0; this.capHit = false;
+    // aprendizado e registros para gravação
+    this.halfLife = Math.max(1, p.decayHalfLifeS*sr);
+    this.episodeGap = ms(p.episodeGapMs);
+    this.reinfCount = 0;
+    this.thrLog = []; this.actLog = []; this.stimLog = [];
+    this.actWin = ms(p.actWindowMs); this.actStart = 0; this.actCounts = new Map();
     // os dois ouvidos (nível 0)
     this.addNode({lvl:0, ear:0, W:0, thr:0, mag:0, refr:0, born:0, x:60, y:250});
     this.addNode({lvl:0, ear:1, W:0, thr:0, mag:0, refr:0, born:0, x:60, y:750});
   }
   addNode(o){
     const n = Object.assign({id:this.nodes.length, out:[], in:[], contrib:[], refUntil:0, fires:0, nmT:-1e9, origin:null}, o);
+    n.thr0=n.thr; n.mag0=n.mag; n.lastFire=n.born; n.inert=false;
     this.nodes.push(n); return n;
   }
   addEdge(from, to, d){
@@ -265,6 +294,10 @@ class Universe{
     }
     // criação nos níveis 2+: disparos que ninguém absorveu
     for(let l=2;l<=this.maxLevel;l++) this.groupLevel(l,t);
+    if(t-this.actStart>=this.actWin){
+      if(this.actCounts.size){ const c={}; for(const [k,v] of this.actCounts) c[k]=v; this.actLog.push({t0:this.actStart, c}); this.actCounts.clear(); }
+      this.actStart=t;
+    }
     this.t = t+1;
   }
   tryFire(n,t){
@@ -282,14 +315,27 @@ class Universe{
     }
   }
   fire(n,t){
+    const dtF = t - n.lastFire;
+    // REFORÇO: uma nova travessia (após um intervalo sem disparar) baixa o limiar, até o piso
+    if(dtF>=this.episodeGap){
+      const floor=n.thr0*this.p.thrFloorFrac;
+      if(n.thr>floor){ n.thr=Math.max(floor, n.thr*(1-this.p.reinfRate)); this.thrLog.push([t,n.id,n.thr]); this.reinfCount++; }
+    }
+    // DECAIMENTO: a magnitude cai com o tempo sem ser percorrida; abaixo do limite, inerte.
+    // O disparo entrega a magnitude decaída e "renova" o nó para a próxima vez.
+    let mag = n.mag0*Math.pow(0.5, dtF/this.halfLife);
+    n.inert = mag < n.mag0*this.p.inertFrac;
+    if(n.inert) mag=0;
+    n.mag = mag; n.lastFire = t;
     n.refUntil=t+n.refr; n.fires++; this.fireCount++;
+    this.actCounts.set(n.id,(this.actCounts.get(n.id)||0)+1);
     if(n.lvl===1) this.lastRecFire[n.ear]=t;
     const k=this.hCount%this.hCap; this.hT[k]=t; this.hN[k]=n.id; this.hCount++;
     let ev=null;
-    if(n.lvl<this.maxLevel){ ev={n, t, m:n.mag, a:false}; this.Q[n.lvl].push(ev); }
-    for(let i=0;i<n.out.length;i++){
+    if(mag>0 && n.lvl<this.maxLevel){ ev={n, t, m:mag, a:false}; this.Q[n.lvl].push(ev); }
+    if(mag>0) for(let i=0;i<n.out.length;i++){
       const o=n.out[i];
-      let v = n.mag*o.mod; if(o.effect===2) v=-Math.abs(v);
+      let v = mag*o.mod; if(o.effect===2) v=-Math.abs(v);
       this.wheel[(t+o.d)&this.wmask].push({n:o.to, v, ev, t0:t+o.d});
     }
     if(n.lvl>=2) this.wheel[(t+n.refr)&this.wmask].push({n, chk:true});
@@ -366,9 +412,14 @@ class Universe{
     const h = this.hCount>this.hCap ? this.hT[lo%this.hCap] : 0;
     return Math.max(a,h);
   }
+  magAt(n,time){ // magnitude que o nó entregaria se disparasse em `time` (null se desconhecida)
+    if(n.lvl<1) return null; if(n.lastFire>time) return null;
+    const m=n.mag0*Math.pow(0.5,(time-n.lastFire)/this.halfLife);
+    return m < n.mag0*this.p.inertFrac ? 0 : m;
+  }
   toJSON(){
     return {version:CODE_VERSION, params:this.p, worldTimeS:this.t/this.sr,
-      nodes:this.nodes.map(n=>({id:n.id,lvl:n.lvl,ear:n.ear,W:n.W,thr:+n.thr.toFixed(5),mag:+n.mag.toFixed(4),refr:n.refr,born:n.born,fires:n.fires,
+      nodes:this.nodes.map(n=>({id:n.id,lvl:n.lvl,ear:n.ear,W:n.W,thr0:+n.thr0.toFixed(5),thr:+n.thr.toFixed(5),mag0:+n.mag0.toFixed(4),refr:n.refr,born:n.born,lastFire:n.lastFire,fires:n.fires,
         in:n.in.map(e=>[e.from.id,e.d])}))};
   }
 }
@@ -455,7 +506,9 @@ const NOTES=[['Dó',261.63],['Ré',293.66],['Mi',329.63],['Fá',349.23],['Sol',3
 function newUniverse(){
   universeNo++; seed=(seed*1103515245+12345)>>>0;
   const keep = Wd ? Wd.sources.map(s=>({inst:s.inst,x:s.x,y:s.y})) : [{inst:'piano',x:1.0,y:1.1},{inst:'viola',x:3.0,y:1.1}];
+  if(U) Store.flush(U);
   U=new Universe(Object.assign({},params), seed);
+  Store.begin(U);
   Wd=new World(params.sr);
   for(const k of keep) Wd.addSource(k.inst,k.x,k.y);
   selSrc=Wd.sources[0]||null;
@@ -476,10 +529,12 @@ function playAudio(nt,delaySec){
     src.start(audioCtx.currentTime+Math.max(0,delaySec));
   }catch(e){}
 }
-function trigger(src,f,dur,amp,delaySec=0){
+function trigger(src,f,dur,amp,delaySec=0){ // delaySec em tempo do mundo
   if(!src) return;
-  const nt=Wd.play(src,f,dur,amp,U.t+Math.round(delaySec*U.sr/worldSpeed));
-  playAudio(nt,delaySec);
+  const start=U.t+Math.round(delaySec*U.sr);
+  const nt=Wd.play(src,f,dur,amp,start);
+  U.stimLog.push({t:start, src:src.id, inst:src.inst, f, dur, amp, x:+src.x.toFixed(3), y:+src.y.toFixed(3)});
+  if(worldSpeed===1) playAudio(nt,delaySec);
 }
 
 // ---------- laço de vida (o robô nunca para) ----------
@@ -565,6 +620,14 @@ function drawSdom(){
   }
   g.globalAlpha=1;
   const zr=Math.max(0.7,Math.min(2.2,view.s*1.2));
+  // decaimento: escurece conforme a magnitude cai; inerte = anel cinza
+  for(let i=2;i<nv;i++){
+    const n=U.nodes[i]; const ma=U.magAt(n,tv); if(ma===null) continue;
+    const f=ma/n.mag0; if(f>0.97) continue;
+    const x=X(n.x),y=Y(n.y); if(x<-10||y<-10||x>W+10||y>H+10)continue; const r=RAD[n.lvl]*d*zr;
+    if(f===0){ g.fillStyle='#0b0d11'; g.beginPath(); g.arc(x,y,r,0,6.2832); g.fill(); g.strokeStyle='#59606e'; g.lineWidth=1*d; g.beginPath(); g.arc(x,y,r,0,6.2832); g.stroke(); }
+    else { g.fillStyle=`rgba(11,13,17,${0.85*(1-f)})`; g.beginPath(); g.arc(x,y,r+0.5,0,6.2832); g.fill(); }
+  }
   for(let i=0;i<nv;i++){
     const n=U.nodes[i], x=X(n.x), y=Y(n.y); if(x<-10||y<-10||x>W+10||y>H+10)continue;
     const r=RAD[n.lvl]*d*zr;
@@ -631,7 +694,7 @@ function drawStats(){
   const dtR=(now-lastStatT)/1000; lastStatT=now;
   fireRate=(U.fireCount-lastFC)/dtR; lastFC=U.fireCount;
   const per=[0,0,0,0,0]; for(const n of U.nodes) per[n.lvl]++;
-  $('stats').textContent=`nós: ${U.nodes.length-2} (n1 ${per[1]} · n2 ${per[2]} · n3 ${per[3]} · n4 ${per[4]}) · arestas ${U.edges.length} · disparos/s ${Math.round(fireRate)} · tempo do mundo ${(U.t/U.sr).toFixed(1)} s · ritmo ${(simRatio*100).toFixed(0)}% do real`;
+  $('stats').textContent=`nós: ${U.nodes.length-2} (n1 ${per[1]} · n2 ${per[2]} · n3 ${per[3]} · n4 ${per[4]}) · arestas ${U.edges.length} · disparos/s ${Math.round(fireRate)} · reforços ${U.reinfCount} · tempo do mundo ${(U.t/U.sr).toFixed(1)} s · ritmo ${(simRatio*100).toFixed(0)}% do real`;
   if(view.sel) showInfo();
 }
 function showInfo(){
@@ -642,8 +705,11 @@ function showInfo(){
   if(n.lvl===0){ s+=`microfone: transduz pressão em incidências\n(positivo = excitatória, negativo = inibitória)\nsaídas: ${n.out.length}`; $('info').textContent=s; return; }
   s+=`nasceu em ${fmt(n.born)}\n`;
   s+=`janela de integração ${ms(n.W)} · refratariedade ${ms(n.refr)}\n`;
-  s+=`limiar ${n.thr.toFixed(4)} · magnitude do disparo ${n.mag.toFixed(3)}\n`;
-  s+=`disparos até agora ${n.fires}\n`;
+  const red=(1-n.thr/n.thr0)*100;
+  s+=`limiar ${n.thr.toFixed(4)} (nasceu ${n.thr0.toFixed(4)}; reforço −${red.toFixed(0)}%)\n`;
+  const ma=U.magAt(n,Math.floor(view.tv));
+  s+=`magnitude: nasceu ${n.mag0.toFixed(4)}`+(ma===null?'':` · agora ${ma.toFixed(4)} (${(ma/n.mag0*100).toFixed(0)}%)${ma===0?' · INERTE':''}`)+`\n`;
+  s+=`disparos até agora ${n.fires} · último há ${((U.t-n.lastFire)/U.sr).toFixed(1)} s\n`;
   if(n.lvl===1&&n.origin) s+=`origem: lóbulo de ${n.origin.lobeMs.toFixed(3)} ms (≈ ${Math.round(n.origin.hz)} Hz se fosse tom puro), pico ${n.origin.peak.toFixed(3)}\n`;
   if(n.lvl>=2&&n.origin) s+=`origem: agrupou ${n.origin.k} disparos espalhados em ${n.origin.span.toFixed(2)} ms\n`;
   s+=`entradas (${n.in.length}):\n`;
@@ -732,13 +798,90 @@ $('reset').onclick=()=>{
   for(const inp of document.querySelectorAll('#params input')){ const v=+inp.value; if(isFinite(v)) params[inp.dataset.k]=v; }
   params.sr=Math.max(4000,Math.min(48000,Math.round(params.sr)));
   params.maxLevel=Math.max(1,Math.min(4,Math.round(params.maxLevel)));
-  newUniverse(); $('reset').textContent='💥 Destruir universo e criar outro';
+  newUniverse(); $('reset').textContent='💥 Destruir universo e criar outro'; setTimeout(renderStore,300);
 };
 $('copy').onclick=async()=>{ try{ await navigator.clipboard.writeText(JSON.stringify(U.toJSON())); $('copy').textContent='Copiado ✓'; }catch(e){ $('copy').textContent='Não consegui copiar'; } setTimeout(()=>$('copy').textContent='Copiar universo (JSON)',2000); };
 
-newUniverse();
-requestAnimationFrame(t=>{lastFrame=t; requestAnimationFrame(loop)});
-window.__sdom={get U(){return U}, get W(){return Wd}, trigger, view};
+// ---------- gravação local (IndexedDB) ----------
+const Store={
+  db:null, ok:false, uid:null, nodePtr:0, meta:null, bytes:0,
+  async open(){
+    try{
+      this.db=await new Promise((res,rej)=>{ const r=indexedDB.open('sdom',1);
+        r.onupgradeneeded=()=>{ const d=r.result; d.createObjectStore('universes',{keyPath:'id'});
+          for(const st of ['nodes','thr','activity','stimuli']){ const os=d.createObjectStore(st,{autoIncrement:true}); os.createIndex('u','u'); } };
+        r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
+      this.ok=true;
+    }catch(e){ this.ok=false; }
+  },
+  begin(u){
+    this.uid=new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'-'+Math.random().toString(36).slice(2,6);
+    this.nodePtr=0;
+    this.meta={id:this.uid, label:'#'+universeNo, version:CODE_VERSION, params:u.p, sr:u.sr, createdAt:new Date().toISOString(), worldTimeS:0, nodes:0, edges:0, fires:0, reinforcements:0};
+    if(this.ok){ try{ this.db.transaction('universes','readwrite').objectStore('universes').put(this.meta); }catch(e){} }
+  },
+  flush(u){
+    const nodes=u.nodes.slice(this.nodePtr), thr=u.thrLog, act=u.actLog, stim=u.stimLog;
+    this.nodePtr=u.nodes.length; u.thrLog=[]; u.actLog=[]; u.stimLog=[];
+    if(!this.ok||!this.uid) return;
+    try{
+      const tx=this.db.transaction(['universes','nodes','thr','activity','stimuli'],'readwrite'), id=this.uid;
+      const N=tx.objectStore('nodes'), T=tx.objectStore('thr'), A=tx.objectStore('activity'), S=tx.objectStore('stimuli');
+      for(const n of nodes) N.add({u:id, id:n.id, lvl:n.lvl, ear:n.ear, W:n.W, thr0:n.thr0, mag0:n.mag0, refr:n.refr, born:n.born, x:+n.x.toFixed(1), y:+n.y.toFixed(1), origin:n.origin, in:n.in.map(e=>[e.from.id,e.d])});
+      for(const [t,nid,v] of thr) T.add({u:id, t, id:nid, thr:v});
+      for(const a of act) A.add({u:id, t0:a.t0, c:a.c});
+      for(const st of stim) S.add(Object.assign({u:id},st));
+      Object.assign(this.meta,{worldTimeS:+(u.t/u.sr).toFixed(3), nodes:u.nodes.length-2, edges:u.edges.length, fires:u.fireCount, reinforcements:u.reinfCount, updatedAt:new Date().toISOString()});
+      tx.objectStore('universes').put(this.meta);
+    }catch(e){}
+  },
+  async list(){ if(!this.ok) return []; return await new Promise(res=>{ const r=this.db.transaction('universes').objectStore('universes').getAll(); r.onsuccess=()=>res(r.result||[]); r.onerror=()=>res([]); }); },
+  async getAllFor(store,id){ return await new Promise(res=>{ const r=this.db.transaction(store).objectStore(store).index('u').getAll(IDBKeyRange.only(id)); r.onsuccess=()=>res((r.result||[]).map(x=>{const y=Object.assign({},x); delete y.u; return y;})); r.onerror=()=>res([]); }); },
+  async exportU(id){
+    const meta=(await this.list()).find(m=>m.id===id);
+    return {format:'sdom-universe/1', universe:meta, nodes:await this.getAllFor('nodes',id), thresholdChanges:await this.getAllFor('thr',id),
+      activity:await this.getAllFor('activity',id), stimuli:await this.getAllFor('stimuli',id)};
+  },
+  async del(id){
+    const tx=this.db.transaction(['universes','nodes','thr','activity','stimuli'],'readwrite');
+    tx.objectStore('universes').delete(id);
+    for(const st of ['nodes','thr','activity','stimuli']){ const c=tx.objectStore(st).index('u').openKeyCursor(IDBKeyRange.only(id)); const os=tx.objectStore(st); c.onsuccess=()=>{ const cur=c.result; if(cur){ os.delete(cur.primaryKey); cur.continue(); } }; }
+    await new Promise(r=>{tx.oncomplete=r; tx.onerror=r;});
+  },
+};
+async function renderStore(){
+  if(!Store.ok){ $('stStatus').textContent='Gravação indisponível neste navegador (IndexedDB bloqueado). A simulação funciona normalmente.'; $('stList').innerHTML=''; return; }
+  let est=''; try{ const e=await navigator.storage.estimate(); est=` · espaço usado ≈ ${(e.usage/1048576).toFixed(1)} MB`; }catch(e){}
+  const L=(await Store.list()).sort((a,b)=>a.createdAt<b.createdAt?1:-1);
+  $('stStatus').textContent=`${L.length} universo(s) gravado(s)${est}`;
+  const box=$('stList'); box.innerHTML='';
+  for(const m of L){
+    const row=document.createElement('div'); row.className='uni';
+    const cur=m.id===Store.uid;
+    const lbl=document.createElement('span'); lbl.className='lbl';
+    lbl.textContent=`${m.label}${cur?' (atual)':''} · ${new Date(m.createdAt).toLocaleString('pt-BR')} · ${m.version} · ${m.worldTimeS??0} s de mundo · ${m.nodes??0} nós · ${m.reinforcements??0} reforços`;
+    const bD=document.createElement('button'); bD.textContent='Baixar JSON';
+    bD.onclick=async()=>{ if(cur) Store.flush(U); const data=await Store.exportU(m.id); const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`sdom-${m.id}.json`; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},2000); };
+    row.appendChild(lbl); row.appendChild(bD);
+    if(!cur){ const bX=document.createElement('button'); bX.textContent='Apagar'; let arm=0;
+      bX.onclick=async()=>{ const now=performance.now(); if(now-arm>3000){ arm=now; bX.textContent='Toque de novo'; setTimeout(()=>bX.textContent='Apagar',3000); return; } await Store.del(m.id); renderStore(); };
+      row.appendChild(bX); }
+    box.appendChild(row);
+  }
+}
+$('stRefresh').onclick=()=>{ Store.flush(U); setTimeout(renderStore,200); };
+$('wspeed').onchange=e=>{ worldSpeed=+e.target.value; };
+setInterval(()=>Store.flush(U),2000);
+addEventListener('pagehide',()=>Store.flush(U));
+
+(async()=>{
+  await Store.open();
+  newUniverse();
+  requestAnimationFrame(t=>{lastFrame=t; requestAnimationFrame(loop)});
+  renderStore();
+})();
+window.__sdom={get U(){return U}, get W(){return Wd}, trigger, view, Store, renderStore};
 </script>
 </body>
 </html>
