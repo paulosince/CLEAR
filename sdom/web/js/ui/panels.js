@@ -49,7 +49,7 @@ export function showInfo(){
       `pedido de recurso → ritmo: o Sdom está pedindo ${(m.pedido??1).toFixed(2)}× o que uma batida entrega · ritmo-alvo ${Math.round((m.fAlvo??U.p.mpRestBpm/60)*60)}/min (teto ${U.p.mpMaxBpm}/min)\n`+
       `nível geral da reserva operacional ${fr(m.level)}\n`+
       `faltas acumuladas: disparar ${m.blockedFire.toLocaleString('pt-BR')} · aprender ${m.blockedLearn.toLocaleString('pt-BR')} · criar ${m.blockedCreate.toLocaleString('pt-BR')}\n`+
-      `sinal de volta ao Sdom: ${U.endoFibers.length} fibras do corpo (batida e nível)\n`+
+      `sinal de volta ao Sdom: ${U.endoFibers.length} fibras do corpo (batida, nível e ritmo)\n`+
       `eferência (o Sdom agir sobre ele): ainda não existe`; return; }
   if(n.lung){ const R=U.resp, P=U.p;
     $('info').textContent=`≋ respiração · fora do Sdom (como o coração)\n`+
@@ -58,8 +58,12 @@ export function showInfo(){
       `resíduo ${Math.round(R.residuo).toLocaleString('pt-BR')} (referência ${P.respResiduoRef.toLocaleString('pt-BR')}: acima dela a respiração acelera; cada expiração tira ${Math.round(100*P.respRetira)}%)\n`+
       `respirações até agora ${R.respiracoes} · sinal de volta ao Sdom: ${U.respFibers.length} fibras (inspira, expira e nível de resíduo)\n`+
       `comando voluntário (o Sdom prender ou acelerar a respiração): fica para a eferência`; return; }
-  if(n.endo && n.endo.kind!=='batida' && n.endo.kind!=='nivel'){ const E=n.endo;
+  if(n.endo && n.endo.kind!=='batida' && n.endo.kind!=='nivel' && n.endo.kind!=='ritmo'){ const E=n.endo;
     s+=`fibra do corpo (transdução endógena da respiração) · ${E.kind==='inspira'?'dispara a cada inspiração':E.kind==='expira'?'dispara a cada expiração':`nível de resíduo: dispara na expiração se o resíduo ≥ ${E.thr}× a referência`}\n`;
+    s+=`disparos até agora ${n.fires} · saídas para o Sdom: ${n.out.length}`; $('info').textContent=s; return; }
+  if(n.endo && n.endo.kind==='ritmo'){ const E=n.endo;
+    s+=`fibra do corpo (transdução endógena do coração) · ritmo: dispara junto com a batida se o coração está a ≥ ${E.thr}/min\n`+
+       `adaptação: reserva ${Math.round(100*E.q)}% (cada disparo gasta ${Math.round(100*U.p.ritmoAdaptCusto)}%; repõe em ~${U.p.ritmoAdaptTauS} s) — com ritmo alto e constante, ela cansa e pula batidas\n`;
     s+=`disparos até agora ${n.fires} · saídas para o Sdom: ${n.out.length}`; $('info').textContent=s; return; }
   if(n.endo){ const E=n.endo;
     s+=`fibra do corpo (transdução endógena) · ${E.kind==='batida'?`batida: dispara a cada batida com força ≥ ${E.thr}`:`nível geral da reserva operacional: dispara junto com a batida se o nível ≥ ${(E.thr*100).toFixed(0)}%`}\n`;

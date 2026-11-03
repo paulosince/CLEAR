@@ -45,6 +45,19 @@ Experimento com microfone falso do Chromium: `NODE_PATH=$(npm root -g) node expe
 outro. Se o aparelho entrega um canal mudo (ou mono), os dois sensores recebem o canal que tem som; a faixa do
 topo diz qual é o caso. (Até a v0.12 havia um defeito: um canal vazio era tratado como estéreo, e só um sensor "funcionava".)
 
+## Fibras do ritmo do coração (v0.21 — nome "ritmo" aprovado pelo Paulo)
+
+- Antes, a cada batida, as fibras do coração diziam só "bateu" (sempre igual): acelerar ou desacelerar era invisível ao Sdom.
+- Agora, 4 fibras do **ritmo** disparam junto com a batida se o coração está acima de 70, 100, 130 ou 160/min (recrutamento
+  por limiares, como a cóclea faz com a intensidade). Cada uma tem **adaptação** (disparar gasta reserva que se repõe em ~8 s):
+  com ritmo alto e constante, ela cansa e pula batidas. **Nada diz "acelerou"** (decisão do Paulo: nenhuma representação
+  programada; a transdução só usa mecanismos genéricos). A mudança fica implícita no padrão; cabe ao Sdom descobri-la.
+- Números (limiares, 8 s, 35% por disparo): pontos de partida do Claude, a revisar.
+- **Critério combinado antes de rodar**: alternando silêncio e grito, surge um nó que dispara com o coração alto e nunca em
+  repouso, **sem som na sua origem** (rastreando todas as entradas até as fibras). **Resultado (3 sementes com ruído diferente, 6 ciclos de
+  60 s de silêncio + 15 s de grito): não atingido.** Os nós que disparam só com o coração alto têm som na origem
+  (confundidos com o grito); os únicos nós só de corpo com o ritmo (ritmo + inspira) nunca voltaram a disparar.
+
 ## Silêncio barato (v0.20.2)
 
 - Em silêncio, o robô gastava ~4× mais processador que com som. Causa: os estados dos filtros da cóclea decaíam até números

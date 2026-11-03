@@ -17,7 +17,7 @@
      observados, para que tudo chegue junto ao nó novo.
    - Sem aprendizado nem divisão ainda.
    ===================================================================== */
-export const CODE_VERSION='v0.20.2';
+export const CODE_VERSION='v0.21';
 export const DEFAULTS = {
   sr: 16000,           // taxa do microfone (amostras/s); botão alterna 16k/8k
   // transdução auditiva (v0.6): cóclea fixa, fora do Sdom
@@ -99,6 +99,12 @@ export const DEFAULTS = {
   // pedido de recurso → ritmo (v0.18, decisão do Paulo): quando o Sdom pede mais do que a batida entrega, o coração acelera
   // para entregar mais por minuto; quando o pedido cai, o freio fixo o traz de volta ao repouso. Valores iniciais do Claude, a revisar.
   mpMaxBpm: 180,         // teto do ritmo
+  // fibras do ritmo (v0.21; nome aprovado pelo Paulo; números: pontos de partida do Claude, a revisar)
+  ritmoFibras: 4,        // quantas fibras
+  ritmoLimiarBpm: 70,    // limiar da primeira (bpm)
+  ritmoPassoBpm: 30,     // degrau entre limiares: 70, 100, 130, 160
+  ritmoAdaptTauS: 8,     // adaptação: a reserva da fibra se repõe com constante de 8 s
+  ritmoAdaptCusto: 0.35, // cada disparo gasta 35% da reserva; abaixo disso a fibra pula a batida
   mpPedidoSobeS: 2,      // o sinal do pedido sobe em ~2 s
   mpPedidoDesceS: 20,    // e se desfaz em ~20 s
   mpBeatOps: 15000,      // recurso operacional por batida: no roteiro Casa cobre a demanda média com som; falta nos picos (calibração: README)
@@ -128,7 +134,7 @@ export const PARAM_UI = [
   ['tauPlusMs','janela do reforço (ms)'],['tauMinusMs','janela do enfraquecimento (ms)'],
   ['fastHalfLifeS','meia-vida do peso basal (s)'],['slowHalfLifeDays','meia-vida do peso consolidado (dias)'],['tagHours','janela de consolidação (h)'],['consolThr','reforço acumulado para consolidar'],
   ['pruneDays','poda: dias inerte até podar'],['accessBoost','acesso: reforço da candidata'],['accessWindowH','acesso: +janela de consolidação (h)'],['inertW','peso inerte abaixo de'],['actWindowMs','janela da atividade gravada (ms)'],
-  ['mpOn','marcapasso de recursos ligado (0/1)'],['mpF0','marcapasso: ritmo próprio (batidas/s)'],['mpRestBpm','marcapasso: repouso com o reflexo (bpm)'],['mpBeatOps','recurso operacional por batida'],['mpMaxBpm','marcapasso: teto do ritmo (bpm)'],['respOn','respiração ligada (0/1)'],['respRestPm','respiração: repouso (por min)'],['respMaxPm','respiração: teto (por min)'],['respEntrada','respiração: estoque reposto por respiração'],['respEstoqueMax','respiração: tamanho do estoque'],['respRetira','respiração: fração do resíduo retirada'],['respResiduoRef','respiração: resíduo de referência'],['hebbOn','regra hebbiana ligada (0/1)'],['hebbJanelaMs','hebbiana: janela do "junto" (ms)'],['hebbRastroMeiaH','hebbiana: meia-vida do rastro (h)'],['hebbLimiar','hebbiana: rastro para nascer a aresta em formação'],['hebbPeso','hebbiana: peso da aresta em formação'],['hebbRecMeiaMin','hebbiana: meia-vida da recorrência (min)'],['hebbRecolherAbaixo','hebbiana: recolhe abaixo de'],['hebbFecharH','hebbiana: prazo de fechamento (h)'],['hebbMaxFormando','hebbiana: em formação por nó (máx.)'],['mpPedidoSobeS','pedido → ritmo: subida (s)'],['mpPedidoDesceS','pedido → ritmo: descida (s)'],['mpBaseOps','parte base por nó e batida'],['mpOver','sobra para o nó ativo (×)'],
+  ['mpOn','marcapasso de recursos ligado (0/1)'],['mpF0','marcapasso: ritmo próprio (batidas/s)'],['mpRestBpm','marcapasso: repouso com o reflexo (bpm)'],['mpBeatOps','recurso operacional por batida'],['mpMaxBpm','marcapasso: teto do ritmo (bpm)'],['ritmoFibras','ritmo: número de fibras'],['ritmoLimiarBpm','ritmo: limiar da 1ª fibra (bpm)'],['ritmoPassoBpm','ritmo: degrau entre limiares (bpm)'],['ritmoAdaptTauS','ritmo: reposição da adaptação (s)'],['ritmoAdaptCusto','ritmo: gasto por disparo (0–1)'],['respOn','respiração ligada (0/1)'],['respRestPm','respiração: repouso (por min)'],['respMaxPm','respiração: teto (por min)'],['respEntrada','respiração: estoque reposto por respiração'],['respEstoqueMax','respiração: tamanho do estoque'],['respRetira','respiração: fração do resíduo retirada'],['respResiduoRef','respiração: resíduo de referência'],['hebbOn','regra hebbiana ligada (0/1)'],['hebbJanelaMs','hebbiana: janela do "junto" (ms)'],['hebbRastroMeiaH','hebbiana: meia-vida do rastro (h)'],['hebbLimiar','hebbiana: rastro para nascer a aresta em formação'],['hebbPeso','hebbiana: peso da aresta em formação'],['hebbRecMeiaMin','hebbiana: meia-vida da recorrência (min)'],['hebbRecolherAbaixo','hebbiana: recolhe abaixo de'],['hebbFecharH','hebbiana: prazo de fechamento (h)'],['hebbMaxFormando','hebbiana: em formação por nó (máx.)'],['mpPedidoSobeS','pedido → ritmo: subida (s)'],['mpPedidoDesceS','pedido → ritmo: descida (s)'],['mpBaseOps','parte base por nó e batida'],['mpOver','sobra para o nó ativo (×)'],
   ['mpCap0','teto inicial da reserva operacional'],['mpCapMax','teto máximo da reserva'],['mpGrowPerDay','adaptação: crescimento por dia de falta'],['mpCapHalfLifeDays','adaptação: meia-vida da volta (dias)'],
   ['mpPisoAprender','piso de aprender (fração do teto)'],['mpPisoDisp0','piso de disparar perto da transdução'],['mpPisoDispK','piso de disparar: + por distância'],['mpPisoDispMax','piso de disparar: máximo'],
   ['mpCostFire','custo: disparar'],['mpCostEdge','custo: por aresta de saída'],['mpCostLearn','custo: reforço/enfraquecimento'],['mpCostConsol','custo: consolidação'],['mpCostCreate','custo: criar nó'],['mpCostCreateEdge','custo: por aresta criada'],

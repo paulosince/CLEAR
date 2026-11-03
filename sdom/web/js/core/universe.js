@@ -125,7 +125,7 @@ export class Universe{
     if(this.actCounts.size){ const c={}; for(const [k,v] of this.actCounts) c[k]=v; this.actLog.push({t0:this.actStart,c}); this.actCounts.clear(); }
     this.actStart=this.t;
     this.stimLog.push({t:t0, jumpS:samples/this.sr});
-    if(this.mpOn) this.mpJump(samples);
+    if(this.mpOn){ this.mpJump(samples); for(const f of this.endoFibers) if(f.endo.kind==='ritmo'){ f.endo.q=1; f.endo.tq=this.t; } }
     if(this.respOn){ const r=this.resp, fr=this.p.respRestPm/60; r.estoque=this.p.respEstoqueMax; r.residuo=0; r.f=fr; r.fAlvo=fr; r.phase=0; r.metade=false; }
     if(this.hebbOn){ this.hebbRecS.length=0; this.hebbRecF.length=0; this.hHS=0; this.hHF=0; this.hebbVerifica(this.t); }
     this.sweep(this.t);
@@ -419,6 +419,19 @@ export class Universe{
     const mk=(kind,thr,i,y)=>{ const n=this.addNode({lvl:1, depth:1, ear:-1, W:1, thr:0, mag:1, refr:1, born:0, x:225+i*30, y, endo:{kind,thr}}); this.endoFibers.push(n); return n; };
     [0.25,0.5,0.75].forEach((th,i)=>mk('batida',th,i,500));
     [0.2,0.4,0.6,0.8].forEach((th,i)=>mk('nivel',th,i,525));
+    this.ritmoInit();
+  }
+  // Fibras do RITMO (v0.21, nome aprovado pelo Paulo): quanto mais rápido o coração, mais fibras disparam junto com a
+  // batida (limiares escalonados, como a cóclea faz com a intensidade). Cada uma tem adaptação: disparar gasta uma reserva
+  // que se repõe em segundos; com ritmo alto e constante ela "cansa" e passa a pular batidas. Nada aqui diz "acelerou":
+  // a mudança fica implícita no padrão dos disparos, e cabe ao Sdom descobri-la (ou não).
+  ritmoInit(){
+    const p=this.p;
+    for(let i=0;i<p.ritmoFibras;i++){
+      const n=this.addNode({lvl:1, depth:1, ear:-1, W:1, thr:0, mag:1, refr:1, born:this.t||0, x:225+i*30, y:550,
+        endo:{kind:'ritmo', thr:p.ritmoLimiarBpm+i*p.ritmoPassoBpm, q:1, tq:this.t||0}});
+      this.endoFibers.push(n);
+    }
   }
   pisoFire(n){ const p=this.p; return Math.min(p.mpPisoDispMax, p.mpPisoDisp0+p.mpPisoDispK*Math.max(0,(n.depth||2)-2)); }
   mpPayFire(n){
@@ -478,7 +491,11 @@ export class Universe{
     mp.press+=1;   // força da batida fixa nesta versão
     this.mpPedido(req, p.mpBeatOps, dt);
     // transdução endógena: a batida e o nível geral entram no Sdom como incidências
-    for(const f of this.endoFibers){ const e=f.endo; if(e.kind==='batida' ? 1>=e.thr : mp.level>=e.thr) this.fire(f,t); }
+    const bpm=mp.f*60, tauR=p.ritmoAdaptTauS*this.sr;
+    for(const f of this.endoFibers){ const e=f.endo;
+      if(e.kind==='ritmo'){ e.q=1-(1-e.q)*Math.exp(-(t-e.tq)/tauR); e.tq=t;
+        if(bpm>=e.thr && e.q>=p.ritmoAdaptCusto){ e.q-=p.ritmoAdaptCusto; this.fire(f,t); } continue; }
+      if(e.kind==='batida' ? 1>=e.thr : mp.level>=e.thr) this.fire(f,t); }
   }
   // ---- RESPIRAÇÃO (v0.20) ----
   // Ritmo próprio, fora do Sdom. A cada respiração: inspira (repõe o ESTOQUE) e, na metade do ciclo, expira (retira parte do

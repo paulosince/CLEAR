@@ -51,6 +51,8 @@ function migrar(U, snap){
   else if(U.respOn) U.respRateK=1-Math.exp(-64/(U.p.respRitmoTauS*U.sr));
   // v0.20.1: prazo de fechamento 3 dias → 4 h (decisão do Paulo) e meia-vida da recorrência 12 h → 40 min; os nomes antigos saem e os novos vêm do padrão
   delete U.p.hebbFecharDias; delete U.p.hebbRecMeiaH;
+  // v0.21: fibras do ritmo do coração (robôs anteriores ganham as fibras agora, nascidas neste momento)
+  if(U.mpOn && U.endoFibers && !U.endoFibers.some(f=>f.endo.kind==='ritmo')) U.ritmoInit();
   // v0.19: regra hebbiana
   if(U.hebbPar===undefined){ U.hebbOn=!!U.p.hebbOn; U.hebbInit(); } else U.hebbConst();
 }
