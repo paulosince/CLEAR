@@ -1,5 +1,5 @@
 import { CODE_VERSION } from './params.js';
-import { mulberry32, pow2 } from './util.js';
+import { pow2 } from './util.js';
 
 export class Universe{
   constructor(p, seed){
@@ -9,7 +9,7 @@ export class Universe{
     this.bindS = ms(p.bindMs); this.gapS = ms(p.gapMs); this.minW = Math.max(1, Math.round(p.minCoincMs*sr/1000));
     this.maxW = Math.max(this.minW, Math.round(p.weber*this.bindS)); this.lastCreateT = -1e12;
     this.t = 0;
-    this.rng = mulberry32(seed);
+    this.rs = seed|0;   // estado do sorteio (número, para o universo poder ser guardado e retomado)
     this.nodes = []; this.edges = [];
     const maxD = this.bindS + this.basal + 2*this.maxW + 8;
     this.wsize = pow2(maxD+1); this.wmask = this.wsize-1;
@@ -17,10 +17,7 @@ export class Universe{
     this.Qe = []; this.qh = 0; this.touched = [];
     this.lastCreate = [-1e12,-1e12,-1e12,-1e12,-1e12];
     // histórico (gravação do observador, não do robô)
-    this.hCap = Math.min(6e6, Math.max(2e5, Math.round(p.histSeconds*60000)));
-    this.hT = new Float64Array(this.hCap); this.hN = new Int32Array(this.hCap); this.hCount = 0;
-    this.nmCap = 400000; this.nmT = new Float64Array(this.nmCap); this.nmN = new Int32Array(this.nmCap); this.nmF = new Float32Array(this.nmCap); this.nmCount = 0;
-    this.aCap = Math.round(sr*p.histSeconds); this.aud = [new Float32Array(this.aCap), new Float32Array(this.aCap)];
+    this.allocObserver();
     this.fireCount = 0; this.capHit = false;
     // aprendizado e registros para gravação
     this.hlF = Math.max(1, p.fastHalfLifeS*sr); this.hlS = Math.max(1, p.slowHalfLifeDays*86400*sr);
@@ -39,6 +36,17 @@ export class Universe{
     this.mpOn = !!p.mpOn; this.sdomList = [];
     if(this.mpOn) this.mpInit();
   }
+  // gravação do observador (para voltar a fita na tela). Não é estado do robô: não é guardada ao retomar.
+  allocObserver(){
+    const p=this.p, sr=this.sr;
+    this.hCap = Math.min(6e6, Math.max(2e5, Math.round(p.histSeconds*60000)));
+    this.hT = new Float64Array(this.hCap); this.hN = new Int32Array(this.hCap); this.hCount = 0;
+    this.nmCap = 400000; this.nmT = new Float64Array(this.nmCap); this.nmN = new Int32Array(this.nmCap); this.nmF = new Float32Array(this.nmCap); this.nmCount = 0;
+    this.aCap = Math.round(sr*p.histSeconds); this.aud = [new Float32Array(this.aCap), new Float32Array(this.aCap)];
+    this.histStart = this.t||0;   // antes disto não há gravação (ex.: universo retomado)
+  }
+  // sorteio mulberry32 com o estado em this.rs (mesma sequência da versão em util.js)
+  rng(){ let a=this.rs|0; a=a+0x6D2B79F5|0; this.rs=a; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }
   addNode(o){
     const n = Object.assign({id:this.nodes.length, out:[], in:[], contrib:[], refUntil:0, fires:0, nmT:-1e9, origin:null}, o);
     n.lastFire=-1e12; n.diedAt=Infinity;
@@ -425,7 +433,7 @@ export class Universe{
     const a=Math.max(0,this.t-this.aCap+1);
     const lo=Math.max(0,this.hCount-this.hCap);
     const h = this.hCount>this.hCap ? this.hT[lo%this.hCap] : 0;
-    return Math.max(a,h);
+    return Math.max(a,h,this.histStart||0);
   }
   wAt(e,time){ // peso efetivo da aresta em `time` (null se a última mudança é posterior)
     if(e.lastUse>time) return null;

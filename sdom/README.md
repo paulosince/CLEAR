@@ -11,6 +11,7 @@ que começa vazio. O que ele ouve é representado num grafo: uma estrutura é
 - `experimentos/convergencia.cjs` — experimento automático piano → viola (Playwright).
 - `experimentos/decaimento.cjs` — aprender, pular no tempo, ouvir de novo (Playwright).
 - `experimentos/poda.cjs` — arestas inertes, acesso e poda (Playwright).
+- `experimentos/persistencia.cjs` — recarregar a página retoma o mesmo robô (Playwright).
 - `GLOSSARIO.md` — os nomes combinados (aprovados e propostos).
 
 ## Ouvir o mundo pelo microfone (v0.12) e proteções
@@ -45,6 +46,27 @@ Experimento com microfone falso do Chromium: `NODE_PATH=$(npm root -g) node expe
 **Mono e canal mudo.** O robô só trata o som como estéreo se os dois canais têm som e não são cópias um do
 outro. Se o aparelho entrega um canal mudo (ou mono), os dois ouvidos recebem o canal que tem som; a faixa do
 topo diz qual é o caso. (Até a v0.12 havia um defeito: um canal vazio era tratado como estéreo, e só um ouvido "funcionava".)
+
+## O robô não morre ao recarregar (v0.15)
+
+Recarregar a página ou atualizar o código **retoma o mesmo robô**. Só "💥 Destruir universo" cria outro
+(e então a fotografia do cérebro antigo é apagada; os registros dele continuam na lista para baixar).
+
+- **Fotografia do cérebro**: todo o estado do robô (nós, arestas, pesos, marcas, poda, marcapasso, cóclea, sorteio)
+  é guardado no aparelho (IndexedDB, loja `snapshots`) a cada 20 s, ao esconder a aba e ao fechar a página.
+  Nada sai do aparelho. Num robô de ~1 000 nós a fotografia custa ≈ 0,1 s (medido em 1 núcleo de servidor; no celular pode ser mais).
+- **Ao retomar**: o tempo em que a página ficou fechada passa para o robô **em silêncio** (pulo no tempo, como na aba congelada):
+  o mundo não espera. Os sons e o microfone começam desligados (o microfone nunca liga sozinho).
+- O que **não** volta: a fita para voltar no tempo na tela (~90 s; é do observador, não do robô) e, no máximo,
+  os últimos segundos antes de fechar se o navegador não deixar terminar a gravação. Nesse caso o robô volta ao estado
+  da última fotografia, e os registros posteriores a ela são retirados, para o histórico continuar coerente.
+- **Duas abas**: só a primeira grava; a outra avisa e não grava nada (o mesmo robô não pode viver duas vidas).
+- **Laboratório**: quando o resultado do laboratório vira o robô atual, o anterior fica guardado e pode ser retomado na lista
+  ("Retomar este robô").
+- Para quem mexer no código: se uma versão nova acrescentar estado ao universo, escreva em `web/js/core/persist.js`
+  (`migrar`) como preencher esse campo num robô guardado por uma versão anterior. Parâmetros novos recebem o padrão sozinhos.
+- Robôs criados antes da v0.15 não podem ser retomados: até então não existia a fotografia, só os registros.
+- Experimento: `NODE_PATH=$(npm root -g) node experimentos/persistencia.cjs`. Testes: `tests/unit/persistencia.test.js`.
 
 ## Vida em segundo plano (v0.13)
 

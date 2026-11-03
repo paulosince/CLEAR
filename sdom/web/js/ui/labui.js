@@ -5,7 +5,6 @@ import { Ambiente } from '../env/environment.js';
 import { Universe } from '../core/universe.js';
 import { World } from '../env/world.js';
 import { unflattenGraph } from '../core/graph-copy.js';
-import { mulberry32 } from '../core/util.js';
 import { Store } from '../store.js';
 import { playBuffer } from './audio.js';
 
@@ -32,15 +31,15 @@ function labStart(scen,durS,sd){
     else if(m.type==='done') finish(m);
     else if(m.type==='error'){ $('labProg').textContent='Erro no laboratório: '+m.msg; end(); } };
   labW.onerror=e=>{ $('labProg').textContent='Erro no laboratório: '+(e.message||e); end(); };
-  labW.postMessage({cmd:'start', params:readParams(), seed:sd, scen, durS, label:`#${S.universeNo+1} · laboratório: ${SCEN[scen].name}`});
+  labW.postMessage({cmd:'start', params:readParams(), seed:sd, scen, durS, label:`#${S.maxNo+1} · laboratório: ${SCEN[scen].name}`});
   return true;
 }
 function end(){ if(labW){ labW.terminate(); labW=null; } S.labBusy=false; $('labRun').disabled=false; $('labStop').disabled=true; emit('laboratorioFim'); }
 function finish(m){
-  const G=unflattenGraph(m.G), u=G.U; Object.setPrototypeOf(u,Universe.prototype); u.rng=mulberry32((m.seed^0x9e3779b9)>>>0);
+  const G=unflattenGraph(m.G), u=G.U; Object.setPrototypeOf(u,Universe.prototype); delete u.rng;   // o sorteio continua de onde o laboratório parou (u.rs)
   Object.setPrototypeOf(G.W,World.prototype);
   if(S.U) Store.flush(S.U);
-  S.universeNo++; S.U=u; S.seed=m.seed; S.params=Object.assign({},u.p);
+  S.universeNo=++S.maxNo; S.U=u; S.seed=m.seed; S.params=Object.assign({},u.p);
   S.amb=Ambiente.fromWorld(G.W); for(const s of Ambiente.allSources()) S.amb.addSource(...s); S.amb.W.prepare();
   // o laboratório já gravou tudo; a página continua no mesmo registro
   Store.uid=m.store.uid; Store.nodePtr=m.store.nodePtr; Store.meta=m.store.meta;

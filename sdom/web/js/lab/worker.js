@@ -22,7 +22,6 @@ async function tick(){
   if(done||stopReq){
     Store.meta.lab=Object.assign({worldS:+(U.t/U.sr).toFixed(2), wallS:+wallS.toFixed(1), stopped:!done, series:L.series},info);
     await Store.flush(U);
-    U.rng=null;   // função não atravessa; a página recria
     const tr=[U.hT.buffer,U.hN.buffer,U.nmT.buffer,U.nmN.buffer,U.nmF.buffer,U.aud[0].buffer,U.aud[1].buffer];
     // o gerador dos fluxos não atravessa: entrega o mundo e quais fluxos estavam ligados
     postMessage({type:'done', G:flattenGraph({U, W:L.W}), on:[...L.amb.on.keys()], musicT0:L.amb.musicT0, series:L.series, scen:L.scen, durS:L.durS, seed:L.seed, stopped:!done, wallS, store:{uid:Store.uid, nodePtr:Store.nodePtr, meta:Store.meta}}, tr);
