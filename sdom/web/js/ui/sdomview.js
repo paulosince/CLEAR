@@ -132,6 +132,27 @@ function drawGraph(g,c,d){
     const age=tv-n.born;
     if(n.lvl>0 && age>=0 && age<U.sr*0.4){ g.strokeStyle=`rgba(255,255,255,${1-age/(U.sr*0.4)})`; g.lineWidth=1.5*d; g.beginPath(); g.arc(x,y,r*3.2,0,6.2832); g.stroke(); } }
   if(sel && sel.id<nv){ g.strokeStyle='#78c8ff'; g.lineWidth=2*d; g.beginPath(); g.arc(X(sel.x),Y(sel.y),RAD[sel.lvl]*d*zr*2.8,0,6.2832); g.stroke(); }
+  drawBody(g,d,X,Y,zr,nv);
+}
+// Corpo: o marcapasso de recursos (fora do Sdom, como os ouvidos) e as fibras do corpo (transdução endógena)
+export const HEART={x:60, y:500};
+function drawBody(g,d,X,Y,zr,nv){
+  const U=S.U; if(!U.mpOn || !U.endoFibers) return;
+  const hx=X(HEART.x), hy=Y(HEART.y); let pulse=0;
+  for(const f of U.endoFibers) if(f.endo.kind==='batida' && f.id<nv && glow[f.id]>pulse) pulse=glow[f.id];
+  g.strokeStyle='rgba(224,96,126,0.4)'; g.lineWidth=0.8*d; g.beginPath();
+  for(const f of U.endoFibers){ g.moveTo(hx,hy); g.lineTo(X(f.x),Y(f.y)); } g.stroke();
+  const r=RAD[1]*d*zr*1.25; g.fillStyle='#e0607e'; g.beginPath();
+  for(const f of U.endoFibers){ const x=X(f.x),y=Y(f.y); g.moveTo(x+r,y); g.arc(x,y,r,0,6.2832); } g.fill();
+  for(const f of U.endoFibers) if(f.id<nv && glow[f.id]>0){ g.fillStyle=`rgba(255,226,122,${0.35+0.65*glow[f.id]})`; g.beginPath(); g.arc(X(f.x),Y(f.y),r*1.7,0,6.2832); g.fill(); }
+  const sel=S.view.sel; const isSel=sel&&sel.heart;
+  g.textAlign='center'; g.textBaseline='middle';
+  g.font=`${Math.round((16+8*pulse)*d*Math.max(0.8,Math.min(1.6,zr)))}px system-ui`; g.fillStyle='#e0607e'; g.fillText('♥',hx,hy);
+  if(isSel){ g.strokeStyle='#78c8ff'; g.lineWidth=2*d; g.beginPath(); g.arc(hx,hy,14*d*zr,0,6.2832); g.stroke(); }
+  g.font=`${10*d}px system-ui`; g.fillStyle='#c98a99';
+  g.fillText('marcapasso de recursos', hx, hy+20*d*Math.max(0.8,Math.min(1.6,zr)));
+  g.fillText('corpo', X(270), Y(545)+8*d);
+  g.textAlign='start'; g.textBaseline='alphabetic';
 }
 
 // ---------- interação: arrastar, pinça, roda, toque ----------
@@ -140,6 +161,7 @@ function pick(px,py){
   if(graphShare()<0.5) return;          // no mapa de atividade não há nós para tocar
   const U=S.U, v=S.view, nv=U.visibleCount(Math.floor(v.tv)); let best=null, bd=18;
   for(let i=0;i<nv;i++){ const n=U.nodes[i]; if(n.diedAt<=v.tv) continue; const dd=Math.hypot(n.x*v.s+v.ox-px, n.y*v.s+v.oy-py); if(dd<bd){ bd=dd; best=n; } }
+  if(U.mpOn){ const dd=Math.hypot(HEART.x*v.s+v.ox-px, HEART.y*v.s+v.oy-py); if(dd<Math.max(bd,22)) best={heart:true}; }
   v.sel=best; emit('selecao');
 }
 export function initSdomView(){

@@ -32,8 +32,20 @@ export function drawPanel(){
 export function showInfo(){
   const U=S.U, n=S.view.sel; if(!n){ $('info').textContent='Aproxime até ver o grafo e toque num nó para inspecionar.'; return; }
   const ms=v=>(v*1000/U.sr).toFixed(3)+' ms';
-  const lv=n.lvl===0?'ouvido':n.lvl===1?'transdução (fibra)':`Sdom · distância dos ouvidos ${n.depth}`;
-  let s=`#${n.id} · ${lv}${n.lvl<=1?(n.ear?' · ouvido direito':' · ouvido esquerdo'):''}\n`;
+  const lv=n.endo?'corpo':n.lvl===0?'ouvido':n.lvl===1?'transdução (fibra)':`Sdom · distância dos ouvidos ${n.depth}`;
+  let s=`#${n.id} · ${lv}${n.lvl<=1&&!n.endo?(n.ear?' · ouvido direito':' · ouvido esquerdo'):''}\n`;
+  if(n.heart){ const m=U.mp, fr=n=>(n*100).toFixed(0)+'%';
+    $('info').textContent=`♥ marcapasso de recursos · fora do Sdom (como os ouvidos)\n`+
+      `ritmo agora ${(m.f*60).toFixed(0)}/min · ritmo próprio ${(U.p.mpF0*60).toFixed(0)}/min · em repouso o reflexo fixo freia (~${U.p.mpRestBpm}/min)\n`+
+      `batidas até agora ${m.beats} · recurso operacional por batida ${U.p.mpBeatOps.toLocaleString('pt-BR')}\n`+
+      `na última batida: pedido ${Math.round(m.lastRequested).toLocaleString('pt-BR')} · entregue ${Math.round(m.lastDelivered).toLocaleString('pt-BR')}\n`+
+      `nível geral da reserva operacional ${fr(m.level)}\n`+
+      `faltas acumuladas: disparar ${m.blockedFire.toLocaleString('pt-BR')} · aprender ${m.blockedLearn.toLocaleString('pt-BR')} · criar ${m.blockedCreate.toLocaleString('pt-BR')}\n`+
+      `sinal de volta ao Sdom: ${U.endoFibers.length} fibras do corpo (batida e nível)\n`+
+      `eferência (o Sdom agir sobre ele): ainda não existe`; return; }
+  if(n.endo){ const E=n.endo;
+    s+=`fibra do corpo (transdução endógena) · ${E.kind==='batida'?`batida: dispara a cada batida com força ≥ ${E.thr}`:`nível geral da reserva operacional: dispara junto com a batida se o nível ≥ ${(E.thr*100).toFixed(0)}%`}\n`;
+    s+=`disparos até agora ${n.fires} · magnitude ${n.mag} · saídas para o Sdom: ${n.out.length}`; $('info').textContent=s; return; }
   if(n.lvl===0){ s+=`microfone (${U.sr/1000} kHz): entrega o som à cóclea (transdução)\nfibras: ${n.out.length}`; $('info').textContent=s; return; }
   if(n.endo){ s=`#${n.id} · transdução endógena (marcapasso de recursos)\n`;
     s+= n.endo.kind==='batida' ? `dispara a cada batida quando a força ≥ ${n.endo.thr} (força fixa nesta versão)\n` : `dispara junto com a batida quando o nível geral da reserva operacional ≥ ${Math.round(100*n.endo.thr)}%\n`;
@@ -46,6 +58,7 @@ export function showInfo(){
   s+=`nasceu em ${fmt(n.born)}`+(n.diedAt!==Infinity?` · PODADO em ${fmt(n.diedAt)} (ficou órfão)`:'')+`\n`;
   if(n.malha!==undefined) s+= n.malha>=0 ? `malha: estímulo #${n.malha}\n` : `malha: nenhum estímulo identificado\n`;
   s+=`janela de integração ${ms(n.W)} · refratariedade ${ms(n.refr)}\n`;
+  if(n.res!==undefined) s+=`reserva operacional ${Math.round(n.res)} de ${Math.round(n.cap)} (${(100*n.res/n.cap).toFixed(0)}%) · piso de aprender ${(U.p.mpPisoAprender*100).toFixed(0)}% · piso de disparar ${(U.pisoFire(n)*100).toFixed(0)}%\n`;
   if(U.mp && n.res!==undefined) s+=`reserva operacional ${Math.round(n.res)} de ${Math.round(n.cap)} (${Math.round(100*n.res/n.cap)}%) · piso de aprender ${Math.round(100*U.p.mpPisoAprender)}% · piso de disparar ${Math.round(100*U.pisoFire(n))}%\n`;
   s+=`limiar ${n.thr.toFixed(4)} (fixo) · magnitude ${n.mag.toFixed(4)} (fixa)\n`;
   s+=`disparos até agora ${n.fires}`+(n.fires?` · último há ${((U.t-n.lastFire)/U.sr).toFixed(1)} s`:'')+`\n`;
