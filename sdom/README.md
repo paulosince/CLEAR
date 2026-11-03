@@ -52,7 +52,7 @@ topo diz qual é o caso. (Até a v0.12 havia um defeito: um canal vazio era trat
 - O sinal do pedido sobe em ~2 s e se desfaz em ~20 s; o ritmo-alvo cresce na proporção do pedido, até o teto de 180/min.
   Esses três números são pontos de partida do Claude, a revisar (`mpPedidoSobeS`, `mpPedidoDesceS`, `mpMaxBpm`).
 - O sinal é **global** (quanto o Sdom pede no total), não de uma representação: não pré-programa relação entre representações e batidas.
-- Respaldo: o engajamento ativo numa tarefa mobiliza o simpático e acelera o coração (Obrist, 1981; Richter, Friedrich & Gendolla, 2008);
+- Respaldo: o engajamento ativo numa tarefa mobiliza o simpático e acelera o coração (Obrist, 1981; experimento com 64 participantes e 4 níveis de dificuldade: https://archive-ouverte.unige.ch/unige:190743);
   no corpo isso vem do cérebro comandando o coração, não de um sensor de falta — aqui ficou como reflexo fixo até existir a eferência.
 - Medido (som sintético, robô novo): grito → 81 → ~145/min em ~4 s, faltas de disparar caíram à metade; em silêncio volta a 81/min em ~12 s.
   Na fala, há falta local mesmo com o pedido total abaixo do que a batida entrega: aí o coração não acelera (a falta é de teto do nó, não de entrega).
