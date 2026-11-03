@@ -45,6 +45,13 @@ Experimento com microfone falso do Chromium: `NODE_PATH=$(npm root -g) node expe
 outro. Se o aparelho entrega um canal mudo (ou mono), os dois sensores recebem o canal que tem som; a faixa do
 topo diz qual é o caso. (Até a v0.12 havia um defeito: um canal vazio era tratado como estéreo, e só um sensor "funcionava".)
 
+## Silêncio barato (v0.20.2)
+
+- Em silêncio, o robô gastava ~4× mais processador que com som. Causa: os estados dos filtros da cóclea decaíam até números
+  "subnormais" (muito próximos de zero), que o processador calcula dezenas de vezes mais devagar. Agora, a cada 512 amostras,
+  valores abaixo de 1e-100 viram zero. Medido: 15 s de silêncio caíram de ~10,7 s para ~0,7 s de processador, **com exatamente
+  os mesmos disparos** (e o teste de regressão segue idêntico).
+
 ## Respiração (v0.20 — decisões do Paulo)
 
 - **Respiração**: gerador de ritmo próprio, fora do Sdom (como o coração), com repouso de 15/min e teto de 40/min.

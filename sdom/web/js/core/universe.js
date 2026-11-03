@@ -161,6 +161,10 @@ export class Universe{
   }
   cochleaStep(e,x,t){
     const st=this.cochState[e], ih=this.ihc[e], C=this.coch, F=this.fibers[e], cc=this.ihcC;
+    // Em silêncio, os estados dos filtros decaem até números "subnormais", que o processador calcula dezenas de vezes
+    // mais devagar (por isso o silêncio custava ~4× mais que o som). A cada 512 amostras, valores abaixo de 1e-100 viram
+    // zero: muito abaixo de qualquer limiar, então nenhum disparo muda (v0.20.2).
+    if((t&511)===0){ for(let i=0;i<st.length;i++) if(st[i]<1e-100 && st[i]>-1e-100) st[i]=0; for(let k=0;k<ih.length;k++) if(ih[k]<1e-100) ih[k]=0; }
     for(let k=0;k<C.length;k++){
       const ch=C[k]; if(!ch.active) continue;
       let re=x, im=0; const o=k*8;
