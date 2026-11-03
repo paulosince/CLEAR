@@ -25,5 +25,6 @@ test('o microfone nunca liga sozinho: só pelo botão', ()=>{
   const app=fs.readFileSync(path.join(WEB,'js/ui/app.js'),'utf8'), mic=fs.readFileSync(path.join(WEB,'js/ui/mic.js'),'utf8');
   assert.ok(!/startMic\s*\(/.test(app), 'app.js chama startMic');
   const calls=[...mic.matchAll(/startMic\s*\(/g)].length; assert.equal(calls,2, 'startMic: só a definição e o botão');
-  assert.ok(/visibilitychange/.test(mic) && /stopMic\('a aba saiu de foco'\)/.test(mic), 'tem que parar quando a aba sai de foco');
+  assert.ok(/pagehide/.test(mic), 'tem que parar quando a página fecha');
+  assert.ok(!/visibilitychange/.test(mic), 'decisão do Paulo: não para ao sair de foco, só quando ele parar');
 });

@@ -1,6 +1,6 @@
 /* Ouvir o mundo pelo microfone do aparelho.
    Proteções: desligado ao abrir; só liga com um toque; indicador sempre visível com botão de parar;
-   para sozinho quando a aba sai de foco; nada sai do aparelho (sem servidor; CSP proíbe conexões externas);
+   continua ouvindo em segundo plano até a pessoa parar (decisão do Paulo) e para quando a página fecha; nada sai do aparelho (sem servidor; CSP proíbe conexões externas);
    o som bruto só é guardado se a pessoa marcar a opção, e fica só neste navegador. */
 import { S, $, on, emit, goLive } from './state.js';
 import { MicQueue, Resampler } from '../env/micqueue.js';
@@ -77,7 +77,6 @@ export function initMic(){
   $('micBtn').onclick=()=>{ if(mic.on) stopMic('você parou'); else startMic(); };
   $('micStop').onclick=()=>stopMic('você parou');
   $('micRec').onchange=e=>{ if(mic.on){ if(!e.target.checked){ flushRecording(); } mic.rec=e.target.checked; if(mic.rec) mic.recT0=S.U.t; } };
-  document.addEventListener('visibilitychange',()=>{ if(document.hidden && mic.on) stopMic('a aba saiu de foco'); });
   addEventListener('pagehide',()=>{ if(mic.on) stopMic('a página foi fechada'); });
   on('laboratorioInicio',()=>{ if(mic.on) stopMic('o laboratório começou'); });
   on('novoUniverso',()=>{ if(mic.on) stopMic('universo novo'); });

@@ -22,7 +22,7 @@ ouvir os próprios alto-falantes. Mono: os dois ouvidos recebem o mesmo som (sem
 
 **Proteções no código**
 - Microfone **desligado ao abrir**; só liga pelo botão (um teste confere isso a cada push).
-- Faixa vermelha fixa "Ouvindo o mundo real", com botão de parar; para sozinho quando a aba sai de foco ou a página fecha.
+- Faixa vermelha fixa "Ouvindo o mundo real", com botão de parar. Depois de ligado, **continua ouvindo em segundo plano até ser parado** (decisão do Paulo, v0.14); para quando a página fecha. No computador, o navegador mostra o aviso de microfone na aba.
 - **Nada sai do aparelho**: não há servidor, e a política de segurança da página (CSP) proíbe conexões com
   outros endereços e scripts de fora. Um teste falha se algum código passar a usar `fetch`, XHR, WebSocket ou `sendBeacon`.
 - Sem cabeçalho de origem (`referrer`) ao abrir links.
@@ -52,8 +52,8 @@ A simulação anda por um relógio num Web Worker, que o navegador não pausa qu
 anda pelo `requestAnimationFrame`, que é pausado. Assim, no computador, o robô continua vivendo (e os sons
 continuam) com a aba em segundo plano. Se o navegador mesmo assim congelar a aba (no celular ele suspende tudo),
 ao voltar o tempo perdido vira **pulo no tempo, em silêncio**, e o que deveria ter tocado nesse intervalo é
-descartado: o relógio do robô volta a acompanhar o real. O microfone continua parando quando a aba sai de foco
-(privacidade). Experimento: `NODE_PATH=$(npm root -g) node experimentos/segundo-plano.cjs`.
+descartado: o relógio do robô volta a acompanhar o real. O microfone, se ligado, também continua em segundo plano até ser parado
+(no iPhone, o Safari o corta ao sair da tela). Experimento: `NODE_PATH=$(npm root -g) node experimentos/segundo-plano.cjs`.
 
 ## Marcapasso de recursos (v0.11)
 
