@@ -40,6 +40,7 @@ export function showInfo(){
       `ritmo agora ${(m.f*60).toFixed(0)}/min · ritmo próprio ${(U.p.mpF0*60).toFixed(0)}/min · em repouso o reflexo fixo freia (~${U.p.mpRestBpm}/min)\n`+
       `batidas até agora ${m.beats} · recurso operacional por batida ${U.p.mpBeatOps.toLocaleString('pt-BR')}\n`+
       `na última batida: pedido ${Math.round(m.lastRequested).toLocaleString('pt-BR')} · entregue ${Math.round(m.lastDelivered).toLocaleString('pt-BR')}\n`+
+      `pedido de recurso → ritmo: o Sdom está pedindo ${(m.pedido??1).toFixed(2)}× o que uma batida entrega · ritmo-alvo ${Math.round((m.fAlvo??U.p.mpRestBpm/60)*60)}/min (teto ${U.p.mpMaxBpm}/min)\n`+
       `nível geral da reserva operacional ${fr(m.level)}\n`+
       `faltas acumuladas: disparar ${m.blockedFire.toLocaleString('pt-BR')} · aprender ${m.blockedLearn.toLocaleString('pt-BR')} · criar ${m.blockedCreate.toLocaleString('pt-BR')}\n`+
       `sinal de volta ao Sdom: ${U.endoFibers.length} fibras do corpo (batida e nível)\n`+

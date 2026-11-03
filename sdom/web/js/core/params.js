@@ -17,7 +17,7 @@
      observados, para que tudo chegue junto ao nó novo.
    - Sem aprendizado nem divisão ainda.
    ===================================================================== */
-export const CODE_VERSION='v0.17.3';
+export const CODE_VERSION='v0.18';
 export const DEFAULTS = {
   sr: 16000,           // taxa do microfone (amostras/s); botão alterna 16k/8k
   // transdução auditiva (v0.6): cóclea fixa, fora do Sdom
@@ -69,6 +69,11 @@ export const DEFAULTS = {
   mpRestBpm: 81,         // repouso com o reflexo (freio) ≈ 81/min (mesma fonte)
   mpPressTauS: 2,        // reflexo fixo: o sinal das batidas se acumula e se dissipa em ~2 s
   mpRateTauS: 1,         // o ritmo muda devagar em direção ao alvo
+  // pedido de recurso → ritmo (v0.18, decisão do Paulo): quando o Sdom pede mais do que a batida entrega, o coração acelera
+  // para entregar mais por minuto; quando o pedido cai, o freio fixo o traz de volta ao repouso. Valores iniciais do Claude, a revisar.
+  mpMaxBpm: 180,         // teto do ritmo
+  mpPedidoSobeS: 2,      // o sinal do pedido sobe em ~2 s
+  mpPedidoDesceS: 20,    // e se desfaz em ~20 s
   mpBeatOps: 15000,      // recurso operacional por batida: no roteiro Casa cobre a demanda média com som; falta nos picos (calibração: README)
   mpBaseOps: 100,        // parte base que cada nó recebe por batida (até encher a reserva)
   mpOver: 1.3,           // sobra: o nó ativo recebe mais do que gastou (como o sangue na região ativa)
@@ -96,7 +101,7 @@ export const PARAM_UI = [
   ['tauPlusMs','janela do reforço (ms)'],['tauMinusMs','janela do enfraquecimento (ms)'],
   ['fastHalfLifeS','meia-vida do peso basal (s)'],['slowHalfLifeDays','meia-vida do peso consolidado (dias)'],['tagHours','janela de consolidação (h)'],['consolThr','reforço acumulado para consolidar'],
   ['pruneDays','poda: dias inerte até podar'],['accessBoost','acesso: reforço da candidata'],['accessWindowH','acesso: +janela de consolidação (h)'],['inertW','peso inerte abaixo de'],['actWindowMs','janela da atividade gravada (ms)'],
-  ['mpOn','marcapasso de recursos ligado (0/1)'],['mpF0','marcapasso: ritmo próprio (batidas/s)'],['mpRestBpm','marcapasso: repouso com o reflexo (bpm)'],['mpBeatOps','recurso operacional por batida'],['mpBaseOps','parte base por nó e batida'],['mpOver','sobra para o nó ativo (×)'],
+  ['mpOn','marcapasso de recursos ligado (0/1)'],['mpF0','marcapasso: ritmo próprio (batidas/s)'],['mpRestBpm','marcapasso: repouso com o reflexo (bpm)'],['mpBeatOps','recurso operacional por batida'],['mpMaxBpm','marcapasso: teto do ritmo (bpm)'],['mpPedidoSobeS','pedido → ritmo: subida (s)'],['mpPedidoDesceS','pedido → ritmo: descida (s)'],['mpBaseOps','parte base por nó e batida'],['mpOver','sobra para o nó ativo (×)'],
   ['mpCap0','teto inicial da reserva operacional'],['mpCapMax','teto máximo da reserva'],['mpGrowPerDay','adaptação: crescimento por dia de falta'],['mpCapHalfLifeDays','adaptação: meia-vida da volta (dias)'],
   ['mpPisoAprender','piso de aprender (fração do teto)'],['mpPisoDisp0','piso de disparar perto da transdução'],['mpPisoDispK','piso de disparar: + por distância'],['mpPisoDispMax','piso de disparar: máximo'],
   ['mpCostFire','custo: disparar'],['mpCostEdge','custo: por aresta de saída'],['mpCostLearn','custo: reforço/enfraquecimento'],['mpCostConsol','custo: consolidação'],['mpCostCreate','custo: criar nó'],['mpCostCreateEdge','custo: por aresta criada'],

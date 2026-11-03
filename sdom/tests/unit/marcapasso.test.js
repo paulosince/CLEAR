@@ -69,3 +69,16 @@ test('painel: a falta local aparece mesmo quando a média da reserva está alta'
     if(i%800===0 && U.mp.beats>2){ maxShort=Math.max(maxShort,U.mp.shortFrac); minLevel=Math.min(minLevel,U.mp.level); } }
   assert.ok(maxShort>0, 'algum nó ficou em falta'); assert.ok(minLevel>0.5, 'a média continua alta');
 });
+test('pedido de recurso → ritmo: pedir mais do que a batida entrega acelera; ao parar, volta ao repouso (v0.18)', ()=>{
+  const U=new Universe(Object.assign({},DEFAULTS),11); const mp=U.mp, p=U.p, sr=U.sr;
+  // simula a demanda diretamente: o pedido ao coração é o dobro do que uma batida entrega
+  for(let k=0;k<40;k++){ U.mpPedido(2*p.mpBeatOps, p.mpBeatOps, Math.round(0.75*sr)); }
+  assert.ok(Math.abs(mp.fAlvo*60 - Math.min(p.mpMaxBpm, 2*p.mpRestBpm))<3, `alvo ${mp.fAlvo*60}`);
+  // batidas que só alimentam o freio e repetem a demanda (o resto da batida não importa aqui)
+  let last=0; U.mpBeat=function(t){ this.mp.press+=1; this.mpPedido(2*p.mpBeatOps, p.mpBeatOps, t-last); last=t; };
+  for(let i=0;i<15*sr;i++) U.mpStep(i);   // o ritmo segue o alvo (com o freio fixo no meio)
+  assert.ok(mp.f*60>140, `ritmo ${(mp.f*60).toFixed(0)}/min`);
+  assert.ok(mp.f*60<=p.mpMaxBpm+1, 'respeita o teto');
+  for(let k=0;k<200;k++) U.mpPedido(0, p.mpBeatOps, Math.round(0.75*sr));   // pedido some
+  assert.ok(Math.abs(mp.u)<1e-9 && Math.abs(mp.fAlvo*60-p.mpRestBpm)<0.5, 'alvo volta ao repouso, sem ajuste');
+});

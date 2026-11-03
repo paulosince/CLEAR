@@ -45,6 +45,18 @@ Experimento com microfone falso do Chromium: `NODE_PATH=$(npm root -g) node expe
 outro. Se o aparelho entrega um canal mudo (ou mono), os dois ouvidos recebem o canal que tem som; a faixa do
 topo diz qual é o caso. (Até a v0.12 havia um defeito: um canal vazio era tratado como estéreo, e só um ouvido "funcionava".)
 
+## Pedido de recurso → ritmo do coração (v0.18 — decisão do Paulo)
+
+- A cada batida, cada nó do Sdom pede recurso (o que gastou, com sobra, até encher a reserva). Quando o **pedido total** passa do
+  que uma batida entrega, o coração **acelera** para entregar mais por minuto; quando o pedido cai, o freio fixo o traz de volta.
+- O sinal do pedido sobe em ~2 s e se desfaz em ~20 s; o ritmo-alvo cresce na proporção do pedido, até o teto de 180/min.
+  Esses três números são pontos de partida do Claude, a revisar (`mpPedidoSobeS`, `mpPedidoDesceS`, `mpMaxBpm`).
+- O sinal é **global** (quanto o Sdom pede no total), não de uma representação: não pré-programa relação entre representações e batidas.
+- Respaldo: o engajamento ativo numa tarefa mobiliza o simpático e acelera o coração (Obrist, 1981; Richter, Friedrich & Gendolla, 2008);
+  no corpo isso vem do cérebro comandando o coração, não de um sensor de falta — aqui ficou como reflexo fixo até existir a eferência.
+- Medido (som sintético, robô novo): grito → 81 → ~145/min em ~4 s, faltas de disparar caíram à metade; em silêncio volta a 81/min em ~12 s.
+  Na fala, há falta local mesmo com o pedido total abaixo do que a batida entrega: aí o coração não acelera (a falta é de teto do nó, não de entrega).
+
 ## Novo, consolidado e candidato à poda na tela (v0.17 — pedido do Paulo)
 
 - **Verde-piscina** = novo. Uma aresta é nova até a sua **primeira consolidação** (campo `consAt`, o instante em que consolidou;

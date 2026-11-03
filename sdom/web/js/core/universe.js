@@ -331,7 +331,7 @@ export class Universe{
   // (a eferência ainda não existe nesta versão). Ver sdom/DESENHO-marcapasso-de-recursos.md.
   mpInit(){
     const p=this.p, sr=this.sr, fRest=p.mpRestBpm/60, tau=p.mpPressTauS;
-    this.mp={ f:p.mpF0, phase:0, press:fRest*tau, stopped:false, beats:0, lastBeat:0, u:0,
+    this.mp={ f:p.mpF0, phase:0, press:fRest*tau, stopped:false, beats:0, lastBeat:0, u:0, pedido:1, fAlvo:fRest,
       kB: Math.log(p.mpF0/fRest)/(fRest*tau), level:1,
       blockedFire:0, blockedLearn:0, blockedCreate:0, opsSpent:0, opsDelivered:0, lastDelivered:0, lastRequested:0 };
     this.mpPressK=Math.exp(-64/(tau*sr)); this.mpRateK=1-Math.exp(-64/(p.mpRateTauS*sr));
@@ -393,13 +393,26 @@ export class Universe{
       const g=n.want*k; n.res+=g; delivered+=g; n.spent=0; n.blocked=false; }
     mp.level = alive? sumFrac/alive : 1; mp.shortFrac = alive? short/alive : 0; mp.opsDelivered+=delivered; mp.lastDelivered=delivered; mp.lastRequested=req;
     mp.press+=1;   // força da batida fixa nesta versão
+    this.mpPedido(req, give, dt);
     // transdução endógena: a batida e o nível geral entram no Sdom como incidências
     for(const f of this.endoFibers){ const e=f.endo; if(e.kind==='batida' ? 1>=e.thr : mp.level>=e.thr) this.fire(f,t); }
+  }
+  // Pedido de recurso → ritmo. r = pedido total ÷ o que uma batida entrega (1 = a batida dá conta).
+  // O sinal sobe rápido e desce devagar; o ritmo-alvo cresce na mesma proporção (até o teto), e u é o ajuste
+  // que faz o equilíbrio com o freio fixo cair exatamente nesse alvo. Com r ≤ 1, u = 0 (repouso, como antes).
+  mpPedido(req, give, dt){
+    const p=this.p, mp=this.mp, r=give>0 ? req/give : 1, dtS=Math.max(0,dt)/this.sr;
+    if(mp.pedido===undefined) mp.pedido=1;
+    const tau = r>mp.pedido ? p.mpPedidoSobeS : p.mpPedidoDesceS;
+    mp.pedido += (r-mp.pedido)*(1-Math.exp(-dtS/Math.max(1e-3,tau)));
+    const fRest=p.mpRestBpm/60, fMax=Math.max(fRest,p.mpMaxBpm/60);
+    const fd=Math.min(fMax, fRest*Math.max(1,mp.pedido));
+    mp.fAlvo=fd; mp.u=Math.log(fd/p.mpF0)+mp.kB*fd*p.mpPressTauS;
   }
   mpJump(samples){
     const p=this.p, mp=this.mp, decay=Math.pow(0.5,samples/this.mpHl);
     for(const n of this.sdomList){ if(n.diedAt!==Infinity) continue; n.cap=p.mpCap0+(n.cap-p.mpCap0)*decay; n.res=n.cap; n.spent=0; n.blocked=false; }
-    const fRest=p.mpRestBpm/60; mp.f=fRest; mp.press=fRest*p.mpPressTauS; mp.level=1; mp.lastBeat=this.t; mp.phase=0;
+    const fRest=p.mpRestBpm/60; mp.f=fRest; mp.press=fRest*p.mpPressTauS; mp.level=1; mp.lastBeat=this.t; mp.phase=0; mp.pedido=1; mp.u=0; mp.fAlvo=fRest;
   }
   // ---- estímulos e malhas ----
   // Registra um estímulo (nota, sílaba, gota…) que começa em rec.t e soa até t1 (amostras).

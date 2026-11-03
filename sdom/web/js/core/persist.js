@@ -44,4 +44,6 @@ function migrar(U, snap){
   U.p.histSeconds=DEFAULTS.histSeconds;   // gravação do observador (v0.16: só o agora); não muda o robô
   // v0.17: momento da primeira consolidação da aresta (-1 = ainda não consolidou). Robôs anteriores: quem tem peso consolidado já consolidou.
   for(const e of U.edges) if(e.consAt===undefined) e.consAt = e.wS>0 ? e.lastUse : -1;
+  // v0.18: pedido de recurso → ritmo
+  if(U.mp && U.mp.pedido===undefined){ U.mp.pedido=1; U.mp.u=0; U.mp.fAlvo=U.p.mpRestBpm/60; }
 }
