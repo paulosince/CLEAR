@@ -58,6 +58,18 @@ topo diz qual é o caso. (Até a v0.12 havia um defeito: um canal vazio era trat
   60 s de silêncio + 15 s de grito): não atingido.** Os nós que disparam só com o coração alto têm som na origem
   (confundidos com o grito); os únicos nós só de corpo com o ritmo (ritmo + inspira) nunca voltaram a disparar.
 
+### Controle: o coração isolado (`experimentos/coracao-isolado.mjs`)
+
+- Silêncio total; o ritmo é imposto de fora (como um remédio): 20 ciclos de 60 s em repouso (65–85/min) e 15 s alto
+  (140–170/min), sorteados por semente. Controle: o mesmo sem as fibras do ritmo.
+- **Com as fibras do ritmo** (3 sementes): 10–11 nós, todos nascidos nos primeiros instantes; depois, nenhum nó novo. Quase todos
+  disparam **a cada batida** (o dobro de disparos quando o coração dobra), sem seletividade. Um único nó, em 1 das 3 sementes,
+  foi seletivo: 0,12 disparo/s nos primeiros 5 s da subida, 0,03/s com o coração alto e estável, **zero em repouso** —
+  o padrão de "início da aceleração" que a adaptação deixa implícito. Fraco (~12 disparos em 20 ciclos) e não se repetiu.
+- **Sem as fibras do ritmo**: 5–7 nós, nenhum seletivo.
+- Leitura (hipótese, não testada): a informação do ritmo entrou como arestas hebbianas em nós da batida que já existiam,
+  em vez de nós próprios; e a criação parou cedo. Nenhuma aresta fechou (o prazo é de 4 h; o experimento durou 25 min).
+
 ## Silêncio barato (v0.20.2)
 
 - Em silêncio, o robô gastava ~4× mais processador que com som. Causa: os estados dos filtros da cóclea decaíam até números
