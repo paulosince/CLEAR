@@ -49,6 +49,8 @@ function migrar(U, snap){
   // v0.20: respiração
   if(U.respOn===undefined){ U.respOn = U.mpOn && !!U.p.respOn; if(U.respOn) U.respInit(); }
   else if(U.respOn) U.respRateK=1-Math.exp(-64/(U.p.respRitmoTauS*U.sr));
+  // v0.20.1: prazo de fechamento 3 dias → 4 h (decisão do Paulo) e meia-vida da recorrência 12 h → 40 min; os nomes antigos saem e os novos vêm do padrão
+  delete U.p.hebbFecharDias; delete U.p.hebbRecMeiaH;
   // v0.19: regra hebbiana
   if(U.hebbPar===undefined){ U.hebbOn=!!U.p.hebbOn; U.hebbInit(); } else U.hebbConst();
 }

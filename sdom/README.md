@@ -82,7 +82,7 @@ Agora dois nós **que já existem** e disparam juntos repetidas vezes passam a s
 2. **Aresta em formação**: com rastro ≥ 10, nasce a aresta A → B, fraca (peso 0,1, já transmite um pouco), com o atraso observado.
    Custa recurso operacional (como criar aresta), pago pelos nós do Sdom envolvidos. No máximo 8 em formação chegando a um mesmo nó.
 3. **Fecha ou recolhe**: a aresta em formação guarda a recorrência do "junto" (meia-vida de 12 h). Se cair abaixo de 3, ela **recolhe**
-   (some). Se o "junto" continuar, ao completar **3 dias** (decisão do Paulo: o menor prazo da literatura) ela **fecha** e vira aresta comum.
+   (some). Se o "junto" continuar, ao completar **4 h** (decisão do Paulo na v0.20.1; antes 3 dias, o menor prazo da literatura) ela **fecha** e vira aresta comum.
 
 Origem: fibra ou nó do Sdom; destino: nó do Sdom. Por disparo, contam as 24 fontes mais recentes (custo de computação).
 Os eventos (em formação, fechada, recolhida) entram nos registros junto com as podas.

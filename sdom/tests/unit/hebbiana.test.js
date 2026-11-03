@@ -1,5 +1,5 @@
 // Regra hebbiana (v0.19): disparar junto, de novo e de novo, liga dois nós que já existem.
-// rastro → aresta em formação → fecha após 3 dias de recorrência, ou recolhe.
+// rastro → aresta em formação → fecha após 4 h de recorrência (v0.20.1; antes 3 dias), ou recolhe.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Universe, DEFAULTS, Lab } from './_imports.js';
@@ -17,13 +17,13 @@ test('um disparo junto isolado deixa só rastro; repetido, nasce a aresta em for
   assert.equal(e.hebb.estado,0); assert.equal(e.wF,U.p.hebbPeso); assert.ok(!B.out.some(x=>x.to===A),'direção: de quem disparou antes');
 });
 
-test('com recorrência ao longo dos dias, fecha no prazo (3 dias) e vira aresta comum', ()=>{
+test('com recorrência, fecha no prazo (4 h) e vira aresta comum', ()=>{
   const {U,A,B}=montar(), sr=U.sr; let t=1000;
   for(let i=0;i<=U.p.hebbLimiar;i++){ t+=sr; U.hebbConta(A,B,t,40); }
   const e=A.out.find(x=>x.to===B), nasc=e.hebb.nasceu;
-  while(t-nasc < 2.9*D*sr){ t+=2*H*sr; U.hebbConta(A,B,t,40); U.hebbVerifica(t); }
-  assert.equal(e.hebb.estado,0,'antes de 3 dias ainda está em formação');
-  t=nasc+3*D*sr+1; U.hebbConta(A,B,t,40); U.hebbVerifica(t);
+  while(t+10*60*sr-nasc < 4*H*sr){ t+=10*60*sr; U.hebbConta(A,B,t,40); U.hebbVerifica(t); }
+  assert.equal(e.hebb.estado,0,'antes de 4 h ainda está em formação');
+  t=nasc+4*H*sr+1; U.hebbConta(A,B,t,40); U.hebbVerifica(t);
   assert.equal(e.hebb.estado,1,'fechou'); assert.equal(U.hebbStats.fechadas,1); assert.equal(e.diedAt,Infinity);
 });
 
@@ -31,7 +31,7 @@ test('sem recorrência, a aresta em formação recolhe (some) antes do prazo', (
   const {U,A,B}=montar(), sr=U.sr; let t=1000;
   for(let i=0;i<=U.p.hebbLimiar;i++){ t+=sr; U.hebbConta(A,B,t,40); }
   const e=A.out.find(x=>x.to===B);
-  for(let h=1;h<=72;h++) U.hebbVerifica(t+h*H*sr);
+  for(let m=1;m<=24;m++) U.hebbVerifica(t+m*10*60*sr);   // 4 h sem repetição
   assert.equal(e.hebb.estado,2,'recolheu'); assert.ok(!A.out.includes(e) && !B.in.includes(e)); assert.equal(U.hebbStats.recolhidas,1);
 });
 

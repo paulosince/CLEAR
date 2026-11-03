@@ -336,7 +336,7 @@ export class Universe{
   // (após dias de recorrência) ou recolhe. Origem: fibra ou nó do Sdom; destino: nó do Sdom.
   hebbConst(){ const p=this.p, sr=this.sr;
     this.hW=Math.max(1,Math.round(p.hebbJanelaMs*sr/1000)); this.hS=Math.max(1,Math.round(p.hebbJuntoMs*sr/1000));
-    this.hHlR=Math.max(1,p.hebbRastroMeiaH*3600*sr); this.hHlRec=Math.max(1,p.hebbRecMeiaH*3600*sr); this.hFechar=p.hebbFecharDias*86400*sr; }
+    this.hHlR=Math.max(1,p.hebbRastroMeiaH*3600*sr); this.hHlRec=Math.max(1,p.hebbRecMeiaMin*60*sr); this.hFechar=p.hebbFecharH*3600*sr; }
   hebbInit(){ this.hebbPar=new Map(); this.hebbRecS=[]; this.hebbRecF=[]; this.hHS=0; this.hHF=0; this.hMarca=0; this.hebbForm=[]; this.hebbUltVerif=this.t||0;
     this.hebbStats={formadas:0, fechadas:0, recolhidas:0}; this.hebbConst(); }
   hebbFire(n,t){

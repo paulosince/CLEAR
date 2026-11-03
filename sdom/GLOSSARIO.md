@@ -26,7 +26,7 @@ Status: **aprovado** (definido ou aceito pelo Paulo) · **em discussão**.
 | **respiração** | gerador de ritmo fora do Sdom que repõe o estoque (inspira) e tira o resíduo (expira); o resíduo a acelera por reflexo fixo. | Claude (proposta aceita pelo Paulo) | aprovado |
 | **estoque** | recurso disponível para o coração distribuir; reposto pela respiração. | Claude (proposta aceita pelo Paulo) | aprovado |
 | **resíduo** | o que sobra do gasto de recurso; retirado pela respiração e motor do ritmo dela. | Claude (proposta aceita pelo Paulo) | aprovado |
-| **rastro / em formação / fechar / recolher** | etapas da regra hebbiana: rastro do par que dispara junto → aresta em formação → fecha (3 dias de recorrência) ou recolhe. | Claude (proposta aceita pelo Paulo) | aprovado |
+| **rastro / em formação / fechar / recolher** | etapas da regra hebbiana: rastro do par que dispara junto → aresta em formação → fecha (4 h de recorrência; antes 3 dias) ou recolhe. | Claude (proposta aceita pelo Paulo) | aprovado |
 | **transdução** | traz para dentro do Sdom, já **normalizados** em incidências, os sinais que vêm de fora dele. É a primeira normalização do domínio representacional. Ex.: a cóclea no ouvido, os cones no olho — fazem parte do grupo de transdução, não do Sdom. Cada sentido tem a sua, fixa. | Paulo | aprovado |
 | **exógeno / endógeno** | origem do sinal que chega à transdução: externo ao sistema (exógeno) ou interno ao sistema (endógeno). Os dois são externos ao Sdom. | Paulo | aprovado |
 
