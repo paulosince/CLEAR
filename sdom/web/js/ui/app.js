@@ -31,30 +31,42 @@ function newUniverse(){
   setVersion(); emit('universo');
 }
 
-// ---------- laço de vida (o robô nunca para; durante o laboratório fica em espera) ----------
-let lastFrame=performance.now(), carry=0, lastDrawT=0;
+// ---------- laço de vida ----------
+// A simulação anda pelo relógio (Web Worker), que continua com a aba em segundo plano; o desenho anda
+// pelo requestAnimationFrame, que o navegador pausa quando ninguém está olhando. Se mesmo assim o navegador
+// congelar a aba, ao voltar o tempo perdido vira um pulo no tempo (em silêncio): o mundo não espera.
+let lastSim=performance.now(), carry=0, lastDrawT=0, lastFrame=performance.now();
 const xs=[0,0];
-function loop(now){
-  const U=S.U, A=S.amb, v=S.view;
-  const dt=Math.min(0.1,(now-lastFrame)/1000); lastFrame=now;
-  // com o microfone, quem dita o tempo é o mundo real: entram as amostras que chegaram
-  if(mic.on){ const done=feedFromMic(U,13); S.simRatio=S.simRatio*0.9+0.1*(mic.queue.available()>0.05*U.sr?0.5:1); carry=0;
-    if(v.live) v.tv=U.t; else if(v.playing){ v.tv+=dt*U.sr*v.speed; if(v.tv>=U.t){ v.live=true; v.playing=true; v.tv=U.t; } }
-    const lo0=U.earliestViewable(); if(v.tv<lo0) v.tv=lo0;
-    drawSdom(); drawRoom(); drawWave(); drawTimeline(); drawPanel(); requestAnimationFrame(loop); return; }
-  const target=S.labBusy?0:dt*U.sr*S.worldSpeed+carry; const n=Math.floor(target); carry=target-n;
+const vida=S.vida;
+function simTick(now){
+  const U=S.U, A=S.amb; let gap=(now-lastSim)/1000; lastSim=now; vida.ticks++;
+  if(gap>2 && !S.labBusy && !mic.on){   // a aba foi congelada pelo navegador
+    const n=Math.round((gap-0.02)*U.sr*S.worldSpeed); U.jump(n); A.skipTo(U.t); A.W.gc(U.t);
+    vida.congelamentos++; vida.ultimoPuloS=n/U.sr; carry=0; gap=0.02; if(S.view.live) S.view.tv=U.t;
+  }
+  if(S.labBusy) return;
+  if(mic.on){ feedFromMic(U,12); S.simRatio=S.simRatio*0.9+0.1*(mic.queue.available()>0.05*U.sr?0.5:1); carry=0; return; }
+  const dt=Math.min(0.1,gap);
+  const target=dt*U.sr*S.worldSpeed+carry; const n=Math.floor(target); carry=target-n;
   // eventos dos fluxos ligados que começam até um pouco à frente
   if(n>0) A.pump(U.t+n+Math.round(0.15*U.sr),(nt,src,x,start)=>{ logStimulus(U,nt,src,x,start); if(S.worldSpeed===1) playNote(nt,U.sr,(start-U.t)/U.sr); });
   A.W.prepare();
   const t0=performance.now(); let done=0;
-  while(done<n){ const lim=Math.min(n,done+64); for(;done<lim;done++){ A.W.sample(U.t,xs); U.step(xs[0],xs[1]); } if(performance.now()-t0>13) break; }
+  while(done<n){ const lim=Math.min(n,done+64); for(;done<lim;done++){ A.W.sample(U.t,xs); U.step(xs[0],xs[1]); } if(performance.now()-t0>12) break; }
   if(done<n) carry=0;
   S.simRatio = S.simRatio*0.9 + 0.1*(n>0? done/n : 1);
   if((U.t&1023)<64) A.W.gc(U.t);
+}
+function drawFrame(now){
+  const U=S.U, v=S.view, dt=Math.min(0.1,(now-lastFrame)/1000); lastFrame=now;
   if(v.live) v.tv=U.t; else if(v.playing){ v.tv+=dt*U.sr*v.speed; if(v.tv>=U.t){ v.live=true; v.playing=true; v.tv=U.t; } }
   const lo=U.earliestViewable(); if(v.tv<lo) v.tv=lo;
   if(!S.labBusy || now-lastDrawT>500){ lastDrawT=now; drawSdom(); drawRoom(); drawWave(); drawTimeline(); drawPanel(); }
-  requestAnimationFrame(loop);
+  requestAnimationFrame(drawFrame);
+}
+function startClock(){
+  try{ const w=new Worker(new URL('./clock-worker.js', import.meta.url)); w.onmessage=()=>simTick(performance.now()); return 'worker'; }
+  catch(e){ setInterval(()=>simTick(performance.now()),20); return 'intervalo'; }
 }
 
 // ---------- parâmetros / destruir e recomeçar ----------
@@ -72,7 +84,7 @@ function initParams(){
 
 on('novoUniverso',()=>{ newUniverse(); setTimeout(renderStore,300); });
 on('universo',x=>{ if(x&&x.lab){ setVersion(' (laboratório)'); for(const inp of document.querySelectorAll('#params input')) inp.value=S.params[inp.dataset.k]; setTimeout(renderStore,300); } });
-on('laboratorioFim',()=>{ lastFrame=performance.now(); });
+on('laboratorioFim',()=>{ lastSim=performance.now(); });
 
 (async()=>{
   await Store.open();
@@ -81,10 +93,11 @@ on('laboratorioFim',()=>{ lastFrame=performance.now(); });
   emit('universo');
   setInterval(()=>{ if(!S.labBusy) Store.flush(S.U); },2000);
   addEventListener('pagehide',()=>Store.flush(S.U));
-  requestAnimationFrame(t=>{ lastFrame=t; requestAnimationFrame(loop); });
+  vida.relogio=startClock();
+  requestAnimationFrame(t=>{ lastFrame=t; requestAnimationFrame(drawFrame); });
   renderStore();
 })();
 
 // acesso para testes e experimentos (Playwright)
-window.__sdom={ mic, get U(){ return S.U; }, get W(){ return S.amb.W; }, get amb(){ return S.amb; }, trigger, view:S.view, Store, renderStore, lab:labApi,
+window.__sdom={ mic, vida, get U(){ return S.U; }, get W(){ return S.amb.W; }, get amb(){ return S.amb; }, trigger, view:S.view, Store, renderStore, lab:labApi,
   toggle:k=>{ import('./controls.js').then(m=>m.toggleStream(k)); }, Universe, S };

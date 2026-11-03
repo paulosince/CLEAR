@@ -5,6 +5,7 @@ export const $ = id => document.getElementById(id);
 export const S = {
   U:null, amb:null, params:Object.assign({},DEFAULTS), universeNo:0, seed:12345,
   worldSpeed:1, labBusy:false, selSrc:null, simRatio:1,
+  vida:{ ticks:0, congelamentos:0, ultimoPuloS:0, relogio:'' },   // o robô vivo em segundo plano
   // observador (linha do tempo e visão do Sdom)
   view:{live:true, playing:true, tv:0, speed:1, sel:null, ox:0, oy:0, s:1, fitS:1, fitted:false, mode:'auto'},
 };

@@ -41,6 +41,10 @@ export class Ambiente{
   // desliga: as notas futuras desse fluxo são retiradas; o que já soa termina naturalmente
   stop(key,tSample){ const st=this.on.get(key); if(!st) return; this.on.delete(key);
     for(const s of STREAMS[key].sources){ const src=this.src[s[0]]; if(src) src.notes=src.notes.filter(n=>n.start<=tSample); } }
+  // depois de um pulo no tempo: o que começaria antes de `t` (amostra) não toca mais
+  skipTo(t){ const sr=this.W.sr;
+    for(const st of this.on.values()){ let k=0; while(!st.head.done && Math.round((st.base+st.head.value.t)*sr)<t && k++<5e6) st.head=st.gen.next(); }
+    for(const s of this.W.sources) s.notes=s.notes.filter(n=>n.start>=t); }
   // põe no mundo os eventos que começam até `until` (amostra); onNote(nota, fonte, evento, início) para registrar/tocar
   pump(until,onNote){
     const sr=this.W.sr;

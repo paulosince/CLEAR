@@ -23,9 +23,9 @@ export function drawPanel(){
     const tot=rf+rl+rc; $('tFalta').textContent= tot>=10000 ? (tot/1000).toFixed(0)+' mil' : fmtInt(tot);
     falta=` · faltas por segundo de mundo: disparar ${fmtInt(rf)}, aprender ${fmtInt(rl)}, criar ${fmtInt(rc)}`; }
   else { $('tBpm').textContent='desligado'; $('tRes').textContent='—'; $('tFalta').textContent='—'; }
-  $('statsMore').textContent=`tempo do mundo ${fmt(U.t)} · ritmo ${S.labBusy?'em espera (laboratório)':(S.simRatio*100).toFixed(0)+'% do real'} · Sdom perto ${per[2]} · médio ${per[3]} · longe ${per[4]} · reforços ${fmtInt(U.ltp)} · enfraquecimentos ${fmtInt(U.ltd)} · consolidações ${fmtInt(U.consol)} · candidatas à poda ${U.candidates} · podadas ${U.prunedE} arestas, ${U.prunedN} nós${falta}`;
+  $('statsMore').textContent=`tempo do mundo ${fmt(U.t)} · ritmo ${S.labBusy?'em espera (laboratório)':(S.simRatio*100).toFixed(0)+'% do real'} · Sdom perto ${per[2]} · médio ${per[3]} · longe ${per[4]} · reforços ${fmtInt(U.ltp)} · enfraquecimentos ${fmtInt(U.ltd)} · consolidações ${fmtInt(U.consol)} · candidatas à poda ${U.candidates} · podadas ${U.prunedE} arestas, ${U.prunedN} nós${falta}${S.vida.congelamentos?` · o navegador congelou a aba ${S.vida.congelamentos}× (no último, ${S.vida.ultimoPuloS.toFixed(1)} s viraram pulo no tempo, em silêncio)`:''}`;
   const mi=micInfo();
-  if(mi){ $('micInfo').textContent=`${mi.stereo?'estéreo':'mono (os dois ouvidos recebem o mesmo som)'} · som perdido por atraso: ${mi.lostS.toFixed(1)} s`; }
+  if(mi){ $('micInfo').textContent=`${mi.stereo?'estéreo':`mono${mi.dead?` (o canal ${mi.dead==='L'?'esquerdo':'direito'} chega mudo)`:''}: os dois ouvidos recebem o mesmo som`} · som perdido por atraso: ${mi.lostS.toFixed(1)} s`; }
   if(S.view.sel) showInfo();
 }
 

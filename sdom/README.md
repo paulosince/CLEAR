@@ -42,6 +42,19 @@ Limite honesto: a CSP protege contra código de terceiros, não contra quem tem 
 
 Experimento com microfone falso do Chromium: `NODE_PATH=$(npm root -g) node experimentos/microfone.cjs`.
 
+**Mono e canal mudo.** O robô só trata o som como estéreo se os dois canais têm som e não são cópias um do
+outro. Se o aparelho entrega um canal mudo (ou mono), os dois ouvidos recebem o canal que tem som; a faixa do
+topo diz qual é o caso. (Até a v0.12 havia um defeito: um canal vazio era tratado como estéreo, e só um ouvido "funcionava".)
+
+## Vida em segundo plano (v0.13)
+
+A simulação anda por um relógio num Web Worker, que o navegador não pausa quando a aba sai de foco; o desenho
+anda pelo `requestAnimationFrame`, que é pausado. Assim, no computador, o robô continua vivendo (e os sons
+continuam) com a aba em segundo plano. Se o navegador mesmo assim congelar a aba (no celular ele suspende tudo),
+ao voltar o tempo perdido vira **pulo no tempo, em silêncio**, e o que deveria ter tocado nesse intervalo é
+descartado: o relógio do robô volta a acompanhar o real. O microfone continua parando quando a aba sai de foco
+(privacidade). Experimento: `NODE_PATH=$(npm root -g) node experimentos/segundo-plano.cjs`.
+
 ## Marcapasso de recursos (v0.11)
 
 Desenho e respaldo: [`DESENHO-marcapasso-de-recursos.md`](DESENHO-marcapasso-de-recursos.md). Termos: `GLOSSARIO.md`.
