@@ -2,13 +2,15 @@
 import { S, $, sizeCanvas, fmt, fmtInt, on } from './state.js';
 import { micInfo } from './mic.js';
 
-let lastStatT=0, lastFC=0, lastMp=null;
+let lastStatT=0, lastFC=0, lastMp=null, lastF=null, lastS=null;
 const mpSnap=U=>U.mp?{bf:U.mp.blockedFire,bl:U.mp.blockedLearn,bc:U.mp.blockedCreate,t:U.t}:null;
 export function resetRates(){ lastFC=S.U.fireCount; lastStatT=performance.now(); lastMp=mpSnap(S.U); }
 export function drawPanel(){
   const now=performance.now(); if(now-lastStatT<500) return;
   const U=S.U, dt=(now-lastStatT)/1000; lastStatT=now;
   const rate=(U.fireCount-lastFC)/dt; lastFC=U.fireCount;
+  let fF=0, fS=0; for(const n of U.nodes){ if(n.fiber) fF+=n.fires; else if(n.lvl>=2) fS+=n.fires; }
+  const rF=lastF==null?0:(fF-lastF)/dt, rS=lastS==null?0:(fS-lastS)/dt; lastF=fF; lastS=fS;
   let nos=0, fib=0; const per=[0,0,0,0,0];
   for(const n of U.nodes) if(n.diedAt===Infinity){ per[n.lvl]++; if(n.lvl>=2) nos++; else if(n.lvl===1) fib++; }
   let arestas=0, sinapses=0;
@@ -23,13 +25,17 @@ export function drawPanel(){
     const tot=rf+rl+rc; $('tFalta').textContent= tot>=10000 ? (tot/1000).toFixed(0)+' mil' : fmtInt(tot);
     falta=` · pedido ao coração ${(m.pedido??1).toFixed(2)}× o que uma batida entrega · reserva média ${Math.round(100*m.level)}% · faltas por segundo de mundo: disparar ${fmtInt(rf)}, aprender ${fmtInt(rl)}, criar ${fmtInt(rc)}`; }
   else { $('tBpm').textContent='desligado'; $('tRes').textContent='—'; $('tFalta').textContent='—'; }
-  $('statsMore').textContent=`tempo do mundo ${fmt(U.t)} · ritmo ${(S.simRatio*100).toFixed(0)}% do real · Sdom perto ${per[2]} · médio ${per[3]} · longe ${per[4]} · reforços ${fmtInt(U.ltp)} · enfraquecimentos ${fmtInt(U.ltd)} · consolidações ${fmtInt(U.consol)} · candidatas à poda ${U.candidates} · podadas ${U.prunedE} arestas, ${U.prunedN} nós${U.hebbOn?` · regra hebbiana: ${(U.hebbForm||[]).length} arestas em formação, ${U.hebbStats.fechadas} fechadas, ${U.hebbStats.recolhidas} recolhidas`:''}${falta}${S.vida.congelamentos?` · universo congelado ${S.vida.congelamentos}× com a página fora da tela (o último durou ${S.vida.ultimoCongeladoS.toFixed(1)} s, que para o robô não existiram)`:''}`;
+  $('statsMore').textContent=`tempo do mundo ${fmt(U.t)} · disparos/s: fibras ${fmtInt(rF)}, Sdom ${fmtInt(rS)} · ritmo ${(S.simRatio*100).toFixed(0)}% do real · Sdom perto ${per[2]} · médio ${per[3]} · longe ${per[4]} · reforços ${fmtInt(U.ltp)} · enfraquecimentos ${fmtInt(U.ltd)} · consolidações ${fmtInt(U.consol)} · candidatas à poda ${U.candidates} · podadas ${U.prunedE} arestas, ${U.prunedN} nós${U.hebbOn?` · regra hebbiana: ${(U.hebbForm||[]).length} arestas em formação, ${U.hebbStats.fechadas} fechadas, ${U.hebbStats.recolhidas} recolhidas`:''}${falta}${S.vida.congelamentos?` · universo congelado ${S.vida.congelamentos}× com a página fora da tela (o último durou ${S.vida.ultimoCongeladoS.toFixed(1)} s, que para o robô não existiram)`:''}`;
   const mi=micInfo();
-  if(mi){ $('micInfo').textContent=`${mi.stereo?'estéreo':`mono${mi.dead?` (o canal ${mi.dead==='L'?'esquerdo':'direito'} chega mudo)`:''}: os dois sensores recebem o mesmo som`} · som perdido por atraso: ${mi.lostS.toFixed(1)} s`; }
+  if(mi){ $('micInfo').textContent=`${mi.stereo?'estéreo':`mono${mi.dead?` (o canal ${mi.dead==='L'?'esquerdo':'direito'} chega mudo)`:''}: os dois sensores recebem o mesmo som`} · som perdido por atraso: ${mi.lostS.toFixed(1)} s`+
+    ` · nível ${mi.nivel?mi.nivel.toFixed(3):'—'} · graves (≲200 Hz, estimativa) ${mi.graves==null?'—':Math.round(100*mi.graves)+'% da energia'}`+
+    ` · o navegador aplicou: ${quem(mi.aplicado)}`; }
 
   if(S.view.sel) showInfo();
 }
 
+const simnao=v=>v===true?'sim':v===false?'não':'não informa';
+function quem(a){ if(!a) return '—'; return `cancelamento de eco ${simnao(a.eco)}, supressão de ruído ${simnao(a.ruido)}, ganho automático ${simnao(a.ganho)}${a.voz!==undefined?`, isolamento de voz ${simnao(a.voz)}`:''}, ${Math.round(a.taxa/1000)} kHz`; }
 export function showInfo(){
   const U=S.U, n=S.view.sel; if(!n){ $('info').textContent='Aproxime até ver o grafo e toque num nó para inspecionar.'; return; }
   const ms=v=>(v*1000/U.sr).toFixed(3)+' ms';

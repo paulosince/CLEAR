@@ -15,7 +15,7 @@ export async function startMic(){
   mic.starting=true; setStatus('pedindo permissão ao navegador…');
   try{
     const U=S.U;
-    const stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:{ideal:2}, echoCancellation:false, noiseSuppression:false, autoGainControl:false}});
+    const stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:{ideal:2}, echoCancellation:false, noiseSuppression:false, autoGainControl:false, voiceIsolation:false}});
     let ctx; try{ ctx=new AudioContext({sampleRate:U.sr}); }catch(e){ ctx=new AudioContext(); }
     await ctx.audioWorklet.addModule(new URL('./mic-worklet.js', import.meta.url));
     const src=ctx.createMediaStreamSource(stream);
@@ -24,7 +24,9 @@ export async function startMic(){
     const mute=ctx.createGain(); mute.gain.value=0;          // nada volta para o alto-falante
     src.connect(node); node.connect(mute); mute.connect(ctx.destination);
     const settings=stream.getAudioTracks()[0].getSettings?.()||{};
-    Object.assign(mic,{ctx, stream, node, on:true, starting:false, stereo:false, declared:(settings.channelCount||1), eL:0, eR:0, corr:0, dead:null,
+    Object.assign(mic,{ctx, stream, node, on:true, starting:false, stereo:false, declared:(settings.channelCount||1),
+      aplicado:{eco:settings.echoCancellation, ruido:settings.noiseSuppression, ganho:settings.autoGainControl, voz:settings.voiceIsolation, taxa:ctx.sampleRate},
+      lp:0, lp2:0, eLow:0, eAll:0, nMed:0, graves:null, nivel:0, eL:0, eR:0, corr:0, dead:null,
       queue:new MicQueue(Math.round(2*U.sr)), rs: ctx.sampleRate!==U.sr ? new Resampler(ctx.sampleRate,U.sr) : null,
       rec:$('micRec').checked, recBuf:[], recT0:U.t, reason:''});
     node.port.onmessage=e=>{ if(mic.muted) return;   // universo congelado: o que chega agora não existe para o robô
@@ -53,7 +55,11 @@ export function muteMic(flag){ mic.muted=!!flag; if(mic.queue){ mic.queue.size=0
 // alimenta o robô com o que chegou do microfone (chamado pelo laço da página)
 export function feedFromMic(U, budgetMs){
   const q=mic.queue, xs=[0,0], t0=performance.now(); let done=0;
-  while(q.available()){ for(let i=0;i<64 && q.take(xs);i++){ U.step(xs[0],xs[1]); done++; if(mic.rec) recPush(xs); } if(performance.now()-t0>budgetMs) break; }
+  const aLp=1-Math.exp(-2*Math.PI*200/U.sr);   // medidor: parte grave (< ~200 Hz) da energia que chega
+  while(q.available()){ for(let i=0;i<64 && q.take(xs);i++){ U.step(xs[0],xs[1]); done++; if(mic.rec) recPush(xs);
+      const x=xs[0]; mic.lp+=aLp*(x-mic.lp); mic.lp2+=aLp*(mic.lp-mic.lp2); mic.eLow+=mic.lp2*mic.lp2; mic.eAll+=x*x;
+      if(++mic.nMed>=U.sr){ mic.graves = mic.eAll>1e-9 ? mic.eLow/mic.eAll : null; mic.nivel=Math.sqrt(mic.eAll/mic.nMed); mic.eLow=0; mic.eAll=0; mic.nMed=0; } }
+    if(performance.now()-t0>budgetMs) break; }
   q.dropTo(Math.round(BACKLOG_S*U.sr));   // o que não deu para processar a tempo se perde
   return done;
 }
@@ -70,7 +76,7 @@ function classify(m){
   mic.stereo = !mic.dead && mic.corr>1e-4;
 }
 function setStatus(s){ $('micStatus').textContent=s; }
-export function micInfo(){ if(!mic.on) return null; return {stereo:mic.stereo, dead:mic.dead, declared:mic.declared, lostS: mic.queue.lost/S.U.sr, backlogS: mic.queue.available()/S.U.sr}; }
+export function micInfo(){ if(!mic.on) return null; return {stereo:mic.stereo, dead:mic.dead, declared:mic.declared, lostS: mic.queue.lost/S.U.sr, backlogS: mic.queue.available()/S.U.sr, aplicado:mic.aplicado, graves:mic.graves, nivel:mic.nivel}; }
 
 export function initMic(){
   $('micBtn').onclick=()=>{ if(mic.on) stopMic('você parou'); else startMic(); };

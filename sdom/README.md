@@ -45,6 +45,13 @@ Experimento com microfone falso do Chromium: `NODE_PATH=$(npm root -g) node expe
 outro. Se o aparelho entrega um canal mudo (ou mono), os dois sensores recebem o canal que tem som; a faixa do
 topo diz qual é o caso. (Até a v0.12 havia um defeito: um canal vazio era tratado como estéreo, e só um sensor "funcionava".)
 
+## Diagnóstico v0.19.2 (graves e sons contínuos)
+- No modelo, com som sintético, sons graves (50–200 Hz) disparam as fibras com o mesmo limiar que os agudos, e um som contínuo
+  continua sendo transduzido (≈1 360 disparos/s de fibras e ≈1 750/s no Sdom durante 2 min) enquanto os nós novos param em ~30 s.
+- Suspeita: processamento do próprio aparelho/navegador (supressão de ruído, isolamento de voz, corte de graves do microfone).
+  A faixa do microfone agora mostra o que o navegador diz ter aplicado, o nível, a parte grave da energia (estimativa) e o painel
+  separa disparos/s das fibras e do Sdom. O pedido ao microfone também pede `voiceIsolation: false`.
+
 ## Correções v0.19.1
 - "Ouvido(s)" virou **sensor(es)** na interface e no texto (decisão do Paulo; GLOSSARIO).
 - O pedido de recurso ao coração passa a incluir **o que o nó precisou e não conseguiu** (falta), não só o que gastou: antes, um nó
