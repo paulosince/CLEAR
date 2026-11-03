@@ -45,6 +45,15 @@ Experimento com microfone falso do Chromium: `NODE_PATH=$(npm root -g) node expe
 outro. Se o aparelho entrega um canal mudo (ou mono), os dois ouvidos recebem o canal que tem som; a faixa do
 topo diz qual é o caso. (Até a v0.12 havia um defeito: um canal vazio era tratado como estéreo, e só um ouvido "funcionava".)
 
+## Novo, consolidado e candidato à poda na tela (v0.17 — pedido do Paulo)
+
+- **Verde-piscina** = novo. Uma aresta é nova até a sua **primeira consolidação** (campo `consAt`, o instante em que consolidou;
+  −1 = ainda não). Depois disso não volta a ser nova, mesmo que o peso consolidado caia. Um nó do Sdom é novo até **todas** as
+  arestas vivas que chegam nele terem consolidado.
+- **Terracota tracejada** = aresta candidata à poda (inerte, contando os dias até ser podada).
+- A transdução passou de verde-água para cinza-azulado, para não confundir com o verde-piscina.
+- Robôs guardados antes: aresta com peso consolidado conta como já consolidada (`persist.js`, `migrar`).
+
 ## Só o mundo real, só o agora (v0.16 — decisões do Paulo)
 
 - **Só microfone.** Saíram da página os sons sintéticos (instrumentos, sons ambiente, sala), os experimentos manuais e o

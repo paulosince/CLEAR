@@ -33,6 +33,12 @@ test('consolidação: reforço acumulado ≥ 0,3 na janela passa o peso basal pa
   while(U.consol===0 && n<1000){ U.potentiate(eA,U.t,1); n++; }
   assert.equal(U.consol,1); assert.equal(eA.wF,0); assert.ok(eA.wS>0.75 && eA.wS<0.85, `consolidado ${eA.wS} após ${n}`);
 });
+test('aresta nova fica marcada como nova até a primeira consolidação (verde-piscina na tela), e não volta a ser nova', ()=>{
+  const {U,eA}=montagem(); assert.equal(eA.consAt,-1, 'nasce nova');
+  U.t=1234; while(U.consol===0) U.potentiate(eA,U.t,1);
+  assert.equal(eA.consAt,1234, 'marca o momento da primeira consolidação');
+  U.depress(eA,U.t,0.99); assert.equal(eA.consAt,1234, 'enfraquecer não a torna nova de novo');
+});
 test('janela de consolidação: fora dela, o acúmulo recomeça', ()=>{
   const {U,eA}=montagem(); const t=U.t; U.potentiate(eA,t,1);
   assert.equal(eA.tagUntil, t+U.tagLen);

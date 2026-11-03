@@ -1,6 +1,6 @@
 :root{
   --bg:#0f1115; --panel:#171a21; --line:#262b36; --ink:#e7e9ee; --mut:#8a92a3;
-  --l0:#9aa3b2; --l1:#3fc1b0; --l2:#5b8def; --l3:#a77bf3; --l4:#f0a04b; --hot:#ffe27a;
+  --l0:#9aa3b2; --l1:#7d8aa0; --l2:#5b8def; --l3:#a77bf3; --l4:#f0a04b; --hot:#ffe27a;
 }
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}

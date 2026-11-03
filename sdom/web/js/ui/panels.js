@@ -56,6 +56,8 @@ export function showInfo(){
     s+=`fibra ${['sensível','média','pouco sensível'][F.cls]} (+${F.db} dB) · limiar ${n.thr.toFixed(4)}\n`;
     s+=F.active?`disparos até agora ${n.fires} · cada disparo entra no Sdom como incidência de magnitude ${n.mag}\n`:`fora do alcance do microfone (acima de ${(0.45*U.sr/1000).toFixed(1)} kHz): em silêncio\n`;
     s+=`saídas para o Sdom: ${n.out.length}`; $('info').textContent=s; return; }
+  if(n.lvl>=2){ let viv=0, cons=0; for(const e of n.in){ if(e.from.lvl===0||e.diedAt!==Infinity) continue; viv++; if(e.consAt>=0) cons++; }
+    s+= cons<viv ? `NOVO (verde-piscina): ${cons} de ${viv} entradas já consolidaram\n` : `consolidado: todas as ${viv} entradas já consolidaram\n`; }
   s+=`nasceu em ${fmt(n.born)}`+(n.diedAt!==Infinity?` · PODADO em ${fmt(n.diedAt)} (ficou órfão)`:'')+`\n`;
   if(n.malha!==undefined) s+= n.malha>=0 ? `malha: estímulo #${n.malha}\n` : `malha: nenhum estímulo identificado\n`;
   s+=`janela de integração ${ms(n.W)} · refratariedade ${ms(n.refr)}\n`;
@@ -67,7 +69,7 @@ export function showInfo(){
   s+=`entradas (${n.in.length}):\n`;
   const tvv=Math.floor(S.view.tv);
   for(const e of n.in.slice(0,12)){ let w=U.wAt(e,tvv); if(w===null) w=e.mod; let ws=U.wsAt(e,tvv); if(ws===null) ws=e.wS;
-    s+=`  de #${e.from.id} (${['ouvido','fibra','n2','n3','n4'][e.from.lvl]}) atraso ${ms(e.d)}`+(e.from.lvl? ` · peso ${w.toFixed(3)} (basal ${(w-ws).toFixed(3)} · consolidado ${ws.toFixed(3)})${w<U.p.inertW?' INERTE'+(e.inertSince!==null?`, candidata à poda há ${fmt(U.t-e.inertSince)}`:''):''}`:'')+`\n`; }
+    s+=`  de #${e.from.id} (${['ouvido','fibra','n2','n3','n4'][e.from.lvl]}) atraso ${ms(e.d)}`+(e.from.lvl? ` · peso ${w.toFixed(3)} (basal ${(w-ws).toFixed(3)} · consolidado ${ws.toFixed(3)})${e.consAt>=0?` · consolidou em ${fmt(e.consAt)}`:' · NOVA (ainda não consolidou)'}${w<U.p.inertW?' INERTE'+(e.inertSince!==null?`, candidata à poda há ${fmt(U.t-e.inertSince)}`:''):''}`:'')+`\n`; }
   if(n.in.length>12) s+=`  …\n`;
   s+=`saídas: ${n.out.length}`;
   $('info').textContent=s;

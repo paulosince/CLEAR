@@ -42,4 +42,6 @@ function migrar(U, snap){
   if(typeof U.rs!=='number') U.rs=(U.t|0)^0x9e3779b9;
   if(U.histStart===undefined) U.histStart=0;
   U.p.histSeconds=DEFAULTS.histSeconds;   // gravação do observador (v0.16: só o agora); não muda o robô
+  // v0.17: momento da primeira consolidação da aresta (-1 = ainda não consolidou). Robôs anteriores: quem tem peso consolidado já consolidou.
+  for(const e of U.edges) if(e.consAt===undefined) e.consAt = e.wS>0 ? e.lastUse : -1;
 }

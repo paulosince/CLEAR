@@ -56,7 +56,7 @@ export class Universe{
     // peso (mod) só aprende em arestas que saem de nós; ouvido→nível 1 é transdução fixa
     // peso = peso basal (wF, apaga em horas) + peso consolidado (wS, apaga em semanas). Nasce só basal.
     const w0 = from.lvl===0 ? 1 : this.p.wBirth;
-    const e = {id:this.edges.length, from, to, d, wF:w0, wS:0, mod:w0, acc:0, tagUntil:-1, winExtra:0, inertSince:null, diedAt:Infinity, effect:0, born:to.born, lastUse:to.born}; // effect 0 = mantém
+    const e = {id:this.edges.length, from, to, d, wF:w0, wS:0, mod:w0, acc:0, tagUntil:-1, consAt:-1, winExtra:0, inertSince:null, diedAt:Infinity, effect:0, born:to.born, lastUse:to.born}; // effect 0 = mantém
     from.out.push(e); to.in.push(e); this.edges.push(e); return e;
   }
   // ---- peso das arestas ----
@@ -71,7 +71,7 @@ export class Universe{
     e.wF+=dw;
     if(t>e.tagUntil){ e.tagUntil=t+this.tagLen+e.winExtra; e.acc=0; }   // abre a janela de consolidação
     e.acc+=dw;
-    if(e.acc>=this.p.consolThr && (!this.mpOn || this.mpLearn(e.to,this.p.mpCostConsol))){ e.wS+=e.wF; e.wF=0; e.acc=0; this.consol++; }   // consolidação
+    if(e.acc>=this.p.consolThr && (!this.mpOn || this.mpLearn(e.to,this.p.mpCostConsol))){ e.wS+=e.wF; e.wF=0; e.acc=0; this.consol++; if(e.consAt<0) e.consAt=t; }   // consolidação
     e.mod=e.wF+e.wS; this.ltp++; this.wChanged.add(e);
   }
   depress(e,t,frac){

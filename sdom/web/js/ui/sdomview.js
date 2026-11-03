@@ -3,7 +3,9 @@
    é só a contagem de disparos recentes de cada nó, espalhada e suavizada no mapa. */
 import { S, $, sizeCanvas, emit } from './state.js';
 
-const COL=['#9aa3b2','#3fc1b0','#5b8def','#a77bf3','#f0a04b'];
+const COL=['#9aa3b2','#7d8aa0','#5b8def','#a77bf3','#f0a04b'];
+const NOVO='#1de9d6';     // verde-piscina: nó ou aresta nova, ainda não consolidada (pedido do Paulo)
+const PODRE='#c4623a';    // terracota: aresta candidata à poda (inerte, esperando os dias de poda)
 const RAD=[9,3.4,4,5,6.5];
 const WORLD={w:1300, h:1000};        // área do desenho do Sdom (coordenadas dos nós)
 const TAU=0.25;                       // atividade recente: média com esquecimento de 0,25 s
@@ -103,13 +105,16 @@ function drawGraph(g,c,d){
   g.fillText('esq.', X(20), Y(250)+24*d); g.fillText('dir.', X(20), Y(750)+24*d);
   if(ne<=15000){
     const B=[['rgba(140,150,170,0.06)',0.6],['rgba(150,170,210,0.16)',1],['rgba(120,190,255,0.45)',1.4]];
-    const paths=[new Path2D(),new Path2D(),new Path2D()], inert=new Path2D(), cons=new Path2D();
+    const paths=[new Path2D(),new Path2D(),new Path2D()], inert=new Path2D(), cons=new Path2D(), novo=new Path2D(), podre=new Path2D();
     for(let i=0;i<ne;i++){ const e=U.edges[i]; if(e.from.lvl===0||e.diedAt<=tv) continue; let w=U.wAt(e,tv); if(w===null) w=e.mod; let ws=U.wsAt(e,tv); if(ws===null) ws=e.wS;
-      const p = w<U.p.inertW ? inert : (ws>0.5*w && w>=0.35 ? cons : paths[w<0.35?0:(w<0.7?1:2)]);
+      const p = e.inertSince!==null ? podre : !(e.consAt>=0 && e.consAt<=tv) ? (w<U.p.inertW ? inert : novo)
+        : w<U.p.inertW ? inert : (ws>0.5*w && w>=0.35 ? cons : paths[w<0.35?0:(w<0.7?1:2)]);
       p.moveTo(X(e.from.x),Y(e.from.y)); p.lineTo(X(e.to.x),Y(e.to.y)); }
     for(let k=0;k<3;k++){ g.strokeStyle=B[k][0]; g.lineWidth=B[k][1]*d; g.stroke(paths[k]); }
     g.strokeStyle='rgba(240,160,75,0.55)'; g.lineWidth=1.4*d; g.stroke(cons);
     g.setLineDash([3*d,4*d]); g.strokeStyle='rgba(120,120,120,0.25)'; g.lineWidth=0.7*d; g.stroke(inert); g.setLineDash([]);
+    g.strokeStyle=NOVO; g.globalAlpha=0.5; g.lineWidth=1.1*d; g.stroke(novo);
+    g.strokeStyle=PODRE; g.globalAlpha=0.9; g.lineWidth=1.4*d; g.setLineDash([4*d,3*d]); g.stroke(podre); g.setLineDash([]); g.globalAlpha=1;
   }
   g.strokeStyle='rgba(255,226,122,0.55)'; g.lineWidth=1.3*d; g.beginPath();
   for(let i=0;i<ne;i++){ const e=U.edges[i]; if(e.diedAt<=tv) continue; if(glow[e.to.id]>0 && (glow[e.from.id]>0 || e.from.lvl===0)){ g.moveTo(X(e.from.x),Y(e.from.y)); g.lineTo(X(e.to.x),Y(e.to.y)); } }
@@ -122,6 +127,10 @@ function drawGraph(g,c,d){
   for(let l=0;l<=4;l++){ g.fillStyle=COL[l]; g.globalAlpha=l===0?0.9:0.45; g.beginPath(); const r=RAD[l]*d*zr;
     for(let i=0;i<nv;i++){ const n=U.nodes[i]; if(n.lvl!==l||n.diedAt<=tv||(n.fiber&&!n.fiber.active)) continue; const x=X(n.x),y=Y(n.y); if(x<-10||y<-10||x>W+10||y>H+10) continue; g.moveTo(x+r,y); g.arc(x,y,r,0,6.2832); }
     g.fill(); }
+  // nós novos (verde-piscina) até todas as arestas que chegam neles terem consolidado
+  g.globalAlpha=0.95; g.fillStyle=NOVO; g.beginPath();
+  for(let i=0;i<nv;i++){ const n=U.nodes[i]; if(n.lvl<2||n.diedAt<=tv||!noNovo(n,tv)) continue; const x=X(n.x),y=Y(n.y); if(x<-10||y<-10||x>W+10||y>H+10) continue; const r=RAD[n.lvl]*d*zr; g.moveTo(x+r,y); g.arc(x,y,r,0,6.2832); }
+  g.fill();
   g.globalAlpha=0.25; g.fillStyle='#4a5160'; g.beginPath();
   { const r=RAD[1]*d*zr; for(let i=0;i<nv;i++){ const n=U.nodes[i]; if(!n.fiber||n.fiber.active) continue; const x=X(n.x),y=Y(n.y); g.moveTo(x+r,y); g.arc(x,y,r,0,6.2832); } }
   g.fill(); g.globalAlpha=1;
@@ -134,6 +143,8 @@ function drawGraph(g,c,d){
   if(sel && sel.id<nv){ g.strokeStyle='#78c8ff'; g.lineWidth=2*d; g.beginPath(); g.arc(X(sel.x),Y(sel.y),RAD[sel.lvl]*d*zr*2.8,0,6.2832); g.stroke(); }
   drawBody(g,d,X,Y,zr,nv);
 }
+// nó novo = alguma aresta viva que chega nele ainda não consolidou
+export function noNovo(n,tv){ for(const e of n.in){ if(e.from.lvl===0||e.diedAt<=tv) continue; if(!(e.consAt>=0 && e.consAt<=tv)) return true; } return false; }
 // Corpo: o marcapasso de recursos (fora do Sdom, como os ouvidos) e as fibras do corpo (transdução endógena)
 export const HEART={x:60, y:500};
 function drawBody(g,d,X,Y,zr,nv){

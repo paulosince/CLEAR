@@ -36,3 +36,10 @@ test('parâmetro que não existia quando o robô foi guardado recebe o valor pad
 test('formato futuro desconhecido é recusado (não estraga nada)', ()=>{
   assert.throws(()=>restoreFrom({format:999, G:[]}));
 });
+
+test('robô guardado antes da v0.17: aresta com peso consolidado conta como já consolidada', ()=>{
+  const U=new Universe(Object.assign({},DEFAULTS),5); const e=U.edges.find(x=>x.from.lvl>=1) || U.edges[U.edges.length-1];
+  const foto=structuredClone(snapshotOf(U)); for(const x of foto.G) if(x.$o && 'consAt' in x.$o){ delete x.$o.consAt; if(x.$o.id===0) x.$o.wS=0.4; }
+  const R=restoreFrom(foto); assert.ok(R.edges.every(x=>typeof x.consAt==='number'));
+  assert.ok(R.edges[0].consAt>=0, 'tinha peso consolidado'); assert.ok(R.edges.slice(1).every(x=>x.consAt===-1 || x.wS>0));
+});
