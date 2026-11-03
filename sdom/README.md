@@ -50,7 +50,7 @@ topo diz qual é o caso. (Até a v0.12 havia um defeito: um canal vazio era trat
 - **Só microfone.** Saíram da página os sons sintéticos (instrumentos, sons ambiente, sala), os experimentos manuais e o
   laboratório. O código deles continua em `web/js/env/` e `web/js/lab/` porque os **testes automáticos** usam esses sons para
   conferir as regras; os experimentos de navegador que dependiam deles (convergência, decaimento, poda, discriminação,
-  laboratório, segundo plano) foram retirados (estão no histórico do git). Com o microfone desligado, o robô vive em silêncio.
+  laboratório, segundo plano) foram retirados (estão no histórico do git). Com a página na tela e o microfone desligado, o robô continua vivendo em silêncio (decisão do Paulo).
 - **Só ao vivo.** Saíram a fita, voltar/avançar, velocidade de exibição, velocidade do mundo e "pular no tempo".
   A gravação do observador ficou só com o necessário para desenhar o agora (`histSeconds` = 3 s).
 - **Universo congelado.** Página fora da tela, fechada ou recarregada: nada acontece para o robô. Ao voltar, ele continua do
