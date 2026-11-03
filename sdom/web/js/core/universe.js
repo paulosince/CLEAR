@@ -35,6 +35,7 @@ export class Universe{
     this.buildCochlea();
     this.mpOn = !!p.mpOn; this.sdomList = [];
     if(this.mpOn) this.mpInit();
+    this.respOn = this.mpOn && !!p.respOn; if(this.respOn) this.respInit();
     this.hebbOn = !!p.hebbOn; this.hebbInit();
   }
   // gravação do observador (para voltar a fita na tela). Não é estado do robô: não é guardada ao retomar.
@@ -125,6 +126,7 @@ export class Universe{
     this.actStart=this.t;
     this.stimLog.push({t:t0, jumpS:samples/this.sr});
     if(this.mpOn) this.mpJump(samples);
+    if(this.respOn){ const r=this.resp, fr=this.p.respRestPm/60; r.estoque=this.p.respEstoqueMax; r.residuo=0; r.f=fr; r.fAlvo=fr; r.phase=0; r.metade=false; }
     if(this.hebbOn){ this.hebbRecS.length=0; this.hebbRecF.length=0; this.hHS=0; this.hHF=0; this.hebbVerifica(this.t); }
     this.sweep(this.t);
   }
@@ -439,6 +441,7 @@ export class Universe{
     this.mp.opsSpent+=cost; return Math.max(0,p.mpCap0-cost);
   }
   mpStep(t){
+    if(this.respOn) this.respStep(t);
     const mp=this.mp;
     if((t&63)===0){   // reflexo fixo e mudança lenta do ritmo
       mp.press*=this.mpPressK;
@@ -461,15 +464,45 @@ export class Universe{
       alive++; sumFrac+=Math.max(0,n.res)/n.cap;   // nível geral medido ANTES da reposição (o ponto mais baixo do ciclo)
       // o pedido inclui o que o nó precisou e não conseguiu (falta), não só o que gastou (v0.19.1)
       n.want=Math.max(0,Math.min(n.cap-n.res, p.mpBaseOps+p.mpOver*(n.spent+(n.falta||0)))); req+=n.want; }
-    const give=p.mpBeatOps, k= req>0 ? Math.min(1,give/req) : 0;
+    const give = this.respOn ? Math.min(p.mpBeatOps, this.resp.estoque) : p.mpBeatOps;   // o coração distribui o que há no estoque
+    const k= req>0 ? Math.min(1,give/req) : 0;
     let delivered=0;
     for(let i=0;i<L.length;i++){ const n=L[i]; if(n.diedAt!==Infinity) continue;
       const g=n.want*k; n.res+=g; delivered+=g; n.spent=0; n.falta=0; n.blocked=false; }
+    if(this.respOn){ this.resp.estoque-=delivered; this.resp.residuo+=delivered; this.resp.tirado+=delivered; }   // o gasto vira resíduo
     mp.level = alive? sumFrac/alive : 1; mp.shortFrac = alive? short/alive : 0; mp.opsDelivered+=delivered; mp.lastDelivered=delivered; mp.lastRequested=req;
     mp.press+=1;   // força da batida fixa nesta versão
-    this.mpPedido(req, give, dt);
+    this.mpPedido(req, p.mpBeatOps, dt);
     // transdução endógena: a batida e o nível geral entram no Sdom como incidências
     for(const f of this.endoFibers){ const e=f.endo; if(e.kind==='batida' ? 1>=e.thr : mp.level>=e.thr) this.fire(f,t); }
+  }
+  // ---- RESPIRAÇÃO (v0.20) ----
+  // Ritmo próprio, fora do Sdom. A cada respiração: inspira (repõe o ESTOQUE) e, na metade do ciclo, expira (retira parte do
+  // RESÍDUO). Reflexo fixo: resíduo acima da referência acelera a respiração na mesma proporção (até o teto).
+  // Transdução endógena: fibras da inspiração, da expiração e do nível de resíduo entram no Sdom como incidências.
+  respInit(){
+    const p=this.p, fr=p.respRestPm/60;
+    this.resp={ f:fr, fAlvo:fr, phase:0, metade:false, estoque:p.respEstoqueMax, residuo:0, respiracoes:0, tirado:0 };
+    this.respRateK=1-Math.exp(-64/(p.respRitmoTauS*this.sr));
+    this.respFibers=[];
+    const mk=(kind,thr,i,y)=>{ const n=this.addNode({lvl:1, depth:1, ear:-1, W:1, thr:0, mag:1, refr:1, born:this.t||0, x:360+i*30, y, endo:{kind,thr}}); this.respFibers.push(n); return n; };
+    mk('inspira',0,0,500); mk('expira',0,1,500);
+    [1,2,4].forEach((th,i)=>mk('residuo',th,i,525));
+  }
+  respStep(t){
+    const r=this.resp, p=this.p;
+    if((t&63)===0){
+      const fr=p.respRestPm/60, fMax=Math.max(fr,p.respMaxPm/60);
+      r.fAlvo=Math.min(fMax, fr*Math.max(1, r.residuo/p.respResiduoRef));
+      r.f+=(r.fAlvo-r.f)*this.respRateK;
+    }
+    r.phase+=r.f/this.sr;
+    if(!r.metade && r.phase>=0.5){ r.metade=true;   // expira: tira resíduo
+      const rel=r.residuo/p.respResiduoRef; r.residuo*=1-p.respRetira;
+      for(const f of this.respFibers){ const e=f.endo; if(e.kind==='expira' || (e.kind==='residuo' && rel>=e.thr)) this.fire(f,t); } }
+    if(r.phase>=1){ r.phase-=1; r.metade=false; r.respiracoes++;   // inspira: repõe estoque
+      r.estoque=Math.min(p.respEstoqueMax, r.estoque+p.respEntrada);
+      for(const f of this.respFibers) if(f.endo.kind==='inspira') this.fire(f,t); }
   }
   // Pedido de recurso → ritmo. r = pedido total ÷ o que uma batida entrega (1 = a batida dá conta).
   // O sinal sobe rápido e desce devagar; o ritmo-alvo cresce na mesma proporção (até o teto), e u é o ajuste

@@ -45,6 +45,20 @@ Experimento com microfone falso do Chromium: `NODE_PATH=$(npm root -g) node expe
 outro. Se o aparelho entrega um canal mudo (ou mono), os dois sensores recebem o canal que tem som; a faixa do
 topo diz qual é o caso. (Até a v0.12 havia um defeito: um canal vazio era tratado como estéreo, e só um sensor "funcionava".)
 
+## Respiração (v0.20 — decisões do Paulo)
+
+- **Respiração**: gerador de ritmo próprio, fora do Sdom (como o coração), com repouso de 15/min e teto de 40/min.
+  A cada **inspiração** repõe o **estoque** de recurso; a cada **expiração** tira metade do **resíduo**.
+- **O coração distribui o que há no estoque**: cada batida entrega no máximo o que o estoque tem; o que é entregue (gasto) vira resíduo.
+- **Reflexo fixo**: resíduo acima da referência acelera a respiração na mesma proporção (até o teto); com o resíduo saindo, volta ao
+  repouso. O pedido de recurso continua acelerando o coração (v0.18). Os dois juntos: grito → coração no teto, respiração 15 → ~38/min
+  em ~8 s, estoque cai (300 mil → ~165 mil); depois, a respiração volta ao repouso em ~10 s e o coração em ~25 s (medido, som sintético).
+- **Transdução endógena**: 5 fibras da respiração entram no Sdom como incidências — inspira, expira e nível de resíduo (1×, 2×, 4× a referência).
+  A fase da respiração influencia memória e medo em humanos (Zelano et al., 2016); o ritmo nasce de uma rede no tronco (Smith et al., 1991);
+  o CO₂ é o principal motor do ritmo; o córtex pode assumir por um tempo, mas o automático retoma.
+- O **comando voluntário** fica para quando estudarmos aprendizado por aferências e exploração por eferência (decisão do Paulo).
+- Números (entrada por respiração, tamanho do estoque, referência do resíduo, ritmos): pontos de partida do Claude, a revisar.
+
 ## Diagnóstico v0.19.2 (graves e sons contínuos)
 - No modelo, com som sintético, sons graves (50–200 Hz) disparam as fibras com o mesmo limiar que os agudos, e um som contínuo
   continua sendo transduzido (≈1 360 disparos/s de fibras e ≈1 750/s no Sdom durante 2 min) enquanto os nós novos param em ~30 s.

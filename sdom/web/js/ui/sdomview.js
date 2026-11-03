@@ -162,6 +162,7 @@ export function noNovo(n,tv){ for(const e of n.in){ if(e.from.lvl===0||e.diedAt<
 export function noPodre(n,tv){ let k=0; for(const e of n.in){ if(e.from.lvl===0||e.diedAt<=tv) continue; if(e.inertSince===null) return false; k++; } return k>0; }
 // Corpo: o marcapasso de recursos (fora do Sdom, como os sensores) e as fibras do corpo (transdução endógena)
 export const HEART={x:60, y:500};
+export const LUNG={x:60, y:590};
 function drawBody(g,d,X,Y,zr,nv){
   const U=S.U; if(!U.mpOn || !U.endoFibers) return;
   const hx=X(HEART.x), hy=Y(HEART.y); let pulse=0;
@@ -178,6 +179,15 @@ function drawBody(g,d,X,Y,zr,nv){
   g.font=`${10*d}px system-ui`; g.fillStyle='#c98a99';
   g.fillText('marcapasso de recursos', hx, hy+20*d*Math.max(0.8,Math.min(1.6,zr)));
   g.fillText('corpo', X(270), Y(545)+8*d);
+  // respiração: repõe o estoque e tira o resíduo (v0.20)
+  if(U.respOn && U.respFibers){ const lx=X(LUNG.x), ly=Y(LUNG.y), R=U.resp, z=Math.max(0.8,Math.min(1.6,zr));
+    g.strokeStyle='rgba(120,190,230,0.4)'; g.lineWidth=0.8*d; g.beginPath(); for(const f of U.respFibers){ g.moveTo(lx,ly); g.lineTo(X(f.x),Y(f.y)); } g.stroke();
+    g.fillStyle='#78bee6'; g.beginPath(); for(const f of U.respFibers){ const x=X(f.x),y=Y(f.y); g.moveTo(x+r,y); g.arc(x,y,r,0,6.2832); } g.fill();
+    for(const f of U.respFibers) if(f.id<nv && glow[f.id]>0){ g.fillStyle=`rgba(255,226,122,${0.35+0.65*glow[f.id]})`; g.beginPath(); g.arc(X(f.x),Y(f.y),r*1.7,0,6.2832); g.fill(); }
+    const insp = R.phase<0.5 ? Math.sin(Math.PI*R.phase/0.5) : 0;   // o desenho "enche" na inspiração
+    g.fillStyle='#78bee6'; g.font=`${Math.round((15+7*insp)*d*z)}px system-ui`; g.fillText('≋',lx,ly);
+    if(sel&&sel.lung){ g.strokeStyle='#78c8ff'; g.lineWidth=2*d; g.beginPath(); g.arc(lx,ly,14*d*zr,0,6.2832); g.stroke(); }
+    g.font=`${10*d}px system-ui`; g.fillStyle='#8ab8d4'; g.fillText('respiração', lx, ly+20*d*z); }
   g.textAlign='start'; g.textBaseline='alphabetic';
 }
 
@@ -194,6 +204,7 @@ function pick(px,py){
   const U=S.U, v=S.view, nv=U.visibleCount(Math.floor(v.tv)); let best=null, bd=18;
   for(let i=0;i<nv;i++){ const n=U.nodes[i]; if(n.diedAt<=v.tv) continue; const dd=Math.hypot(n.x*v.s+v.ox-px, n.y*v.s+v.oy-py); if(dd<bd){ bd=dd; best=n; } }
   if(U.mpOn){ const dd=Math.hypot(HEART.x*v.s+v.ox-px, HEART.y*v.s+v.oy-py); if(dd<Math.max(bd,22)) best={heart:true}; }
+  if(U.respOn){ const dd=Math.hypot(LUNG.x*v.s+v.ox-px, LUNG.y*v.s+v.oy-py); if(dd<Math.max(bd,22)) best={lung:true}; }
   v.sel=best; emit('selecao');
 }
 export function initSdomView(){

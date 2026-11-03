@@ -21,9 +21,9 @@ export function drawPanel(){
   let falta='';
   if(U.mp){ const m=U.mp, s=mpSnap(U), ws=lastMp&&s.t>lastMp.t ? (s.t-lastMp.t)/U.sr : 0;
     const r=k=> ws>0 ? (s[k]-lastMp[k])/ws : 0, rf=r('bf'), rl=r('bl'), rc=r('bc'); lastMp=s;
-    $('tBpm').textContent=Math.round(m.f*60)+'/min'; $('tRes').textContent=Math.round(100*(m.shortFrac||0))+'%';
+    $('tBpm').textContent=Math.round(m.f*60)+'/min'; if(U.resp){ $('tResp').textContent=Math.round(U.resp.f*60)+'/min'; } $('tRes').textContent=Math.round(100*(m.shortFrac||0))+'%';
     const tot=rf+rl+rc; $('tFalta').textContent= tot>=10000 ? (tot/1000).toFixed(0)+' mil' : fmtInt(tot);
-    falta=` · pedido ao coração ${(m.pedido??1).toFixed(2)}× o que uma batida entrega · reserva média ${Math.round(100*m.level)}% · faltas por segundo de mundo: disparar ${fmtInt(rf)}, aprender ${fmtInt(rl)}, criar ${fmtInt(rc)}`; }
+    falta=`${U.resp?` · respiração: estoque ${Math.round(100*U.resp.estoque/U.p.respEstoqueMax)}%, resíduo ${(U.resp.residuo/U.p.respResiduoRef).toFixed(1)}× a referência`:''} · pedido ao coração ${(m.pedido??1).toFixed(2)}× o que uma batida entrega · reserva média ${Math.round(100*m.level)}% · faltas por segundo de mundo: disparar ${fmtInt(rf)}, aprender ${fmtInt(rl)}, criar ${fmtInt(rc)}`; }
   else { $('tBpm').textContent='desligado'; $('tRes').textContent='—'; $('tFalta').textContent='—'; }
   $('statsMore').textContent=`tempo do mundo ${fmt(U.t)} · disparos/s: fibras ${fmtInt(rF)}, Sdom ${fmtInt(rS)} · ritmo ${(S.simRatio*100).toFixed(0)}% do real · Sdom perto ${per[2]} · médio ${per[3]} · longe ${per[4]} · reforços ${fmtInt(U.ltp)} · enfraquecimentos ${fmtInt(U.ltd)} · consolidações ${fmtInt(U.consol)} · candidatas à poda ${U.candidates} · podadas ${U.prunedE} arestas, ${U.prunedN} nós${U.hebbOn?` · regra hebbiana: ${(U.hebbForm||[]).length} arestas em formação, ${U.hebbStats.fechadas} fechadas, ${U.hebbStats.recolhidas} recolhidas`:''}${falta}${S.vida.congelamentos?` · universo congelado ${S.vida.congelamentos}× com a página fora da tela (o último durou ${S.vida.ultimoCongeladoS.toFixed(1)} s, que para o robô não existiram)`:''}`;
   const mi=micInfo();
@@ -51,6 +51,16 @@ export function showInfo(){
       `faltas acumuladas: disparar ${m.blockedFire.toLocaleString('pt-BR')} · aprender ${m.blockedLearn.toLocaleString('pt-BR')} · criar ${m.blockedCreate.toLocaleString('pt-BR')}\n`+
       `sinal de volta ao Sdom: ${U.endoFibers.length} fibras do corpo (batida e nível)\n`+
       `eferência (o Sdom agir sobre ele): ainda não existe`; return; }
+  if(n.lung){ const R=U.resp, P=U.p;
+    $('info').textContent=`≋ respiração · fora do Sdom (como o coração)\n`+
+      `ritmo agora ${(R.f*60).toFixed(0)}/min · alvo ${(R.fAlvo*60).toFixed(0)}/min · repouso ${P.respRestPm}/min · teto ${P.respMaxPm}/min\n`+
+      `estoque ${Math.round(R.estoque).toLocaleString('pt-BR')} de ${P.respEstoqueMax.toLocaleString('pt-BR')} (cada respiração repõe ${P.respEntrada.toLocaleString('pt-BR')}; o coração distribui o que há aqui)\n`+
+      `resíduo ${Math.round(R.residuo).toLocaleString('pt-BR')} (referência ${P.respResiduoRef.toLocaleString('pt-BR')}: acima dela a respiração acelera; cada expiração tira ${Math.round(100*P.respRetira)}%)\n`+
+      `respirações até agora ${R.respiracoes} · sinal de volta ao Sdom: ${U.respFibers.length} fibras (inspira, expira e nível de resíduo)\n`+
+      `comando voluntário (o Sdom prender ou acelerar a respiração): fica para a eferência`; return; }
+  if(n.endo && n.endo.kind!=='batida' && n.endo.kind!=='nivel'){ const E=n.endo;
+    s+=`fibra do corpo (transdução endógena da respiração) · ${E.kind==='inspira'?'dispara a cada inspiração':E.kind==='expira'?'dispara a cada expiração':`nível de resíduo: dispara na expiração se o resíduo ≥ ${E.thr}× a referência`}\n`;
+    s+=`disparos até agora ${n.fires} · saídas para o Sdom: ${n.out.length}`; $('info').textContent=s; return; }
   if(n.endo){ const E=n.endo;
     s+=`fibra do corpo (transdução endógena) · ${E.kind==='batida'?`batida: dispara a cada batida com força ≥ ${E.thr}`:`nível geral da reserva operacional: dispara junto com a batida se o nível ≥ ${(E.thr*100).toFixed(0)}%`}\n`;
     s+=`disparos até agora ${n.fires} · magnitude ${n.mag} · saídas para o Sdom: ${n.out.length}`; $('info').textContent=s; return; }

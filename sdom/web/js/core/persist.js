@@ -46,6 +46,9 @@ function migrar(U, snap){
   for(const e of U.edges) if(e.consAt===undefined) e.consAt = e.wS>0 ? e.lastUse : -1;
   // v0.18: pedido de recurso → ritmo
   if(U.mp && U.mp.pedido===undefined){ U.mp.pedido=1; U.mp.u=0; U.mp.fAlvo=U.p.mpRestBpm/60; }
+  // v0.20: respiração
+  if(U.respOn===undefined){ U.respOn = U.mpOn && !!U.p.respOn; if(U.respOn) U.respInit(); }
+  else if(U.respOn) U.respRateK=1-Math.exp(-64/(U.p.respRitmoTauS*U.sr));
   // v0.19: regra hebbiana
   if(U.hebbPar===undefined){ U.hebbOn=!!U.p.hebbOn; U.hebbInit(); } else U.hebbConst();
 }
