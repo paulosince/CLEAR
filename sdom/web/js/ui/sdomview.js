@@ -156,7 +156,13 @@ function drawBody(g,d,X,Y,zr,nv){
 }
 
 // ---------- interação: arrastar, pinça, roda, toque ----------
-export function zoomAt(cx,cy,ns,base){ const v=S.view; ns=Math.max(0.15,Math.min(12,ns)); const b=base||{s:v.s,ox:v.ox,oy:v.oy}; const wx=(cx-b.ox)/b.s, wy=(cy-b.oy)/b.s; v.s=ns; v.ox=cx-wx*ns; v.oy=cy-wy*ns; }
+// zoom limitado em relação ao "ajustado" (metade a 40×), para o conteúdo não sumir
+export function zoomAt(cx,cy,ns,base){ const v=S.view; ns=Math.max(0.5*v.fitS,Math.min(40*v.fitS,ns)); const b=base||{s:v.s,ox:v.ox,oy:v.oy}; const wx=(cx-b.ox)/b.s, wy=(cy-b.oy)/b.s; v.s=ns; v.ox=cx-wx*ns; v.oy=cy-wy*ns; keepInView(); }
+// nunca deixa o conteúdo sair inteiro da tela: pelo menos uma faixa dele fica visível
+function keepInView(){ const v=S.view, c=$('sdom'), r=c.getBoundingClientRect(), m=60;
+  const x0=v.ox, x1=v.ox+WORLD.w*v.s, y0=v.oy, y1=v.oy+WORLD.h*v.s;
+  if(x1<m) v.ox+=m-x1; if(x0>r.width-m) v.ox-=x0-(r.width-m);
+  if(y1<m) v.oy+=m-y1; if(y0>r.height-m) v.oy-=y0-(r.height-m); }
 function pick(px,py){
   if(graphShare()<0.5) return;          // no mapa de atividade não há nós para tocar
   const U=S.U, v=S.view, nv=U.visibleCount(Math.floor(v.tv)); let best=null, bd=18;
@@ -169,8 +175,14 @@ export function initSdomView(){
   c.addEventListener('pointerdown',e=>{ c.setPointerCapture(e.pointerId); ptrs.set(e.pointerId,{x:e.offsetX,y:e.offsetY}); if(ptrs.size===1) start={x:e.offsetX,y:e.offsetY,ox:v.ox,oy:v.oy,moved:false}; if(ptrs.size===2){ const [a,b]=[...ptrs.values()]; pinch={d:Math.hypot(a.x-b.x,a.y-b.y),s:v.s,cx:(a.x+b.x)/2,cy:(a.y+b.y)/2,ox:v.ox,oy:v.oy}; } });
   c.addEventListener('pointermove',e=>{ if(!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId,{x:e.offsetX,y:e.offsetY});
     if(ptrs.size===2&&pinch){ const [a,b]=[...ptrs.values()]; zoomAt(pinch.cx,pinch.cy,pinch.s*Math.hypot(a.x-b.x,a.y-b.y)/pinch.d,pinch); }
-    else if(ptrs.size===1&&start){ const dx=e.offsetX-start.x, dy=e.offsetY-start.y; if(Math.abs(dx)+Math.abs(dy)>6) start.moved=true; if(start.moved){ v.ox=start.ox+dx; v.oy=start.oy+dy; } } });
-  const up=e=>{ if(ptrs.size===1&&start&&!start.moved) pick(e.offsetX,e.offsetY); ptrs.delete(e.pointerId); if(ptrs.size<2) pinch=null; if(ptrs.size===0) start=null; };
+    else if(ptrs.size===1&&start){ const dx=e.offsetX-start.x, dy=e.offsetY-start.y; if(Math.abs(dx)+Math.abs(dy)>6) start.moved=true; if(start.moved){ v.ox=start.ox+dx; v.oy=start.oy+dy; keepInView(); } } });
+  // toque duplo: volta ao ponto original (centralizar)
+  let lastTap={t:0,x:0,y:0};
+  const up=e=>{ if(ptrs.size===1&&start&&!start.moved){ const now=performance.now();
+      if(now-lastTap.t<350 && Math.hypot(e.offsetX-lastTap.x,e.offsetY-lastTap.y)<30){ fitView(); lastTap.t=0; }
+      else { pick(e.offsetX,e.offsetY); lastTap={t:now,x:e.offsetX,y:e.offsetY}; } }
+    ptrs.delete(e.pointerId); if(ptrs.size<2) pinch=null; if(ptrs.size===0) start=null; };
+  c.addEventListener('dblclick',e=>{ e.preventDefault(); fitView(); });
   c.addEventListener('pointerup',up); c.addEventListener('pointercancel',e=>{ ptrs.delete(e.pointerId); pinch=null; start=null; });
   c.addEventListener('wheel',e=>{ e.preventDefault(); zoomAt(e.offsetX,e.offsetY,v.s*Math.exp(-e.deltaY*0.0015)); },{passive:false});
   const mid=k=>{ const r=c.getBoundingClientRect(); zoomAt(r.width/2,r.height/2,v.s*k); };
