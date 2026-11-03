@@ -50,7 +50,8 @@ topo diz qual é o caso. (Até a v0.12 havia um defeito: um canal vazio era trat
 - **Verde-piscina** = novo. Uma aresta é nova até a sua **primeira consolidação** (campo `consAt`, o instante em que consolidou;
   −1 = ainda não). Depois disso não volta a ser nova, mesmo que o peso consolidado caia. Um nó do Sdom é novo até **todas** as
   arestas vivas que chegam nele terem consolidado.
-- **Terracota tracejada** = aresta candidata à poda (inerte, contando os dias até ser podada).
+- **Terracota tracejada** = aresta candidata à poda (inerte, contando os dias até ser podada). Um nó fica **terracota** quando
+  todas as arestas vivas que chegam nele são candidatas (quando forem podadas, ele fica órfão e é podado). Terracota vale mais que verde.
 - A transdução passou de verde-água para cinza-azulado, para não confundir com o verde-piscina.
 - Robôs guardados antes: aresta com peso consolidado conta como já consolidada (`persist.js`, `migrar`).
 

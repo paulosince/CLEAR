@@ -129,8 +129,12 @@ function drawGraph(g,c,d){
     g.fill(); }
   // nós novos (verde-piscina) até todas as arestas que chegam neles terem consolidado
   g.globalAlpha=0.95; g.fillStyle=NOVO; g.beginPath();
-  for(let i=0;i<nv;i++){ const n=U.nodes[i]; if(n.lvl<2||n.diedAt<=tv||!noNovo(n,tv)) continue; const x=X(n.x),y=Y(n.y); if(x<-10||y<-10||x>W+10||y>H+10) continue; const r=RAD[n.lvl]*d*zr; g.moveTo(x+r,y); g.arc(x,y,r,0,6.2832); }
+  const podres=new Path2D();
+  for(let i=0;i<nv;i++){ const n=U.nodes[i]; if(n.lvl<2||n.diedAt<=tv) continue; const x=X(n.x),y=Y(n.y); if(x<-10||y<-10||x>W+10||y>H+10) continue; const r=RAD[n.lvl]*d*zr;
+    if(noPodre(n,tv)){ podres.moveTo(x+r,y); podres.arc(x,y,r,0,6.2832); } else if(noNovo(n,tv)){ g.moveTo(x+r,y); g.arc(x,y,r,0,6.2832); } }
   g.fill();
+  // nós cujas entradas vivas são todas candidatas à poda (vão ficar órfãos): terracota
+  g.fillStyle=PODRE; g.fill(podres);
   g.globalAlpha=0.25; g.fillStyle='#4a5160'; g.beginPath();
   { const r=RAD[1]*d*zr; for(let i=0;i<nv;i++){ const n=U.nodes[i]; if(!n.fiber||n.fiber.active) continue; const x=X(n.x),y=Y(n.y); g.moveTo(x+r,y); g.arc(x,y,r,0,6.2832); } }
   g.fill(); g.globalAlpha=1;
@@ -145,6 +149,8 @@ function drawGraph(g,c,d){
 }
 // nó novo = alguma aresta viva que chega nele ainda não consolidou
 export function noNovo(n,tv){ for(const e of n.in){ if(e.from.lvl===0||e.diedAt<=tv) continue; if(!(e.consAt>=0 && e.consAt<=tv)) return true; } return false; }
+// nó "podre" = tem entradas vivas e todas são candidatas à poda (quando forem podadas, o nó fica órfão e é podado)
+export function noPodre(n,tv){ let k=0; for(const e of n.in){ if(e.from.lvl===0||e.diedAt<=tv) continue; if(e.inertSince===null) return false; k++; } return k>0; }
 // Corpo: o marcapasso de recursos (fora do Sdom, como os ouvidos) e as fibras do corpo (transdução endógena)
 export const HEART={x:60, y:500};
 function drawBody(g,d,X,Y,zr,nv){

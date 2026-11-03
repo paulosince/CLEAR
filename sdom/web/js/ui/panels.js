@@ -56,8 +56,8 @@ export function showInfo(){
     s+=`fibra ${['sensível','média','pouco sensível'][F.cls]} (+${F.db} dB) · limiar ${n.thr.toFixed(4)}\n`;
     s+=F.active?`disparos até agora ${n.fires} · cada disparo entra no Sdom como incidência de magnitude ${n.mag}\n`:`fora do alcance do microfone (acima de ${(0.45*U.sr/1000).toFixed(1)} kHz): em silêncio\n`;
     s+=`saídas para o Sdom: ${n.out.length}`; $('info').textContent=s; return; }
-  if(n.lvl>=2){ let viv=0, cons=0; for(const e of n.in){ if(e.from.lvl===0||e.diedAt!==Infinity) continue; viv++; if(e.consAt>=0) cons++; }
-    s+= cons<viv ? `NOVO (verde-piscina): ${cons} de ${viv} entradas já consolidaram\n` : `consolidado: todas as ${viv} entradas já consolidaram\n`; }
+  if(n.lvl>=2){ let viv=0, cons=0, cand=0; for(const e of n.in){ if(e.from.lvl===0||e.diedAt!==Infinity) continue; viv++; if(e.consAt>=0) cons++; if(e.inertSince!==null) cand++; }
+    s+= viv>0 && cand===viv ? `CANDIDATO À PODA (terracota): todas as ${viv} entradas são candidatas; quando forem podadas, o nó fica órfão e é podado\n` : cons<viv ? `NOVO (verde-piscina): ${cons} de ${viv} entradas já consolidaram\n` : `consolidado: todas as ${viv} entradas já consolidaram\n`; }
   s+=`nasceu em ${fmt(n.born)}`+(n.diedAt!==Infinity?` · PODADO em ${fmt(n.diedAt)} (ficou órfão)`:'')+`\n`;
   if(n.malha!==undefined) s+= n.malha>=0 ? `malha: estímulo #${n.malha}\n` : `malha: nenhum estímulo identificado\n`;
   s+=`janela de integração ${ms(n.W)} · refratariedade ${ms(n.refr)}\n`;
