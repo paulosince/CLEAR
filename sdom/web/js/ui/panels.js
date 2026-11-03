@@ -1,5 +1,5 @@
-/* Painel de números, nó selecionado, onda nos ouvidos e linha do tempo. */
-import { S, $, sizeCanvas, fmt, fmtInt, goLive, seek, on } from './state.js';
+/* Painel de números, nó selecionado e onda nos ouvidos (sempre ao vivo). */
+import { S, $, sizeCanvas, fmt, fmtInt, on } from './state.js';
 import { micInfo } from './mic.js';
 
 let lastStatT=0, lastFC=0, lastMp=null;
@@ -23,9 +23,10 @@ export function drawPanel(){
     const tot=rf+rl+rc; $('tFalta').textContent= tot>=10000 ? (tot/1000).toFixed(0)+' mil' : fmtInt(tot);
     falta=` · faltas por segundo de mundo: disparar ${fmtInt(rf)}, aprender ${fmtInt(rl)}, criar ${fmtInt(rc)}`; }
   else { $('tBpm').textContent='desligado'; $('tRes').textContent='—'; $('tFalta').textContent='—'; }
-  $('statsMore').textContent=`tempo do mundo ${fmt(U.t)} · ritmo ${S.labBusy?'em espera (laboratório)':(S.simRatio*100).toFixed(0)+'% do real'} · Sdom perto ${per[2]} · médio ${per[3]} · longe ${per[4]} · reforços ${fmtInt(U.ltp)} · enfraquecimentos ${fmtInt(U.ltd)} · consolidações ${fmtInt(U.consol)} · candidatas à poda ${U.candidates} · podadas ${U.prunedE} arestas, ${U.prunedN} nós${falta}${S.vida.congelamentos?` · o navegador congelou a aba ${S.vida.congelamentos}× (no último, ${S.vida.ultimoPuloS.toFixed(1)} s viraram pulo no tempo, em silêncio)`:''}`;
+  $('statsMore').textContent=`tempo do mundo ${fmt(U.t)} · ritmo ${(S.simRatio*100).toFixed(0)}% do real · Sdom perto ${per[2]} · médio ${per[3]} · longe ${per[4]} · reforços ${fmtInt(U.ltp)} · enfraquecimentos ${fmtInt(U.ltd)} · consolidações ${fmtInt(U.consol)} · candidatas à poda ${U.candidates} · podadas ${U.prunedE} arestas, ${U.prunedN} nós${falta}${S.vida.congelamentos?` · universo congelado ${S.vida.congelamentos}× com a página fora da tela (o último durou ${S.vida.ultimoCongeladoS.toFixed(1)} s, que para o robô não existiram)`:''}`;
   const mi=micInfo();
   if(mi){ $('micInfo').textContent=`${mi.stereo?'estéreo':`mono${mi.dead?` (o canal ${mi.dead==='L'?'esquerdo':'direito'} chega mudo)`:''}: os dois ouvidos recebem o mesmo som`} · som perdido por atraso: ${mi.lostS.toFixed(1)} s`; }
+
   if(S.view.sel) showInfo();
 }
 
@@ -83,27 +84,6 @@ export function drawWave(){
     g.stroke(); }
 }
 
-let scrubbing=false;
-export function drawTimeline(){
-  const U=S.U, v=S.view, lo=U.earliestViewable(), sc=$('scrub');
-  sc.min=lo; sc.max=U.t; if(!scrubbing) sc.value=Math.floor(v.tv);
-  const back=(U.t-v.tv)/U.sr;
-  $('tlbl').textContent = v.live ? `mundo: ${fmt(U.t)} · vendo ao vivo · gravado: últimos ${((U.t-lo)/U.sr).toFixed(1)} s`
-    : `mundo: ${fmt(U.t)} · vendo: ${fmt(v.tv)} (${back.toFixed(3)} s atrás) · ${v.playing?'reproduzindo':'pausado'}`;
-  $('bPlay').textContent = (v.live||v.playing)?'⏸':'▶';
-  $('live').classList.toggle('on',v.live);
-}
 export function initPanels(){
-  const v=S.view, U=()=>S.U;
-  $('bPlay').onclick=()=>{ if(v.live){ v.live=false; v.playing=false; } else v.playing=!v.playing; };
-  $('live').onclick=goLive;
-  $('bBack1').onclick=()=>{ const p=v.playing&&!v.live; seek(v.tv-U().sr); v.playing=p; };
-  $('bFwd1').onclick=()=>{ const p=v.playing; seek(v.tv+U().sr); if(!v.live) v.playing=p; };
-  $('bBackS').onclick=()=>{ seek(v.tv-U().sr/1000); v.playing=false; };
-  $('bFwdS').onclick=()=>{ seek(v.tv+U().sr/1000); if(!v.live) v.playing=false; };
-  $('vspeed').onchange=e=>{ v.speed=+e.target.value; };
-  const sc=$('scrub');
-  sc.addEventListener('input',()=>{ scrubbing=true; v.live=false; v.playing=false; v.tv=+sc.value; });
-  sc.addEventListener('change',()=>{ scrubbing=false; seek(+sc.value); if(!v.live) v.playing=false; });
   on('selecao',showInfo); on('universo',()=>{ resetRates(); showInfo(); });
 }

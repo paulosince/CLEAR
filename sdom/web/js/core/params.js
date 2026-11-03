@@ -17,7 +17,7 @@
      observados, para que tudo chegue junto ao nó novo.
    - Sem aprendizado nem divisão ainda.
    ===================================================================== */
-export const CODE_VERSION='v0.15';
+export const CODE_VERSION='v0.16';
 export const DEFAULTS = {
   sr: 16000,           // taxa do microfone (amostras/s); botão alterna 16k/8k
   // transdução auditiva (v0.6): cóclea fixa, fora do Sdom
@@ -44,7 +44,7 @@ export const DEFAULTS = {
   maxGroup: 6,         // disparos relacionados por um nó novo, no máximo
   maxDepth: 12,        // trava de segurança contra fuga (não é regra de agrupamento)
   maxNodes: 6000,
-  histSeconds: 90,
+  histSeconds: 3,     // gravação do observador (só para desenhar o agora: atividade recente e onda)
   // aprendizado (v0.3): tudo no PESO da aresta (modulação da magnitude), 0 = inerte, 1 = máximo
   wBirth: 0.5,           // peso com que a aresta nasce
   aPlus: 0.005,          // reforço por sincronia: chegou ANTES do disparo do nó seguinte
@@ -91,7 +91,7 @@ export const PARAM_UI = [
   ['sr','taxa do microfone (Hz)'],['cochChannels','canais da cóclea'],['baseThr','limiar da fibra sensível'],['fiberDb2','fibra média (+dB)'],['fiberDb3','fibra pouco sensível (+dB)'],['fiberRefrMs','refratariedade da fibra (ms)'],['adaptCost','adaptação: gasto por disparo'],['adaptTau1Ms','adaptação rápida (ms)'],['adaptTau2Ms','adaptação curto prazo (ms)'],['ihcLowpassHz','célula ciliada: corte (Hz)'],['thrFrac','limiar do nó novo (fração)'],
   ['basalMs','atraso basal da aresta (ms)'],
   ['bindMs','alcance da relação no tempo (ms)'],['weber','tolerância proporcional (fração)'],['minCoincMs','tolerância mínima (ms)'],
-  ['prepFrac','preparado a partir de (fração do limiar)'],['pathRule','regra: basta ter caminho (0/1)'],['maxGroup','disparos por nó novo (máx.)'],['maxDepth','trava de profundidade'],['maxNodes','teto de nós'],['histSeconds','histórico gravado (s)'],
+  ['prepFrac','preparado a partir de (fração do limiar)'],['pathRule','regra: basta ter caminho (0/1)'],['maxGroup','disparos por nó novo (máx.)'],['maxDepth','trava de profundidade'],['maxNodes','teto de nós'],
   ['wBirth','peso de nascimento da aresta'],['aPlus','reforço (chegou antes)'],['aMinus','enfraquecimento (chegou depois)'],
   ['tauPlusMs','janela do reforço (ms)'],['tauMinusMs','janela do enfraquecimento (ms)'],
   ['fastHalfLifeS','meia-vida do peso basal (s)'],['slowHalfLifeDays','meia-vida do peso consolidado (dias)'],['tagHours','janela de consolidação (h)'],['consolThr','reforço acumulado para consolidar'],

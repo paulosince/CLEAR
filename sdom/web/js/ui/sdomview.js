@@ -93,7 +93,7 @@ function drawGraph(g,c,d){
   const tv=Math.floor(v.tv), nv=U.visibleCount(tv), ne=U.visibleEdges(tv);
   if(glow.length<U.nodes.length){ glow=new Float32Array(U.nodes.length*2); part=new Float32Array(U.nodes.length*2); }
   glow.fill(0,0,nv); part.fill(0,0,nv);
-  const spd = v.live ? S.worldSpeed : v.speed;
+  const spd = 1;   // sempre ao vivo, no tempo real
   const gw = Math.max(4, Math.round(U.sr*Math.min(0.04,Math.max(0.0005,0.04*spd))));
   for(let k=U.firstHistIdx(tv-gw); k<U.hCount; k++){ const tt=U.hT[k%U.hCap]; if(tt>tv) break; const id=U.hN[k%U.hCap]; if(id<nv){ const a=1-(tv-tt)/gw; if(a>glow[id]) glow[id]=a; } }
   const pw=Math.round(U.sr*0.25*Math.max(0.05,Math.min(1,spd)));

@@ -28,3 +28,10 @@ test('o microfone nunca liga sozinho: só pelo botão', ()=>{
   assert.ok(/pagehide/.test(mic), 'tem que parar quando a página fecha');
   assert.ok(!/visibilitychange/.test(mic), 'decisão do Paulo: não para ao sair de foco, só quando ele parar');
 });
+test('a página só ouve o mundo real (decisão do Paulo, v0.16): nenhum som sintético na interface', ()=>{
+  for(const f of arquivos(path.join(WEB,'js/ui')).filter(f=>f.endsWith('.js'))){
+    const src=fs.readFileSync(f,'utf8');
+    for(const bad of [/env\/environment\.js/, /env\/streams\.js/, /env\/scenarios\.js/, /lab\/lab\.js/, /\.jump\s*\(/])
+      assert.ok(!bad.test(src), `${path.relative(WEB,f)} usa ${bad}`);
+  }
+});

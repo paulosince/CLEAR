@@ -41,4 +41,5 @@ export function restoreFrom(snap){
 function migrar(U, snap){
   if(typeof U.rs!=='number') U.rs=(U.t|0)^0x9e3779b9;
   if(U.histStart===undefined) U.histStart=0;
+  U.p.histSeconds=DEFAULTS.histSeconds;   // gravação do observador (v0.16: só o agora); não muda o robô
 }

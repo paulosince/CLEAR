@@ -4,7 +4,7 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-body{padding-bottom:110px}
+body{padding-bottom:16px}
 header{padding:10px 12px 6px;border-bottom:1px solid var(--line)}
 h1{font-size:16px;margin:0}
 h3{font-size:13px;font-weight:600;color:var(--mut);margin:10px 0 6px;text-transform:uppercase;letter-spacing:.04em}
@@ -18,10 +18,8 @@ button.on{background:#2f4f7a;border-color:#4a76b5}
 button.danger{background:#4a1f25;border-color:#7a2f38}
 button.small{padding:4px 8px;font-size:12px}
 canvas{display:block;width:100%;touch-action:none;background:#0b0d11;border:1px solid var(--line);border-radius:10px}
-#room{height:170px;margin-top:8px}
 #sdom{height:56vh;min-height:320px;margin-top:6px}
 #wave{height:60px}
-.labc{height:100px;margin-top:6px}
 .note{font-size:12px;color:var(--mut);margin-top:6px}
 details{margin-top:8px} details summary{cursor:pointer;color:var(--mut)}
 
@@ -53,12 +51,6 @@ details{margin-top:8px} details summary{cursor:pointer;color:var(--mut)}
 .ramp{display:inline-block;width:90px;height:9px;border-radius:5px;background:linear-gradient(90deg,#2a2f3a,#7a3d10,#e07a1f,#ffd36a,#fff4c2)}
 
 /* fontes: ícone + play/pause */
-.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
-.chip{display:flex;align-items:center;gap:8px;text-align:left;padding:8px 10px;border-radius:10px;background:#1c202b}
-.chip .ic{font-size:20px;line-height:1}
-.chip .nm{flex:1;min-width:0;font-size:13px}
-.chip .st{font-size:14px;opacity:.9}
-.chip.on{background:#2b3f2f;border-color:#4f8a5a}
 
 /* laboratório */
 #labTip{position:fixed;pointer-events:none;background:#232937;border:1px solid #3a4256;border-radius:6px;padding:3px 7px;font-size:12px;display:none;z-index:9}
@@ -71,10 +63,6 @@ details{margin-top:8px} details summary{cursor:pointer;color:var(--mut)}
 .params input{width:90px}
 
 /* linha do tempo */
-footer{position:fixed;left:0;right:0;bottom:0;background:#12151cf2;border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom));backdrop-filter:blur(6px);z-index:5}
-.tl{display:flex;gap:4px;align-items:center}
-.tl button,.tl select{padding:7px 6px;font-size:13px;flex:1 1 auto;min-width:0}
-footer input[type=range]{width:100%;padding:0;margin:6px 0 2px}
 #live.on{background:#7a2f38;border-color:#b5444f}
 .legend[hidden]{display:none}
 #micBanner{position:sticky;top:0;z-index:6;display:flex;gap:8px;align-items:center;justify-content:space-between;background:#5a1f26;border-bottom:1px solid #8a2f3a;padding:8px 12px;font-size:13px}

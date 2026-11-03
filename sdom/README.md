@@ -8,10 +8,8 @@ que começa vazio. O que ele ouve é representado num grafo: uma estrutura é
 - `web/` — a simulação (página + módulos JavaScript, sem build). Publicada no GitHub Pages:
   https://paulosince.github.io/CLEAR/sdom/web/ — precisa ser aberta por http (não funciona por file://).
 - `tests/unit/` — testes automáticos das regras (`npm test`); rodam no GitHub Actions a cada push.
-- `experimentos/convergencia.cjs` — experimento automático piano → viola (Playwright).
-- `experimentos/decaimento.cjs` — aprender, pular no tempo, ouvir de novo (Playwright).
-- `experimentos/poda.cjs` — arestas inertes, acesso e poda (Playwright).
-- `experimentos/persistencia.cjs` — recarregar a página retoma o mesmo robô (Playwright).
+- `experimentos/microfone.cjs` — ouvir com um microfone falso do Chromium e congelar fora da tela (Playwright).
+- `experimentos/persistencia.cjs` — fechar e abrir a página retoma o mesmo robô, sem pulo (Playwright).
 - `GLOSSARIO.md` — os nomes combinados (aprovados e propostos).
 
 ## Ouvir o mundo pelo microfone (v0.12) e proteções
@@ -47,6 +45,19 @@ Experimento com microfone falso do Chromium: `NODE_PATH=$(npm root -g) node expe
 outro. Se o aparelho entrega um canal mudo (ou mono), os dois ouvidos recebem o canal que tem som; a faixa do
 topo diz qual é o caso. (Até a v0.12 havia um defeito: um canal vazio era tratado como estéreo, e só um ouvido "funcionava".)
 
+## Só o mundo real, só o agora (v0.16 — decisões do Paulo)
+
+- **Só microfone.** Saíram da página os sons sintéticos (instrumentos, sons ambiente, sala), os experimentos manuais e o
+  laboratório. O código deles continua em `web/js/env/` e `web/js/lab/` porque os **testes automáticos** usam esses sons para
+  conferir as regras; os experimentos de navegador que dependiam deles (convergência, decaimento, poda, discriminação,
+  laboratório, segundo plano) foram retirados (estão no histórico do git). Com o microfone desligado, o robô vive em silêncio.
+- **Só ao vivo.** Saíram a fita, voltar/avançar, velocidade de exibição, velocidade do mundo e "pular no tempo".
+  A gravação do observador ficou só com o necessário para desenhar o agora (`histSeconds` = 3 s).
+- **Universo congelado.** Página fora da tela, fechada ou recarregada: nada acontece para o robô. Ao voltar, ele continua do
+  mesmo instante, sem pulo no tempo. O microfone ligado fica mudo (não desliga) e volta sozinho; o que chega enquanto a página
+  está fora da tela é descartado. Nos registros, cada congelamento fica anotado (`congeladoS`), só para o observador.
+  Uma parada do navegador com a página na tela (mais de 0,1 s) também não vira tempo para o robô.
+
 ## O robô não morre ao recarregar (v0.15)
 
 Recarregar a página ou atualizar o código **retoma o mesmo robô**. Só "💥 Destruir universo" cria outro
@@ -55,20 +66,20 @@ Recarregar a página ou atualizar o código **retoma o mesmo robô**. Só "💥 
 - **Fotografia do cérebro**: todo o estado do robô (nós, arestas, pesos, marcas, poda, marcapasso, cóclea, sorteio)
   é guardado no aparelho (IndexedDB, loja `snapshots`) a cada 20 s, ao esconder a aba e ao fechar a página.
   Nada sai do aparelho. Num robô de ~1 000 nós a fotografia custa ≈ 0,1 s (medido em 1 núcleo de servidor; no celular pode ser mais).
-- **Ao retomar**: o tempo em que a página ficou fechada passa para o robô **em silêncio** (pulo no tempo, como na aba congelada):
-  o mundo não espera. Os sons e o microfone começam desligados (o microfone nunca liga sozinho).
-- O que **não** volta: a fita para voltar no tempo na tela (~90 s; é do observador, não do robô) e, no máximo,
+- **Ao retomar**: desde a v0.16, ele continua do instante em que parou (o universo estava congelado). O microfone começa
+  desligado (nunca liga sozinho).
+- O que **não** volta: no máximo,
   os últimos segundos antes de fechar se o navegador não deixar terminar a gravação. Nesse caso o robô volta ao estado
   da última fotografia, e os registros posteriores a ela são retirados, para o histórico continuar coerente.
 - **Duas abas**: só a primeira grava; a outra avisa e não grava nada (o mesmo robô não pode viver duas vidas).
-- **Laboratório**: quando o resultado do laboratório vira o robô atual, o anterior fica guardado e pode ser retomado na lista
-  ("Retomar este robô").
+- Robôs guardados que não são o atual (ex.: de antes de uma troca de universo que não foi "Destruir") aparecem na lista com
+  "Retomar este robô".
 - Para quem mexer no código: se uma versão nova acrescentar estado ao universo, escreva em `web/js/core/persist.js`
   (`migrar`) como preencher esse campo num robô guardado por uma versão anterior. Parâmetros novos recebem o padrão sozinhos.
 - Robôs criados antes da v0.15 não podem ser retomados: até então não existia a fotografia, só os registros.
 - Experimento: `NODE_PATH=$(npm root -g) node experimentos/persistencia.cjs`. Testes: `tests/unit/persistencia.test.js`.
 
-## Vida em segundo plano (v0.13)
+## Vida em segundo plano (v0.13 — substituída na v0.16: fora da tela, o universo congela)
 
 A simulação anda por um relógio num Web Worker, que o navegador não pausa quando a aba sai de foco; o desenho
 anda pelo `requestAnimationFrame`, que é pausado. Assim, no computador, o robô continua vivendo (e os sons
@@ -119,7 +130,7 @@ sdom/
                     transdução, aprendizado, poda, malhas), graph-copy.js, util.js
   web/js/env/       ambiente: sounds.js (síntese), world.js (sala e microfones), score.js (Cânone),
                     streams.js (fluxos de eventos), environment.js (liga/desliga fluxos), scenarios.js (roteiros)
-  web/js/lab/       laboratório: lab.js e worker.js (Web Worker em módulo)
+  web/js/lab/       laboratório (lab.js): usado só pelos testes automáticos desde a v0.16
   web/js/store.js   gravação local (IndexedDB)
   web/js/ui/        página: app.js, sdomview.js (atividade e grafo), panels.js, controls.js, labui.js, storeui.js
   tests/unit/       testes automáticos (node:test) — `npm test` dentro de sdom/

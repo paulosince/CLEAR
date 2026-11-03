@@ -1,47 +1,35 @@
-/* Página: cria o universo, mantém o robô vivo (laço), desenha e liga os controles. */
+/* Página: cria (ou retoma) o universo, mantém o robô vivo enquanto a página está na tela, desenha e liga os controles.
+   O robô ouve só o mundo real (microfone). Página fora da tela, fechada ou recarregada = universo congelado. */
 import { CODE_VERSION, PARAM_UI } from '../core/params.js';
 import { hashStr } from '../core/util.js';
 import { Universe } from '../core/universe.js';
-import { Ambiente } from '../env/environment.js';
 import { Store } from '../store.js';
-import { logStimulus } from '../lab/lab.js';
 import { S, $, on, emit } from './state.js';
-import { playNote } from './audio.js';
 import { drawSdom, initSdomView } from './sdomview.js';
-import { drawPanel, drawWave, drawTimeline, initPanels } from './panels.js';
-import { initControls, drawRoom, renderChips, trigger } from './controls.js';
-import { initLab, labApi } from './labui.js';
+import { drawPanel, drawWave, initPanels } from './panels.js';
 import { renderStore, initStoreUI } from './storeui.js';
-import { mic, initMic, feedFromMic, stopMic } from './mic.js';
+import { mic, initMic, feedFromMic, stopMic, muteMic } from './mic.js';
 import { restoreFrom } from '../core/persist.js';
 
 function setVersion(extra=''){ $('ver').textContent=`· ${CODE_VERSION} · universo #${S.universeNo}${extra} · params ${hashStr(JSON.stringify(S.params))}`; }
 
 // ---------- guardar e retomar o robô ----------
 // O cérebro é guardado no aparelho (IndexedDB) a cada 20 s, ao esconder a aba e ao fechar a página.
-// Recarregar a página ou atualizar o código retoma o mesmo robô; só "Destruir universo" cria outro.
+// Recarregar a página ou atualizar o código retoma o mesmo robô, do instante em que parou; só "Destruir universo" cria outro.
 const SALVAR_S=20;
-const posicoes=()=>S.amb ? Object.fromEntries(S.amb.W.sources.map(s=>[s.label,[s.x,s.y]])) : {};
-function salvar(){ if(!S.U||S.labBusy) return Promise.resolve(); return Store.flush(S.U,{seed:S.seed, label:'#'+S.universeNo, amb:posicoes()}); }
+function salvar(){ if(!S.U) return Promise.resolve(); return Store.flush(S.U,{seed:S.seed, label:'#'+S.universeNo}); }
 const numDe=l=>{ const m=/#(\d+)/.exec(l||''); return m?+m[1]:0; };
-function ambienteNovo(pos){
-  S.amb=new Ambiente(S.params.sr, Ambiente.allSources());
-  for(const s of S.amb.W.sources) if(pos&&pos[s.label]){ s.x=pos[s.label][0]; s.y=pos[s.label][1]; }
-}
-function viewLive(){ const v=S.view; v.live=true; v.playing=true; v.tv=S.U.t; v.sel=null; v.fitted=false; }
+function viewLive(){ const v=S.view; v.tv=S.U.t; v.sel=null; v.fitted=false; }
 const AVISO_RO='Este robô já está vivo em outra aba. Esta aba mostra uma cópia e não grava nada; feche-a e use a outra.';
 function aviso(txt){ const b=$('resumeMsg'); if(!b) return; if(Store.ro) txt=AVISO_RO+(txt&&txt!==AVISO_RO?' '+txt:''); b.textContent=txt?txt+' (toque para fechar)':''; b.hidden=!txt; b.onclick=()=>{ b.hidden=true; }; }
 
-// universo novo: o mesmo ambiente (fontes e o que estava tocando) continua, num robô que nasce vazio
+// universo novo: um robô que nasce vazio
 function newUniverse(){
-  const was = S.amb ? [...S.amb.on.keys()] : [];
-  const pos = posicoes();
   if(S.U) Store.flush(S.U);
+  if(mic.on) stopMic('universo novo');
   S.universeNo=++S.maxNo; S.seed=(S.seed*1103515245+12345)>>>0;
   S.U=new Universe(Object.assign({},S.params), S.seed);
   Store.begin(S.U,'#'+S.universeNo);
-  ambienteNovo(pos);
-  for(const k of was) S.amb.start(k,0,(Math.random()*4294967295)>>>0);
   viewLive(); setVersion(); emit('universo');
   salvar();   // já fica guardado: recarregar a página retoma este
 }
@@ -51,60 +39,51 @@ async function destruir(){
   if(old) await Store.dropSnapshot(old);
   newUniverse();
 }
-// Retomar um robô guardado. O tempo em que a página ficou fechada passa para ele em silêncio (o mundo não espera).
+// Retomar um robô guardado. O tempo em que a página ficou fechada não existe para ele: o universo estava congelado.
 async function retomar(id){
   const snap=await Store.getSnapshot(id), meta=(await Store.list()).find(m=>m.id===id);
   if(!snap||!meta) return false;
   let U; try{ U=restoreFrom(snap); }catch(e){ console.warn('não consegui retomar',e); return false; }
   if(S.U && Store.uid!==id){ if(mic.on) stopMic('troca de universo'); await salvar(); }
   const apagados=await Store.cleanAfter(id, snap.nodePtr, snap.t);
-  const foraS=Math.max(0,(Date.now()-snap.savedAt)/1000), n=Math.round(foraS*U.sr);
-  U.stimLog.push({t:U.t, retomada:true, fotoEm:new Date(snap.savedAt).toISOString(), versaoDaFoto:snap.version, versaoAtual:CODE_VERSION});
-  if(n>0) U.jump(n);
+  const foraS=Math.max(0,(Date.now()-snap.savedAt)/1000);
+  U.stimLog.push({t:U.t, retomada:true, congeladoS:+foraS.toFixed(1), fotoEm:new Date(snap.savedAt).toISOString(), versaoDaFoto:snap.version, versaoAtual:CODE_VERSION});
   U.histStart=U.t;
   S.U=U; S.seed=snap.seed>>>0; S.params=Object.assign({},U.p); S.universeNo=numDe(snap.label||meta.label);
   Store.resume(meta, snap.nodePtr); Store.meta.version=CODE_VERSION;
-  ambienteNovo(snap.amb);
   for(const inp of document.querySelectorAll('#params input')) inp.value=S.params[inp.dataset.k];
   viewLive(); setVersion(); emit('universo');
-  aviso(`Robô ${meta.label} retomado. Ficou ${fmtDur(foraS)} fora: esse tempo passou para ele em silêncio. `+
-    `Os sons e o microfone começam desligados; a fita para voltar começa agora.`+(apagados?` (${apagados} registro(s) depois da última fotografia foram retirados: o robô voltou ao estado fotografado.)`:''));
-  await salvar(); lastSim=performance.now(); carry=0;
+  aviso(`Robô ${meta.label} retomado do instante em que parou (${fmtDur(U.t/U.sr)} de vida). Ficou ${fmtDur(foraS)} congelado: para ele, esse tempo não existiu. O microfone começa desligado.`+
+    (apagados?` (${apagados} registro(s) depois da última fotografia foram retirados: o robô voltou ao estado fotografado.)`:''));
+  await salvar(); lastSim=performance.now();
   return true;
 }
 function fmtDur(s){ if(s<90) return `${s.toFixed(0)} s`; if(s<5400) return `${(s/60).toFixed(0)} min`; if(s<172800) return `${(s/3600).toFixed(1)} h`; return `${(s/86400).toFixed(1)} dias`; }
 
 // ---------- laço de vida ----------
-// A simulação anda pelo relógio (Web Worker), que continua com a aba em segundo plano; o desenho anda
-// pelo requestAnimationFrame, que o navegador pausa quando ninguém está olhando. Se mesmo assim o navegador
-// congelar a aba, ao voltar o tempo perdido vira um pulo no tempo (em silêncio): o mundo não espera.
-let lastSim=performance.now(), carry=0, lastDrawT=0, lastFrame=performance.now();
-const xs=[0,0];
+// Com a página na tela, o robô vive no tempo real: ouve o microfone, ou o silêncio se o microfone está desligado.
+// Fora da tela, o universo congela: nada acontece para o robô; ao voltar, ele continua do mesmo instante.
+let lastSim=performance.now(), lastDrawT=0, congeladoEm=null;
 const vida=S.vida;
+function congelar(){ if(congeladoEm!==null) return; congeladoEm=performance.now(); vida.congelado=true; muteMic(true); }
+function descongelar(){ if(congeladoEm===null) return; const s=(performance.now()-congeladoEm)/1000; congeladoEm=null;
+  vida.congelado=false; vida.congelamentos++; vida.ultimoCongeladoS=s; muteMic(false);
+  if(S.U) S.U.stimLog.push({t:S.U.t, congeladoS:+s.toFixed(2)});   // anotação do observador: para o robô, nada aconteceu
+  lastSim=performance.now(); }
 function simTick(now){
-  const U=S.U, A=S.amb; let gap=(now-lastSim)/1000; lastSim=now; vida.ticks++;
-  if(gap>2 && !S.labBusy && !mic.on){   // a aba foi congelada pelo navegador
-    const n=Math.round((gap-0.02)*U.sr*S.worldSpeed); U.jump(n); A.skipTo(U.t); A.W.gc(U.t);
-    vida.congelamentos++; vida.ultimoPuloS=n/U.sr; carry=0; gap=0.02; if(S.view.live) S.view.tv=U.t;
-  }
-  if(S.labBusy) return;
-  if(mic.on){ feedFromMic(U,12); S.simRatio=S.simRatio*0.9+0.1*(mic.queue.available()>0.05*U.sr?0.5:1); carry=0; return; }
-  const dt=Math.min(0.1,gap);
-  const target=dt*U.sr*S.worldSpeed+carry; const n=Math.floor(target); carry=target-n;
-  // eventos dos fluxos ligados que começam até um pouco à frente
-  if(n>0) A.pump(U.t+n+Math.round(0.15*U.sr),(nt,src,x,start)=>{ logStimulus(U,nt,src,x,start); if(S.worldSpeed===1) playNote(nt,U.sr,(start-U.t)/U.sr); });
-  A.W.prepare();
+  let gap=(now-lastSim)/1000; lastSim=now; vida.ticks++;
+  if(congeladoEm!==null || document.visibilityState==='hidden') return;
+  const U=S.U;
+  if(mic.on){ feedFromMic(U,12); S.simRatio=S.simRatio*0.9+0.1*(mic.queue.available()>0.05*U.sr?0.5:1); return; }
+  // silêncio no tempo real; uma parada longa do navegador (> 0,1 s) não vira tempo para o robô
+  const n=Math.round(Math.min(0.1,gap)*U.sr);
   const t0=performance.now(); let done=0;
-  while(done<n){ const lim=Math.min(n,done+64); for(;done<lim;done++){ A.W.sample(U.t,xs); U.step(xs[0],xs[1]); } if(performance.now()-t0>12) break; }
-  if(done<n) carry=0;
+  while(done<n){ const lim=Math.min(n,done+64); for(;done<lim;done++) U.step(0,0); if(performance.now()-t0>12) break; }
   S.simRatio = S.simRatio*0.9 + 0.1*(n>0? done/n : 1);
-  if((U.t&1023)<64) A.W.gc(U.t);
 }
 function drawFrame(now){
-  const U=S.U, v=S.view, dt=Math.min(0.1,(now-lastFrame)/1000); lastFrame=now;
-  if(v.live) v.tv=U.t; else if(v.playing){ v.tv+=dt*U.sr*v.speed; if(v.tv>=U.t){ v.live=true; v.playing=true; v.tv=U.t; } }
-  const lo=U.earliestViewable(); if(v.tv<lo) v.tv=lo;
-  if(!S.labBusy || now-lastDrawT>500){ lastDrawT=now; drawSdom(); drawRoom(); drawWave(); drawTimeline(); drawPanel(); }
+  const U=S.U; S.view.tv=U.t;
+  if(now-lastDrawT>30){ lastDrawT=now; drawSdom(); drawWave(); drawPanel(); }
   requestAnimationFrame(drawFrame);
 }
 function startClock(){
@@ -125,11 +104,7 @@ function initParams(){
   $('copy').onclick=async()=>{ try{ await navigator.clipboard.writeText(JSON.stringify(S.U.toJSON())); $('copy').textContent='Copiado ✓'; }catch(e){ $('copy').textContent='Não consegui copiar'; } setTimeout(()=>$('copy').textContent='Copiar universo (JSON)',2000); };
 }
 
-on('novoUniverso',()=>{ newUniverse(); setTimeout(renderStore,300); });
-on('laboratorioInicio',()=>salvar());   // o robô atual fica guardado antes de o laboratório tomar o lugar dele
-on('universo',x=>{ if(x&&x.lab){ setVersion(' (laboratório)'); for(const inp of document.querySelectorAll('#params input')) inp.value=S.params[inp.dataset.k]; salvar(); setTimeout(renderStore,300); } });
 on('retomar',id=>{ retomar(id).then(ok=>{ if(!ok) aviso('Não consegui retomar esse robô.'); setTimeout(renderStore,300); }); });
-on('laboratorioFim',()=>{ lastSim=performance.now(); });
 
 (async()=>{
   await Store.open();
@@ -138,14 +113,16 @@ on('laboratorioFim',()=>{ lastSim=performance.now(); });
   initParams();
   const ultimo=await Store.latestId();
   if(!(ultimo && await retomar(ultimo))) newUniverse();
-  initSdomView(); initPanels(); initControls(); initLab(); initStoreUI(); initMic();
+  initSdomView(); initPanels(); initStoreUI(); initMic();
   emit('universo');
   let ultimaFoto=performance.now();
-  setInterval(()=>{ if(S.labBusy) return; if(performance.now()-ultimaFoto>SALVAR_S*1000){ ultimaFoto=performance.now(); salvar(); } else Store.flush(S.U); },2000);
-  addEventListener('pagehide',()=>salvar());
-  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden'){ ultimaFoto=performance.now(); salvar(); } });
+  setInterval(()=>{ if(congeladoEm!==null) return; if(performance.now()-ultimaFoto>SALVAR_S*1000){ ultimaFoto=performance.now(); salvar(); } else Store.flush(S.U); },2000);
+  addEventListener('pagehide',()=>{ congelar(); salvar(); });
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden'){ congelar(); ultimaFoto=performance.now(); salvar(); } else descongelar(); });
+  addEventListener('pageshow',()=>{ if(document.visibilityState!=='hidden') descongelar(); });
+  if(document.visibilityState==='hidden') congelar();
   vida.relogio=startClock();
-  requestAnimationFrame(t=>{ lastFrame=t; requestAnimationFrame(drawFrame); });
+  requestAnimationFrame(t=>{ requestAnimationFrame(drawFrame); });
   renderStore();
 })();
 
@@ -158,5 +135,4 @@ async function umaAbaSo(){
 }
 
 // acesso para testes e experimentos (Playwright)
-window.__sdom={ salvar, retomar, mic, vida, get U(){ return S.U; }, get W(){ return S.amb.W; }, get amb(){ return S.amb; }, trigger, view:S.view, Store, renderStore, lab:labApi,
-  toggle:k=>{ import('./controls.js').then(m=>m.toggleStream(k)); }, Universe, S };
+window.__sdom={ salvar, retomar, congelar, descongelar, mic, vida, get U(){ return S.U; }, view:S.view, Store, renderStore, Universe, S };
