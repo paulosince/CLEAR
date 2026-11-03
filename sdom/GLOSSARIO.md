@@ -15,13 +15,14 @@ Status: **aprovado** (definido ou aceito pelo Paulo) · **em discussão**.
 | **malha temporotopológica** | pedaço do grafo (num conjunto de grafos) cujos nós se relacionam, e cuja relação tem como conteúdo também o **tempo de percorrimento** entre os nós. Não é só a topologia que tem significado: o tempo também tem. Ex.: o detector do dó é definido pelos atrasos das arestas (≈3,8 ms entre entradas). | Paulo | aprovado |
 | **malha (contagem no painel)** | para contar no painel: malha = estrutura **criada a partir de um mesmo estímulo**. Regra operacional provisória (v0.10): o nó novo pertence ao estímulo que começou por último antes do primeiro disparo que ele relaciona e que ainda soava. Com sons sobrepostos (ex.: chuva + fala), a atribuição pode errar. | Paulo (regra) · Claude (operacionalização) | em discussão |
 | **sinapse** | junção aresta → nó. Hoje cada aresta termina em exatamente um nó, então o número de sinapses é igual ao de arestas. | Paulo | em discussão |
-| **nível** | camada do Sdom (1 a 4) conforme a distância dos ouvidos. | Claude | em discussão |
+| **nível** | camada do Sdom (1 a 4) conforme a distância dos sensores. | Claude | em discussão |
 | **universo** | um experimento completo, do nascimento do Sdom até ser destruído; tem versão e parâmetros. | Claude | aprovado |
 
 ## Transdução
 
 | termo | definição | origem | status |
 |---|---|---|---|
+| **sensor** | ponto por onde os sinais de fora chegam, antes da transdução (hoje: os dois canais do microfone). Substitui "ouvido" na interface e no texto. | Paulo | aprovado |
 | **transdução** | traz para dentro do Sdom, já **normalizados** em incidências, os sinais que vêm de fora dele. É a primeira normalização do domínio representacional. Ex.: a cóclea no ouvido, os cones no olho — fazem parte do grupo de transdução, não do Sdom. Cada sentido tem a sua, fixa. | Paulo | aprovado |
 | **exógeno / endógeno** | origem do sinal que chega à transdução: externo ao sistema (exógeno) ou interno ao sistema (endógeno). Os dois são externos ao Sdom. | Paulo | aprovado |
 
@@ -36,7 +37,7 @@ Status: **aprovado** (definido ou aceito pelo Paulo) · **em discussão**.
 | **refratariedade** | tempo depois do disparo em que o nó não faz nada. | Paulo | aprovado |
 | **tempo de propagação** | atraso da aresta para entregar a incidência; tem um valor basal e pode ser modulado. | Paulo | aprovado |
 | **percorrer** | um estímulo semelhante ao que criou uma estrutura passa de novo por ela. | Paulo | aprovado |
-| **lóbulo** | trecho positivo da onda que chega ao ouvido; um lóbulo que não encontra caminho cria um nó do nível 1. Não tem relação com lobos cerebrais: precisa de outro nome. | Claude | em discussão |
+| **lóbulo** | trecho positivo da onda que chega ao sensor; um lóbulo que não encontra caminho cria um nó do nível 1. Não tem relação com lobos cerebrais: precisa de outro nome. | Claude | em discussão |
 | **janela de agrupamento** | tempo em que disparos que não levaram a nenhum disparo seguinte são juntados para criar um nó novo. | Claude | em discussão |
 | **absorvida** | incidência que ajudou algum nó a disparar. | Claude | aprovado |
 

@@ -85,7 +85,7 @@ function drawActivity(g,c,d,alpha){
   g.save(); g.globalAlpha=alpha; g.imageSmoothingEnabled=true; g.imageSmoothingQuality='high';
   g.drawImage(off, ox, oy, WORLD.w*s, WORLD.h*s); g.restore();
   g.font=`${11*d}px system-ui`; g.fillStyle='#7a8293';
-  for(const [x,t] of [[60,'ouvidos'],[250,'transdução'],[560,'Sdom: mais longe dos ouvidos →']]) g.fillText(t, x*s+ox-18*d, Math.max(14*d, oy-6*d));
+  for(const [x,t] of [[60,'sensores'],[250,'transdução'],[560,'Sdom: mais longe dos sensores →']]) g.fillText(t, x*s+ox-18*d, Math.max(14*d, oy-6*d));
 }
 
 // ---------- grafo ----------
@@ -101,7 +101,7 @@ function drawGraph(g,c,d){
   const pw=Math.round(U.sr*0.25*Math.max(0.05,Math.min(1,spd)));
   for(let k=U.firstNmIdx(tv-pw); k<U.nmCount; k++){ const tt=U.nmT[k%U.nmCap]; if(tt>tv) break; const id=U.nmN[k%U.nmCap]; if(id<nv && glow[id]===0){ const f=U.nmF[k%U.nmCap]; if(f>part[id]) part[id]=f; } }
   g.font=`${11*d}px system-ui`; g.fillStyle='#5d6575';
-  for(const [x,t] of [[60,'ouvidos'],[270,'transdução'],[520,'Sdom: mais longe dos ouvidos →']]) g.fillText(t, X(x)-18*d, Math.max(14*d,Y(0)-6*d));
+  for(const [x,t] of [[60,'sensores'],[270,'transdução'],[520,'Sdom: mais longe dos sensores →']]) g.fillText(t, X(x)-18*d, Math.max(14*d,Y(0)-6*d));
   g.fillText('esq.', X(20), Y(250)+24*d); g.fillText('dir.', X(20), Y(750)+24*d);
   if(ne<=15000){
     const B=[['rgba(140,150,170,0.06)',0.6],['rgba(150,170,210,0.16)',1],['rgba(120,190,255,0.45)',1.4]];
@@ -160,7 +160,7 @@ function drawGraph(g,c,d){
 export function noNovo(n,tv){ for(const e of n.in){ if(e.from.lvl===0||e.diedAt<=tv) continue; if(!(e.consAt>=0 && e.consAt<=tv)) return true; } return false; }
 // nó "podre" = tem entradas vivas e todas são candidatas à poda (quando forem podadas, o nó fica órfão e é podado)
 export function noPodre(n,tv){ let k=0; for(const e of n.in){ if(e.from.lvl===0||e.diedAt<=tv) continue; if(e.inertSince===null) return false; k++; } return k>0; }
-// Corpo: o marcapasso de recursos (fora do Sdom, como os ouvidos) e as fibras do corpo (transdução endógena)
+// Corpo: o marcapasso de recursos (fora do Sdom, como os sensores) e as fibras do corpo (transdução endógena)
 export const HEART={x:60, y:500};
 function drawBody(g,d,X,Y,zr,nv){
   const U=S.U; if(!U.mpOn || !U.endoFibers) return;

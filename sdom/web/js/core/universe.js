@@ -29,7 +29,7 @@ export class Universe{
     this.actLog = []; this.stimLog = [];
     this.stimCount = 0; this.stimWin = [];   // estímulos recentes, para saber de qual estímulo nasceu cada nó (malha)
     this.actWin = ms(p.actWindowMs); this.actStart = 0; this.actCounts = new Map();
-    // os dois ouvidos (nível 0)
+    // os dois sensores (nível 0)
     this.addNode({lvl:0, ear:0, W:0, thr:0, mag:0, refr:0, born:0, x:60, y:250});
     this.addNode({lvl:0, ear:1, W:0, thr:0, mag:0, refr:0, born:0, x:60, y:750});
     this.buildCochlea();
@@ -54,7 +54,7 @@ export class Universe{
     this.nodes.push(n); return n;
   }
   addEdge(from, to, d){
-    // peso (mod) só aprende em arestas que saem de nós; ouvido→nível 1 é transdução fixa
+    // peso (mod) só aprende em arestas que saem de nós; sensor→nível 1 é transdução fixa
     // peso = peso basal (wF, apaga em horas) + peso consolidado (wS, apaga em semanas). Nasce só basal.
     const w0 = from.lvl===0 ? 1 : this.p.wBirth;
     const e = {id:this.edges.length, from, to, d, wF:w0, wS:0, mod:w0, acc:0, tagUntil:-1, consAt:-1, winExtra:0, inertSince:null, diedAt:Infinity, effect:0, born:to.born, lastUse:to.born}; // effect 0 = mantém
@@ -417,12 +417,12 @@ export class Universe{
   pisoFire(n){ const p=this.p; return Math.min(p.mpPisoDispMax, p.mpPisoDisp0+p.mpPisoDispK*Math.max(0,(n.depth||2)-2)); }
   mpPayFire(n){
     const cost=this.p.mpCostFire+this.p.mpCostEdge*n.out.length;
-    if(n.res<this.pisoFire(n)*n.cap || n.res<cost){ n.blocked=true; this.mp.blockedFire++; return false; }
+    if(n.res<this.pisoFire(n)*n.cap || n.res<cost){ n.blocked=true; n.falta=(n.falta||0)+cost; this.mp.blockedFire++; return false; }
     n.res-=cost; n.spent+=cost; this.mp.opsSpent+=cost; return true;
   }
   mpLearn(n,cost){
     if(!n || n.lvl<2 || n.res===undefined) return true;           // fora do Sdom (não deveria acontecer)
-    if(n.res<this.p.mpPisoAprender*n.cap || n.res<cost){ n.blocked=true; this.mp.blockedLearn++; return false; }
+    if(n.res<this.p.mpPisoAprender*n.cap || n.res<cost){ n.blocked=true; n.falta=(n.falta||0)+cost; this.mp.blockedLearn++; return false; }
     n.res-=cost; n.spent+=cost; this.mp.opsSpent+=cost; return true;
   }
   // criar paga quem é relacionado (nós do Sdom); se só há fibras, o nó novo paga com a reserva com que nasce (cheia).
@@ -431,7 +431,7 @@ export class Universe{
     const p=this.p, cost=p.mpCostCreate+p.mpCostCreateEdge*group.length, src=[];
     for(const e of group) if(e.n.lvl>=2 && src.indexOf(e.n)<0) src.push(e.n);
     if(src.length){
-      for(const n of src) if(n.res<p.mpPisoAprender*n.cap || n.res<cost/src.length){ n.blocked=true; this.mp.blockedCreate++; return -1; }
+      for(const n of src) if(n.res<p.mpPisoAprender*n.cap || n.res<cost/src.length){ n.blocked=true; n.falta=(n.falta||0)+cost/src.length; this.mp.blockedCreate++; return -1; }
       for(const n of src){ n.res-=cost/src.length; n.spent+=cost/src.length; }
       this.mp.opsSpent+=cost; return p.mpCap0;
     }
@@ -444,6 +444,7 @@ export class Universe{
       mp.press*=this.mpPressK;
       const target=this.p.mpF0*Math.exp(-mp.kB*mp.press+mp.u);
       mp.f+=(target-mp.f)*this.mpRateK;
+      const fMax=this.p.mpMaxBpm/60; if(mp.f>fMax) mp.f=fMax;   // o teto vale também nas passagens
     }
     if(mp.stopped) return;
     mp.phase+=mp.f/this.sr;
@@ -458,11 +459,12 @@ export class Universe{
       // adaptação: falta sustentada aumenta o teto; sem falta, ele volta devagar ao inicial
       n.cap = n.blocked ? Math.min(p.mpCapMax, n.cap*(1+grow)) : p.mpCap0+(n.cap-p.mpCap0)*decay;
       alive++; sumFrac+=Math.max(0,n.res)/n.cap;   // nível geral medido ANTES da reposição (o ponto mais baixo do ciclo)
-      n.want=Math.max(0,Math.min(n.cap-n.res, p.mpBaseOps+p.mpOver*n.spent)); req+=n.want; }
+      // o pedido inclui o que o nó precisou e não conseguiu (falta), não só o que gastou (v0.19.1)
+      n.want=Math.max(0,Math.min(n.cap-n.res, p.mpBaseOps+p.mpOver*(n.spent+(n.falta||0)))); req+=n.want; }
     const give=p.mpBeatOps, k= req>0 ? Math.min(1,give/req) : 0;
     let delivered=0;
     for(let i=0;i<L.length;i++){ const n=L[i]; if(n.diedAt!==Infinity) continue;
-      const g=n.want*k; n.res+=g; delivered+=g; n.spent=0; n.blocked=false; }
+      const g=n.want*k; n.res+=g; delivered+=g; n.spent=0; n.falta=0; n.blocked=false; }
     mp.level = alive? sumFrac/alive : 1; mp.shortFrac = alive? short/alive : 0; mp.opsDelivered+=delivered; mp.lastDelivered=delivered; mp.lastRequested=req;
     mp.press+=1;   // força da batida fixa nesta versão
     this.mpPedido(req, give, dt);

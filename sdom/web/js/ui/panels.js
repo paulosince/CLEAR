@@ -1,4 +1,4 @@
-/* Painel de números, nó selecionado e onda nos ouvidos (sempre ao vivo). */
+/* Painel de números, nó selecionado e onda nos sensores (sempre ao vivo). */
 import { S, $, sizeCanvas, fmt, fmtInt, on } from './state.js';
 import { micInfo } from './mic.js';
 
@@ -21,11 +21,11 @@ export function drawPanel(){
     const r=k=> ws>0 ? (s[k]-lastMp[k])/ws : 0, rf=r('bf'), rl=r('bl'), rc=r('bc'); lastMp=s;
     $('tBpm').textContent=Math.round(m.f*60)+'/min'; $('tRes').textContent=Math.round(100*(m.shortFrac||0))+'%';
     const tot=rf+rl+rc; $('tFalta').textContent= tot>=10000 ? (tot/1000).toFixed(0)+' mil' : fmtInt(tot);
-    falta=` · reserva média ${Math.round(100*m.level)}% · faltas por segundo de mundo: disparar ${fmtInt(rf)}, aprender ${fmtInt(rl)}, criar ${fmtInt(rc)}`; }
+    falta=` · pedido ao coração ${(m.pedido??1).toFixed(2)}× o que uma batida entrega · reserva média ${Math.round(100*m.level)}% · faltas por segundo de mundo: disparar ${fmtInt(rf)}, aprender ${fmtInt(rl)}, criar ${fmtInt(rc)}`; }
   else { $('tBpm').textContent='desligado'; $('tRes').textContent='—'; $('tFalta').textContent='—'; }
   $('statsMore').textContent=`tempo do mundo ${fmt(U.t)} · ritmo ${(S.simRatio*100).toFixed(0)}% do real · Sdom perto ${per[2]} · médio ${per[3]} · longe ${per[4]} · reforços ${fmtInt(U.ltp)} · enfraquecimentos ${fmtInt(U.ltd)} · consolidações ${fmtInt(U.consol)} · candidatas à poda ${U.candidates} · podadas ${U.prunedE} arestas, ${U.prunedN} nós${U.hebbOn?` · regra hebbiana: ${(U.hebbForm||[]).length} arestas em formação, ${U.hebbStats.fechadas} fechadas, ${U.hebbStats.recolhidas} recolhidas`:''}${falta}${S.vida.congelamentos?` · universo congelado ${S.vida.congelamentos}× com a página fora da tela (o último durou ${S.vida.ultimoCongeladoS.toFixed(1)} s, que para o robô não existiram)`:''}`;
   const mi=micInfo();
-  if(mi){ $('micInfo').textContent=`${mi.stereo?'estéreo':`mono${mi.dead?` (o canal ${mi.dead==='L'?'esquerdo':'direito'} chega mudo)`:''}: os dois ouvidos recebem o mesmo som`} · som perdido por atraso: ${mi.lostS.toFixed(1)} s`; }
+  if(mi){ $('micInfo').textContent=`${mi.stereo?'estéreo':`mono${mi.dead?` (o canal ${mi.dead==='L'?'esquerdo':'direito'} chega mudo)`:''}: os dois sensores recebem o mesmo som`} · som perdido por atraso: ${mi.lostS.toFixed(1)} s`; }
 
   if(S.view.sel) showInfo();
 }
@@ -33,10 +33,10 @@ export function drawPanel(){
 export function showInfo(){
   const U=S.U, n=S.view.sel; if(!n){ $('info').textContent='Aproxime até ver o grafo e toque num nó para inspecionar.'; return; }
   const ms=v=>(v*1000/U.sr).toFixed(3)+' ms';
-  const lv=n.endo?'corpo':n.lvl===0?'ouvido':n.lvl===1?'transdução (fibra)':`Sdom · distância dos ouvidos ${n.depth}`;
-  let s=`#${n.id} · ${lv}${n.lvl<=1&&!n.endo?(n.ear?' · ouvido direito':' · ouvido esquerdo'):''}\n`;
+  const lv=n.endo?'corpo':n.lvl===0?'sensor':n.lvl===1?'transdução (fibra)':`Sdom · distância dos sensores ${n.depth}`;
+  let s=`#${n.id} · ${lv}${n.lvl<=1&&!n.endo?(n.ear?' · sensor direito':' · sensor esquerdo'):''}\n`;
   if(n.heart){ const m=U.mp, fr=n=>(n*100).toFixed(0)+'%';
-    $('info').textContent=`♥ marcapasso de recursos · fora do Sdom (como os ouvidos)\n`+
+    $('info').textContent=`♥ marcapasso de recursos · fora do Sdom (como os sensores)\n`+
       `ritmo agora ${(m.f*60).toFixed(0)}/min · ritmo próprio ${(U.p.mpF0*60).toFixed(0)}/min · em repouso o reflexo fixo freia (~${U.p.mpRestBpm}/min)\n`+
       `batidas até agora ${m.beats} · recurso operacional por batida ${U.p.mpBeatOps.toLocaleString('pt-BR')}\n`+
       `na última batida: pedido ${Math.round(m.lastRequested).toLocaleString('pt-BR')} · entregue ${Math.round(m.lastDelivered).toLocaleString('pt-BR')}\n`+
@@ -70,7 +70,7 @@ export function showInfo(){
   s+=`entradas (${n.in.length}):\n`;
   const tvv=Math.floor(S.view.tv);
   for(const e of n.in.slice(0,12)){ let w=U.wAt(e,tvv); if(w===null) w=e.mod; let ws=U.wsAt(e,tvv); if(ws===null) ws=e.wS;
-    s+=`  de #${e.from.id} (${['ouvido','fibra','n2','n3','n4'][e.from.lvl]}) atraso ${ms(e.d)}`+(e.from.lvl? ` · peso ${w.toFixed(3)} (basal ${(w-ws).toFixed(3)} · consolidado ${ws.toFixed(3)})${e.hebb?(e.hebb.estado===0?` · EM FORMAÇÃO (regra hebbiana; fecha em ${fmt(Math.max(0,e.hebb.nasceu+U.hFechar-U.t))} se o disparar junto continuar)`:` · nasceu pela regra hebbiana, fechada`):''}${e.consAt>=0?` · consolidou em ${fmt(e.consAt)}`:' · NOVA (ainda não consolidou)'}${w<U.p.inertW?' INERTE'+(e.inertSince!==null?`, candidata à poda há ${fmt(U.t-e.inertSince)}`:''):''}`:'')+`\n`; }
+    s+=`  de #${e.from.id} (${['sensor','fibra','n2','n3','n4'][e.from.lvl]}) atraso ${ms(e.d)}`+(e.from.lvl? ` · peso ${w.toFixed(3)} (basal ${(w-ws).toFixed(3)} · consolidado ${ws.toFixed(3)})${e.hebb?(e.hebb.estado===0?` · EM FORMAÇÃO (regra hebbiana; fecha em ${fmt(Math.max(0,e.hebb.nasceu+U.hFechar-U.t))} se o disparar junto continuar)`:` · nasceu pela regra hebbiana, fechada`):''}${e.consAt>=0?` · consolidou em ${fmt(e.consAt)}`:' · NOVA (ainda não consolidou)'}${w<U.p.inertW?' INERTE'+(e.inertSince!==null?`, candidata à poda há ${fmt(U.t-e.inertSince)}`:''):''}`:'')+`\n`; }
   if(n.in.length>12) s+=`  …\n`;
   s+=`saídas: ${n.out.length}`;
   $('info').textContent=s;

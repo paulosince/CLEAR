@@ -10,14 +10,14 @@
      pode modular a magnitude.
    - Criação: quando um estímulo não encontra caminho.
    Escolhas da v0 (minhas, a revisar):
-   - Ouvido = microfone: cada amostra vira incidência (sinal->efeito, |x|->magnitude).
-   - Nível 1 nasce de um "lóbulo" positivo da onda que nenhum nó do ouvido captou.
+   - Sensor = microfone: cada amostra vira incidência (sinal->efeito, |x|->magnitude).
+   - Nível 1 nasce de um "lóbulo" positivo da onda que nenhum nó do sensor captou.
    - Níveis 2+ nascem agrupando disparos do nível de baixo que ninguém absorveu
      dentro da janela de agrupamento; os atrasos das arestas são os intervalos
      observados, para que tudo chegue junto ao nó novo.
    - Sem aprendizado nem divisão ainda.
    ===================================================================== */
-export const CODE_VERSION='v0.19';
+export const CODE_VERSION='v0.19.1';
 export const DEFAULTS = {
   sr: 16000,           // taxa do microfone (amostras/s); botão alterna 16k/8k
   // transdução auditiva (v0.6): cóclea fixa, fora do Sdom
@@ -37,7 +37,7 @@ export const DEFAULTS = {
   // criação sem níveis (v0.7): relacionar o que acontece junto e ainda não tem relação
   bindMs: 50,          // até que distância no tempo disparos podem ser relacionados
   weber: 0.1,          // tolerância proporcional ao intervalo relacionado (propriedade escalar)
-  minCoincMs: 0.25,    // tolerância mínima (escala da diferença de tempo entre os ouvidos)
+  minCoincMs: 0.25,    // tolerância mínima (escala da diferença de tempo entre os sensores)
   prepFrac: 0.5,       // nó que recebe ≥ 50% do limiar está preparado: o que chegou nele tem relação
   pathRule: 0,         // 1 = basta a incidência chegar a algum nó (ter caminho) para o disparo ter relação
   gapMs: 1,            // intervalo mínimo entre criações

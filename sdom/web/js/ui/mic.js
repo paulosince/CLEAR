@@ -31,7 +31,7 @@ export async function startMic(){
       const m=e.data; let L=m.L, R=m.R;
       classify(m);
       if(mic.rs) [L,R]=mic.rs.process(L,R);
-      // mono (ou um canal mudo): os dois ouvidos recebem o canal que tem som
+      // mono (ou um canal mudo): os dois sensores recebem o canal que tem som
       if(!mic.stereo) { const src = mic.dead==='L' ? R : L; L=src; R=src; }
       mic.queue.push(L,R); };
     stream.getAudioTracks()[0].addEventListener('ended',()=>stopMic('o microfone foi desligado pelo aparelho'));

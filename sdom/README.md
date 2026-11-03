@@ -17,7 +17,7 @@ que começa vazio. O que ele ouve é representado num grafo: uma estrutura é
 O robô pode ouvir o mundo real pelo microfone do aparelho. Com o microfone ligado, quem dita o tempo é o
 mundo: entram as amostras que chegaram; se o computador não der conta, o atraso acima de 0,25 s é
 descartado e contado ("som perdido por atraso"). Os sons sintéticos ficam pausados, para o robô não
-ouvir os próprios alto-falantes. Mono: os dois ouvidos recebem o mesmo som (sem direção).
+ouvir os próprios alto-falantes. Mono: os dois sensores recebem o mesmo som (sem direção).
 
 **Proteções no código**
 - Microfone **desligado ao abrir**; só liga pelo botão (um teste confere isso a cada push).
@@ -42,8 +42,14 @@ Limite honesto: a CSP protege contra código de terceiros, não contra quem tem 
 Experimento com microfone falso do Chromium: `NODE_PATH=$(npm root -g) node experimentos/microfone.cjs`.
 
 **Mono e canal mudo.** O robô só trata o som como estéreo se os dois canais têm som e não são cópias um do
-outro. Se o aparelho entrega um canal mudo (ou mono), os dois ouvidos recebem o canal que tem som; a faixa do
-topo diz qual é o caso. (Até a v0.12 havia um defeito: um canal vazio era tratado como estéreo, e só um ouvido "funcionava".)
+outro. Se o aparelho entrega um canal mudo (ou mono), os dois sensores recebem o canal que tem som; a faixa do
+topo diz qual é o caso. (Até a v0.12 havia um defeito: um canal vazio era tratado como estéreo, e só um sensor "funcionava".)
+
+## Correções v0.19.1
+- "Ouvido(s)" virou **sensor(es)** na interface e no texto (decisão do Paulo; GLOSSARIO).
+- O pedido de recurso ao coração passa a incluir **o que o nó precisou e não conseguiu** (falta), não só o que gastou: antes, um nó
+  em falta parava de gastar e por isso parava de pedir — o coração não via a falta. O ritmo também respeita o teto nas passagens.
+- O texto do painel mostra o pedido ao coração (× o que uma batida entrega).
 
 ## Regra hebbiana: disparou junto, de novo e de novo, conecta junto (v0.19 — decisões do Paulo)
 
@@ -251,7 +257,7 @@ Todas as características de nós e arestas podem ser modificadas por aprendizad
 ## Escolhas da v0.1 (do Claude, a revisar)
 
 1. Cada amostra do microfone vira uma incidência: sinal → efeito, |x| → magnitude.
-2. **Nível 1** nasce de cada lóbulo positivo da onda que nenhum nó do ouvido captou:
+2. **Nível 1** nasce de cada lóbulo positivo da onda que nenhum nó do sensor captou:
    janela = duração do lóbulo, limiar = 80% do que ele somou, magnitude = pico.
 3. **Níveis 2–4** nascem agrupando disparos do nível de baixo que ninguém absorveu
    dentro da janela de agrupamento; atrasos das arestas = intervalos observados,
@@ -361,7 +367,7 @@ representando o que a transdução definiu.
 - **Pular no tempo:** como no silêncio só o decaimento acontece, e ele é calculado
   pelo tempo passado, dá para avançar 1 h, 1 dia, 1 semana ou 4 semanas na hora.
 - Arestas nascem com peso 0,5 (todo basal); o limiar do nó novo é calibrado com esse peso.
-- A ligação ouvido → nível 1 é transdução fixa: não aprende nem decai.
+- A ligação sensor → nível 1 é transdução fixa: não aprende nem decai.
 
 ## Poda (v0.5)
 
@@ -369,7 +375,7 @@ representando o que a transdução definiu.
 - **Nó** só é podado quando fica **órfão**: sem nenhuma aresta.
 - **Acesso:** se o nó de origem dispara e a incidência passa por uma candidata, ela
   ganha +0,1 no peso basal, +3 h de janela de consolidação e sai da fila da poda.
-- Os nós do nível 1 nunca ficam órfãos: a ligação ouvido → nível 1 é transdução fixa.
+- Os nós do nível 1 nunca ficam órfãos: a ligação sensor → nível 1 é transdução fixa.
 
 Janelas de 17 ms e 34 ms: médias de Bi & Poo (1998). Os números de reforço,
 consolidação e meias-vidas são escolhas iniciais, ajustáveis como parâmetros.

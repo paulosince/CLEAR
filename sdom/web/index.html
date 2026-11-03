@@ -22,7 +22,7 @@
   <section id="secPanel" aria-label="Painel">
     <div class="tiles">
       <div class="tile" title="Malha = estrutura criada a partir de um mesmo estímulo (regra provisória: o nó pertence ao estímulo que começou por último antes do primeiro disparo que ele relaciona)"><span class="tl">Malhas</span><b id="tMalhas">—</b></div>
-      <div class="tile" title="Nós do Sdom vivos (sem contar ouvidos e fibras da transdução)"><span class="tl">Nós</span><b id="tNos">—</b></div>
+      <div class="tile" title="Nós do Sdom vivos (sem contar sensores e fibras da transdução)"><span class="tl">Nós</span><b id="tNos">—</b></div>
       <div class="tile" title="Arestas vivas que saem das fibras ou de nós do Sdom"><span class="tl">Arestas</span><b id="tArestas">—</b></div>
       <div class="tile" title="Sinapse = junção aresta → nó. Hoje cada aresta termina em exatamente um nó, então o número é igual ao de arestas"><span class="tl">Sinapses</span><b id="tSinapses">—</b></div>
       <div class="tile" title="Disparos por segundo (de tempo real) em todo o sistema"><span class="tl">Disparos/s</span><b id="tDisp">—</b></div>
@@ -53,14 +53,14 @@
       <span><i class="dot" style="background:var(--l1)"></i>transdução</span>
       <span><i class="dot" style="background:var(--l2)"></i>Sdom perto</span>
       <span><i class="dot" style="background:var(--l3)"></i>médio</span>
-      <span><i class="dot" style="background:var(--l4)"></i>longe dos ouvidos</span>
+      <span><i class="dot" style="background:var(--l4)"></i>longe dos sensores</span>
       <span><i class="dot" style="background:#e0607e"></i>corpo (♥ marcapasso de recursos)</span>
       <span><i class="dot" style="background:var(--hot)"></i>disparou</span>
       <span><i class="dot" style="background:#1de9d6"></i>novo (ainda não consolidou)</span>
       <span><i class="dot" style="background:#c4623a"></i>candidato à poda</span>
       <span class="mut">aresta: verde-piscina pontilhada = em formação (regra hebbiana) · verde-piscina = nova · apagada = fraca · azul = forte · laranja = consolidada · <span style="color:#c4623a">terracota tracejada = candidata à poda</span> · cinza tracejada = inerte · a ponta (de perto) mostra a direção: de quem dispara para quem recebe</span>
     </div>
-    <div class="small mut" style="margin-top:6px">O que cada ouvido está captando agora (últimos 40 ms):</div>
+    <div class="small mut" style="margin-top:6px">O que cada sensor está captando agora (últimos 40 ms):</div>
     <canvas id="wave"></canvas>
   </section>
 </main>
