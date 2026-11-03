@@ -62,3 +62,10 @@ test('mesma semente, mesmo resultado com o marcapasso ligado', async ()=>{
   const r=()=>{ const L=new Lab(Object.assign({},DEFAULTS),2026,'casa',6); while(!L.advance(1600)); const m=L.U.mp; return [L.U.fireCount,L.U.nodes.length,m.blockedFire,m.blockedLearn,Math.round(m.opsSpent)]; };
   assert.deepEqual(r(),r());
 });
+test('painel: a falta local aparece mesmo quando a média da reserva está alta', ()=>{
+  const U=new Universe(Object.assign({},DEFAULTS),11); let r=7; const rnd=()=>{ r=(r*1103515245+12345)>>>0; return r/4294967296-0.5; };
+  let maxShort=0, minLevel=1;
+  for(let i=0;i<6*U.sr;i++){ const t=i/U.sr, x=0.5*(Math.sin(2*Math.PI*220*t)+0.6*Math.sin(2*Math.PI*440*t)+0.5*rnd()); U.step(x,x);
+    if(i%800===0 && U.mp.beats>2){ maxShort=Math.max(maxShort,U.mp.shortFrac); minLevel=Math.min(minLevel,U.mp.level); } }
+  assert.ok(maxShort>0, 'algum nó ficou em falta'); assert.ok(minLevel>0.5, 'a média continua alta');
+});

@@ -19,9 +19,9 @@ export function drawPanel(){
   let falta='';
   if(U.mp){ const m=U.mp, s=mpSnap(U), ws=lastMp&&s.t>lastMp.t ? (s.t-lastMp.t)/U.sr : 0;
     const r=k=> ws>0 ? (s[k]-lastMp[k])/ws : 0, rf=r('bf'), rl=r('bl'), rc=r('bc'); lastMp=s;
-    $('tBpm').textContent=Math.round(m.f*60)+'/min'; $('tRes').textContent=Math.round(100*m.level)+'%';
+    $('tBpm').textContent=Math.round(m.f*60)+'/min'; $('tRes').textContent=Math.round(100*(m.shortFrac||0))+'%';
     const tot=rf+rl+rc; $('tFalta').textContent= tot>=10000 ? (tot/1000).toFixed(0)+' mil' : fmtInt(tot);
-    falta=` · faltas por segundo de mundo: disparar ${fmtInt(rf)}, aprender ${fmtInt(rl)}, criar ${fmtInt(rc)}`; }
+    falta=` · reserva média ${Math.round(100*m.level)}% · faltas por segundo de mundo: disparar ${fmtInt(rf)}, aprender ${fmtInt(rl)}, criar ${fmtInt(rc)}`; }
   else { $('tBpm').textContent='desligado'; $('tRes').textContent='—'; $('tFalta').textContent='—'; }
   $('statsMore').textContent=`tempo do mundo ${fmt(U.t)} · ritmo ${(S.simRatio*100).toFixed(0)}% do real · Sdom perto ${per[2]} · médio ${per[3]} · longe ${per[4]} · reforços ${fmtInt(U.ltp)} · enfraquecimentos ${fmtInt(U.ltd)} · consolidações ${fmtInt(U.consol)} · candidatas à poda ${U.candidates} · podadas ${U.prunedE} arestas, ${U.prunedN} nós${falta}${S.vida.congelamentos?` · universo congelado ${S.vida.congelamentos}× com a página fora da tela (o último durou ${S.vida.ultimoCongeladoS.toFixed(1)} s, que para o robô não existiram)`:''}`;
   const mi=micInfo();

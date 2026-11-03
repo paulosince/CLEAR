@@ -380,8 +380,9 @@ export class Universe{
   mpBeat(t){
     const p=this.p, mp=this.mp, L=this.sdomList, dt=t-mp.lastBeat; mp.lastBeat=t; mp.beats++;
     const decay=Math.pow(0.5,dt/this.mpHl), grow=p.mpGrowPerDay/(86400*Math.max(0.1,mp.f));
-    let req=0, alive=0, sumFrac=0;
+    let req=0, alive=0, sumFrac=0, short=0;
     for(let i=0;i<L.length;i++){ const n=L[i]; if(n.diedAt!==Infinity) continue;
+      if(n.blocked) short++;   // ficou sem recurso para algo desde a última batida
       // adaptação: falta sustentada aumenta o teto; sem falta, ele volta devagar ao inicial
       n.cap = n.blocked ? Math.min(p.mpCapMax, n.cap*(1+grow)) : p.mpCap0+(n.cap-p.mpCap0)*decay;
       alive++; sumFrac+=Math.max(0,n.res)/n.cap;   // nível geral medido ANTES da reposição (o ponto mais baixo do ciclo)
@@ -390,7 +391,7 @@ export class Universe{
     let delivered=0;
     for(let i=0;i<L.length;i++){ const n=L[i]; if(n.diedAt!==Infinity) continue;
       const g=n.want*k; n.res+=g; delivered+=g; n.spent=0; n.blocked=false; }
-    mp.level = alive? sumFrac/alive : 1; mp.opsDelivered+=delivered; mp.lastDelivered=delivered; mp.lastRequested=req;
+    mp.level = alive? sumFrac/alive : 1; mp.shortFrac = alive? short/alive : 0; mp.opsDelivered+=delivered; mp.lastDelivered=delivered; mp.lastRequested=req;
     mp.press+=1;   // força da batida fixa nesta versão
     // transdução endógena: a batida e o nível geral entram no Sdom como incidências
     for(const f of this.endoFibers){ const e=f.endo; if(e.kind==='batida' ? 1>=e.thr : mp.level>=e.thr) this.fire(f,t); }
