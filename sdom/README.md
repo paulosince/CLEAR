@@ -45,6 +45,27 @@ Experimento com microfone falso do Chromium: `NODE_PATH=$(npm root -g) node expe
 outro. Se o aparelho entrega um canal mudo (ou mono), os dois ouvidos recebem o canal que tem som; a faixa do
 topo diz qual é o caso. (Até a v0.12 havia um defeito: um canal vazio era tratado como estéreo, e só um ouvido "funcionava".)
 
+## Regra hebbiana: disparou junto, de novo e de novo, conecta junto (v0.19 — decisões do Paulo)
+
+Até a v0.18 o Sdom só criava nós novos (para relacionar disparos sem relação) e ajustava arestas existentes.
+Agora dois nós **que já existem** e disparam juntos repetidas vezes passam a se ligar, em três etapas:
+
+1. **Rastro**: cada vez que A dispara e B dispara até 20 ms depois, o par A → B ganha rastro. Praticamente juntos (≤ 2 ms):
+   conta nas duas direções. O rastro cai pela metade a cada 2 h sem repetição: um "junto" isolado não vai além disso.
+2. **Aresta em formação**: com rastro ≥ 10, nasce a aresta A → B, fraca (peso 0,1, já transmite um pouco), com o atraso observado.
+   Custa recurso operacional (como criar aresta), pago pelos nós do Sdom envolvidos. No máximo 8 em formação chegando a um mesmo nó.
+3. **Fecha ou recolhe**: a aresta em formação guarda a recorrência do "junto" (meia-vida de 12 h). Se cair abaixo de 3, ela **recolhe**
+   (some). Se o "junto" continuar, ao completar **3 dias** (decisão do Paulo: o menor prazo da literatura) ela **fecha** e vira aresta comum.
+
+Origem: fibra ou nó do Sdom; destino: nó do Sdom. Por disparo, contam as 24 fontes mais recentes (custo de computação).
+Os eventos (em formação, fechada, recolhida) entram nos registros junto com as podas.
+Respaldo: espinhas novas nascem em horas, ganham sinapse ao longo de dias, a maioria some em menos de uma semana e só as usadas de novo
+se estabilizam (Knott et al., 2006; Holtmaat et al., 2005, 2006; Xu et al., 2009; Fu et al., 2012; Hill & Zito, 2013); neurônios
+que respondem parecido se conectam mais, inclusive nos dois sentidos (Ko et al., 2011, 2013; Song et al., 2005).
+Medido (roteiro conversa, 30 s): ~680 arestas em formação, ~280 entre nós do Sdom, 40 recíprocas; nasceram menos nós (201 contra 415);
+o laboratório ficou ~40% mais lento (ainda ~3,6× mais rápido que o tempo real); em silêncio depois, a atividade não se sustenta sozinha (ainda).
+Nomes "rastro", "em formação", "fechar", "recolher": aprovados pelo Paulo.
+
 ## Pedido de recurso → ritmo do coração (v0.18 — decisão do Paulo)
 
 - A cada batida, cada nó do Sdom pede recurso (o que gastou, com sobra, até encher a reserva). Quando o **pedido total** passa do

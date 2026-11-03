@@ -17,7 +17,7 @@
      observados, para que tudo chegue junto ao nó novo.
    - Sem aprendizado nem divisão ainda.
    ===================================================================== */
-export const CODE_VERSION='v0.18';
+export const CODE_VERSION='v0.19';
 export const DEFAULTS = {
   sr: 16000,           // taxa do microfone (amostras/s); botão alterna 16k/8k
   // transdução auditiva (v0.6): cóclea fixa, fora do Sdom
@@ -69,6 +69,21 @@ export const DEFAULTS = {
   mpRestBpm: 81,         // repouso com o reflexo (freio) ≈ 81/min (mesma fonte)
   mpPressTauS: 2,        // reflexo fixo: o sinal das batidas se acumula e se dissipa em ~2 s
   mpRateTauS: 1,         // o ritmo muda devagar em direção ao alvo
+  // regra hebbiana (v0.19, decisões do Paulo): disparar junto, de novo e de novo, liga dois nós que já existem.
+  // rastro (some com o tempo) → aresta em formação (fraca) → fecha após dias de recorrência, ou recolhe.
+  // Valores iniciais do Claude, a revisar, exceto o prazo de fechamento (3 dias, decisão do Paulo).
+  hebbOn: 1,
+  hebbJanelaMs: 20,      // "junto": B dispara até 20 ms depois de A (janela do reforço por sincronia)
+  hebbJuntoMs: 2,        // praticamente ao mesmo tempo: conta nas duas direções
+  hebbRastroMeiaH: 2,    // o rastro de um par cai pela metade a cada 2 h sem repetição
+  hebbLimiar: 10,        // rastro acumulado para nascer a aresta em formação
+  hebbPeso: 0.1,         // a aresta em formação nasce fraca (já transmite um pouco)
+  hebbRecMeiaH: 12,      // a recorrência da aresta em formação cai pela metade a cada 12 h sem repetição
+  hebbRecolherAbaixo: 3, // se a recorrência cair abaixo disso, a aresta recolhe
+  hebbFecharDias: 3,     // prazo de fechamento (decisão do Paulo: o menor)
+  hebbMaxFormando: 8,    // no máximo 8 arestas em formação chegando a um mesmo nó (equilíbrio)
+  hebbMaxPares: 50000,
+  hebbMaxFontes: 24,     // por disparo, contam as 24 fontes mais recentes (nós do Sdom primeiro, depois fibras)   // limite de rastros guardados ao mesmo tempo
   // pedido de recurso → ritmo (v0.18, decisão do Paulo): quando o Sdom pede mais do que a batida entrega, o coração acelera
   // para entregar mais por minuto; quando o pedido cai, o freio fixo o traz de volta ao repouso. Valores iniciais do Claude, a revisar.
   mpMaxBpm: 180,         // teto do ritmo
@@ -101,7 +116,7 @@ export const PARAM_UI = [
   ['tauPlusMs','janela do reforço (ms)'],['tauMinusMs','janela do enfraquecimento (ms)'],
   ['fastHalfLifeS','meia-vida do peso basal (s)'],['slowHalfLifeDays','meia-vida do peso consolidado (dias)'],['tagHours','janela de consolidação (h)'],['consolThr','reforço acumulado para consolidar'],
   ['pruneDays','poda: dias inerte até podar'],['accessBoost','acesso: reforço da candidata'],['accessWindowH','acesso: +janela de consolidação (h)'],['inertW','peso inerte abaixo de'],['actWindowMs','janela da atividade gravada (ms)'],
-  ['mpOn','marcapasso de recursos ligado (0/1)'],['mpF0','marcapasso: ritmo próprio (batidas/s)'],['mpRestBpm','marcapasso: repouso com o reflexo (bpm)'],['mpBeatOps','recurso operacional por batida'],['mpMaxBpm','marcapasso: teto do ritmo (bpm)'],['mpPedidoSobeS','pedido → ritmo: subida (s)'],['mpPedidoDesceS','pedido → ritmo: descida (s)'],['mpBaseOps','parte base por nó e batida'],['mpOver','sobra para o nó ativo (×)'],
+  ['mpOn','marcapasso de recursos ligado (0/1)'],['mpF0','marcapasso: ritmo próprio (batidas/s)'],['mpRestBpm','marcapasso: repouso com o reflexo (bpm)'],['mpBeatOps','recurso operacional por batida'],['mpMaxBpm','marcapasso: teto do ritmo (bpm)'],['hebbOn','regra hebbiana ligada (0/1)'],['hebbJanelaMs','hebbiana: janela do "junto" (ms)'],['hebbRastroMeiaH','hebbiana: meia-vida do rastro (h)'],['hebbLimiar','hebbiana: rastro para nascer a aresta em formação'],['hebbPeso','hebbiana: peso da aresta em formação'],['hebbRecMeiaH','hebbiana: meia-vida da recorrência (h)'],['hebbRecolherAbaixo','hebbiana: recolhe abaixo de'],['hebbFecharDias','hebbiana: prazo de fechamento (dias)'],['hebbMaxFormando','hebbiana: em formação por nó (máx.)'],['mpPedidoSobeS','pedido → ritmo: subida (s)'],['mpPedidoDesceS','pedido → ritmo: descida (s)'],['mpBaseOps','parte base por nó e batida'],['mpOver','sobra para o nó ativo (×)'],
   ['mpCap0','teto inicial da reserva operacional'],['mpCapMax','teto máximo da reserva'],['mpGrowPerDay','adaptação: crescimento por dia de falta'],['mpCapHalfLifeDays','adaptação: meia-vida da volta (dias)'],
   ['mpPisoAprender','piso de aprender (fração do teto)'],['mpPisoDisp0','piso de disparar perto da transdução'],['mpPisoDispK','piso de disparar: + por distância'],['mpPisoDispMax','piso de disparar: máximo'],
   ['mpCostFire','custo: disparar'],['mpCostEdge','custo: por aresta de saída'],['mpCostLearn','custo: reforço/enfraquecimento'],['mpCostConsol','custo: consolidação'],['mpCostCreate','custo: criar nó'],['mpCostCreateEdge','custo: por aresta criada'],

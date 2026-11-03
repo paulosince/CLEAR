@@ -23,7 +23,7 @@ export function drawPanel(){
     const tot=rf+rl+rc; $('tFalta').textContent= tot>=10000 ? (tot/1000).toFixed(0)+' mil' : fmtInt(tot);
     falta=` · reserva média ${Math.round(100*m.level)}% · faltas por segundo de mundo: disparar ${fmtInt(rf)}, aprender ${fmtInt(rl)}, criar ${fmtInt(rc)}`; }
   else { $('tBpm').textContent='desligado'; $('tRes').textContent='—'; $('tFalta').textContent='—'; }
-  $('statsMore').textContent=`tempo do mundo ${fmt(U.t)} · ritmo ${(S.simRatio*100).toFixed(0)}% do real · Sdom perto ${per[2]} · médio ${per[3]} · longe ${per[4]} · reforços ${fmtInt(U.ltp)} · enfraquecimentos ${fmtInt(U.ltd)} · consolidações ${fmtInt(U.consol)} · candidatas à poda ${U.candidates} · podadas ${U.prunedE} arestas, ${U.prunedN} nós${falta}${S.vida.congelamentos?` · universo congelado ${S.vida.congelamentos}× com a página fora da tela (o último durou ${S.vida.ultimoCongeladoS.toFixed(1)} s, que para o robô não existiram)`:''}`;
+  $('statsMore').textContent=`tempo do mundo ${fmt(U.t)} · ritmo ${(S.simRatio*100).toFixed(0)}% do real · Sdom perto ${per[2]} · médio ${per[3]} · longe ${per[4]} · reforços ${fmtInt(U.ltp)} · enfraquecimentos ${fmtInt(U.ltd)} · consolidações ${fmtInt(U.consol)} · candidatas à poda ${U.candidates} · podadas ${U.prunedE} arestas, ${U.prunedN} nós${U.hebbOn?` · regra hebbiana: ${(U.hebbForm||[]).length} arestas em formação, ${U.hebbStats.fechadas} fechadas, ${U.hebbStats.recolhidas} recolhidas`:''}${falta}${S.vida.congelamentos?` · universo congelado ${S.vida.congelamentos}× com a página fora da tela (o último durou ${S.vida.ultimoCongeladoS.toFixed(1)} s, que para o robô não existiram)`:''}`;
   const mi=micInfo();
   if(mi){ $('micInfo').textContent=`${mi.stereo?'estéreo':`mono${mi.dead?` (o canal ${mi.dead==='L'?'esquerdo':'direito'} chega mudo)`:''}: os dois ouvidos recebem o mesmo som`} · som perdido por atraso: ${mi.lostS.toFixed(1)} s`; }
 
@@ -70,7 +70,7 @@ export function showInfo(){
   s+=`entradas (${n.in.length}):\n`;
   const tvv=Math.floor(S.view.tv);
   for(const e of n.in.slice(0,12)){ let w=U.wAt(e,tvv); if(w===null) w=e.mod; let ws=U.wsAt(e,tvv); if(ws===null) ws=e.wS;
-    s+=`  de #${e.from.id} (${['ouvido','fibra','n2','n3','n4'][e.from.lvl]}) atraso ${ms(e.d)}`+(e.from.lvl? ` · peso ${w.toFixed(3)} (basal ${(w-ws).toFixed(3)} · consolidado ${ws.toFixed(3)})${e.consAt>=0?` · consolidou em ${fmt(e.consAt)}`:' · NOVA (ainda não consolidou)'}${w<U.p.inertW?' INERTE'+(e.inertSince!==null?`, candidata à poda há ${fmt(U.t-e.inertSince)}`:''):''}`:'')+`\n`; }
+    s+=`  de #${e.from.id} (${['ouvido','fibra','n2','n3','n4'][e.from.lvl]}) atraso ${ms(e.d)}`+(e.from.lvl? ` · peso ${w.toFixed(3)} (basal ${(w-ws).toFixed(3)} · consolidado ${ws.toFixed(3)})${e.hebb?(e.hebb.estado===0?` · EM FORMAÇÃO (regra hebbiana; fecha em ${fmt(Math.max(0,e.hebb.nasceu+U.hFechar-U.t))} se o disparar junto continuar)`:` · nasceu pela regra hebbiana, fechada`):''}${e.consAt>=0?` · consolidou em ${fmt(e.consAt)}`:' · NOVA (ainda não consolidou)'}${w<U.p.inertW?' INERTE'+(e.inertSince!==null?`, candidata à poda há ${fmt(U.t-e.inertSince)}`:''):''}`:'')+`\n`; }
   if(n.in.length>12) s+=`  …\n`;
   s+=`saídas: ${n.out.length}`;
   $('info').textContent=s;

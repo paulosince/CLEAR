@@ -105,10 +105,10 @@ function drawGraph(g,c,d){
   g.fillText('esq.', X(20), Y(250)+24*d); g.fillText('dir.', X(20), Y(750)+24*d);
   if(ne<=15000){
     const B=[['rgba(140,150,170,0.06)',0.6],['rgba(150,170,210,0.16)',1],['rgba(120,190,255,0.45)',1.4]];
-    const paths=[new Path2D(),new Path2D(),new Path2D()], inert=new Path2D(), cons=new Path2D(), novo=new Path2D(), podre=new Path2D();
+    const paths=[new Path2D(),new Path2D(),new Path2D()], inert=new Path2D(), cons=new Path2D(), novo=new Path2D(), podre=new Path2D(), formando=new Path2D();
     const zr=Math.max(0.7,Math.min(2.2,v.s*1.2)), setas = v.s/v.fitS>=2, setaP=new Path2D();   // setas só de perto, para não virar borrão
     for(let i=0;i<ne;i++){ const e=U.edges[i]; if(e.from.lvl===0||e.diedAt<=tv) continue; let w=U.wAt(e,tv); if(w===null) w=e.mod; let ws=U.wsAt(e,tv); if(ws===null) ws=e.wS;
-      const p = e.inertSince!==null ? podre : !(e.consAt>=0 && e.consAt<=tv) ? (w<U.p.inertW ? inert : novo)
+      const p = (e.hebb && e.hebb.estado===0) ? formando : e.inertSince!==null ? podre : !(e.consAt>=0 && e.consAt<=tv) ? (w<U.p.inertW ? inert : novo)
         : w<U.p.inertW ? inert : (ws>0.5*w && w>=0.35 ? cons : paths[w<0.35?0:(w<0.7?1:2)]);
       const x1=X(e.from.x), y1=Y(e.from.y), x2=X(e.to.x), y2=Y(e.to.y);
       p.moveTo(x1,y1); p.lineTo(x2,y2);
@@ -122,6 +122,7 @@ function drawGraph(g,c,d){
     g.setLineDash([3*d,4*d]); g.strokeStyle='rgba(120,120,120,0.25)'; g.lineWidth=0.7*d; g.stroke(inert); g.setLineDash([]);
     g.strokeStyle=NOVO; g.globalAlpha=0.5; g.lineWidth=1.1*d; g.stroke(novo);
     g.strokeStyle=PODRE; g.globalAlpha=0.9; g.lineWidth=1.4*d; g.setLineDash([4*d,3*d]); g.stroke(podre); g.setLineDash([]); g.globalAlpha=1;
+    g.strokeStyle=NOVO; g.globalAlpha=0.85; g.lineWidth=1*d; g.setLineDash([1.5*d,3*d]); g.stroke(formando); g.setLineDash([]); g.globalAlpha=1;
     if(setas){ g.fillStyle='rgba(235,240,250,0.85)'; g.fill(setaP); }
   }
   g.strokeStyle='rgba(255,226,122,0.55)'; g.lineWidth=1.3*d; g.beginPath();

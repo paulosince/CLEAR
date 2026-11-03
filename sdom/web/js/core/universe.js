@@ -35,6 +35,7 @@ export class Universe{
     this.buildCochlea();
     this.mpOn = !!p.mpOn; this.sdomList = [];
     if(this.mpOn) this.mpInit();
+    this.hebbOn = !!p.hebbOn; this.hebbInit();
   }
   // gravação do observador (para voltar a fita na tela). Não é estado do robô: não é guardada ao retomar.
   allocObserver(){
@@ -103,6 +104,7 @@ export class Universe{
       } else e.inertSince=null;
     }
     this.candidates=cand;
+    if(this.hebbOn && t-this.hebbUltVerif>=10*this.sr) this.hebbVerifica(t);
   }
   pruneEdge(e,when){
     e.diedAt=when; this.prunedE++; this.pruneLog.push({t:Math.round(when), kind:'aresta', id:e.id, from:e.from.id, to:e.to.id});
@@ -123,6 +125,7 @@ export class Universe{
     this.actStart=this.t;
     this.stimLog.push({t:t0, jumpS:samples/this.sr});
     if(this.mpOn) this.mpJump(samples);
+    if(this.hebbOn){ this.hebbRecS.length=0; this.hebbRecF.length=0; this.hHS=0; this.hHF=0; this.hebbVerifica(this.t); }
     this.sweep(this.t);
   }
   // ---- TRANSDUÇÃO AUDITIVA (fora do Sdom) ----
@@ -259,6 +262,7 @@ export class Universe{
       if(ev && this.p.pathRule) ev.a=true;   // variante: a incidência encontrou um caminho
     }
     if(n.lvl>=2) this.wheel[(t+n.refr)&this.wmask].push({n, chk:true});
+    if(this.hebbOn && n.lvl>=1) this.hebbFire(n,t);
   }
   // ---- CRIAÇÃO: relacionar disparos que acontecem juntos e ainda não têm relação ----
   // Um disparo tem relação se ajudou um nó a disparar ou o deixou preparado. Os que não têm,
@@ -323,6 +327,74 @@ export class Universe{
         for(const e of a){ const arr=e.t+ed.d; if(tau-arr>=0 && tau-arr<n.W){ s+=e.m*ed.mod; used.push(e); } } }
       if(s>=this.p.prepFrac*n.thr-1e-9) for(const e of used) e.a=true;
     }
+  }
+  // ---- REGRA HEBBIANA (v0.19) ----
+  // Dois nós que já existem e disparam juntos, de novo e de novo, passam a se ligar (de quem disparou antes
+  // para quem disparou depois; praticamente juntos = nas duas direções). Etapas: rastro → aresta em formação → fecha
+  // (após dias de recorrência) ou recolhe. Origem: fibra ou nó do Sdom; destino: nó do Sdom.
+  hebbConst(){ const p=this.p, sr=this.sr;
+    this.hW=Math.max(1,Math.round(p.hebbJanelaMs*sr/1000)); this.hS=Math.max(1,Math.round(p.hebbJuntoMs*sr/1000));
+    this.hHlR=Math.max(1,p.hebbRastroMeiaH*3600*sr); this.hHlRec=Math.max(1,p.hebbRecMeiaH*3600*sr); this.hFechar=p.hebbFecharDias*86400*sr; }
+  hebbInit(){ this.hebbPar=new Map(); this.hebbRecS=[]; this.hebbRecF=[]; this.hHS=0; this.hHF=0; this.hMarca=0; this.hebbForm=[]; this.hebbUltVerif=this.t||0;
+    this.hebbStats={formadas:0, fechadas:0, recolhidas:0}; this.hebbConst(); }
+  hebbFire(n,t){
+    const W=this.hW, S=this.hS, RS=this.hebbRecS, RF=this.hebbRecF;
+    let hs=this.hHS|0, hf=this.hHF|0;   // início da janela (sem shift: corta de vez em quando)
+    while(hs<RS.length && t-RS[hs].t>W) hs++;
+    while(hf<RF.length && t-RF[hf].t>W) hf++;
+    if(hs>512){ RS.splice(0,hs); hs=0; } if(hf>2048){ RF.splice(0,hf); hf=0; }
+    this.hHS=hs; this.hHF=hf;
+    if(n.lvl>=2){
+      const marca=++this.hMarca, K=this.p.hebbMaxFontes;   // cada fonte conta uma vez por disparo; as K mais próximas no tempo
+      let k=0;
+      for(let i=RS.length-1;i>=hs && k<K;i--){ const m=RS[i]; if(m.n===n||m.n.hMk===marca) continue; m.n.hMk=marca; k++;
+        this.hebbConta(m.n,n,t,t-m.t); if(t-m.t<=S) this.hebbConta(n,m.n,t,t-m.t); }
+      for(let i=RF.length-1;i>=hf && k<K;i--){ const m=RF[i]; if(m.n===n||m.n.hMk===marca) continue; m.n.hMk=marca; k++; this.hebbConta(m.n,n,t,t-m.t); }
+      RS.push({n,t});
+    } else {
+      for(let i=RS.length-1;i>=hs && t-RS[i].t<=S;i--) if(RS[i].n!==n) this.hebbConta(n,RS[i].n,t,t-RS[i].t);
+      RF.push({n,t});
+    }
+  }
+  hebbConta(a,b,t,lag){
+    if(a.diedAt!==Infinity||b.diedAt!==Infinity||b.lvl<2) return;
+    const k=a.id*65536+b.id; let r=this.hebbPar.get(k);
+    if(!r){ if(this.hebbPar.size>=this.p.hebbMaxPares) return; r={r:0,t,lag,ex:0,e:null}; this.hebbPar.set(k,r); }
+    if(r.ex){ const e=r.e; if(e && e.hebb && e.hebb.estado===0 && e.diedAt===Infinity){ const h=e.hebb; h.rec=h.rec*Math.pow(0.5,(t-h.t)/this.hHlRec)+1; h.t=t; } return; }
+    r.r=r.r*Math.pow(0.5,(t-r.t)/this.hHlR)+1; r.t=t; r.lag+=(lag-r.lag)*0.2;
+    if(r.r>=this.p.hebbLimiar) this.hebbForma(a,b,r,t);
+  }
+  hebbForma(a,b,r,t){
+    const p=this.p;
+    for(const e of a.out) if(e.to===b && e.diedAt===Infinity){ r.ex=1; r.e=e.hebb?e:null; return; }   // já ligados
+    if((b.hebbFormando||0)>=p.hebbMaxFormando) return;                                               // equilíbrio: espera
+    if(this.mpOn){ const c=p.mpCostCreateEdge;                                                      // paga quem tem reserva
+      if(!this.mpLearn(b,c)) { this.mp.blockedCreate++; return; }
+      if(a.lvl>=2 && !this.mpLearn(a,c)) { this.mp.blockedCreate++; return; } }
+    const e=this.addEdge(a,b,Math.max(this.basal,Math.round(r.lag)-1));
+    e.wF=p.hebbPeso; e.mod=e.wF; e.born=t; e.lastUse=t;
+    e.hebb={estado:0, nasceu:t, t, rec:r.r};
+    r.ex=1; r.e=e; r.r=0; b.hebbFormando=(b.hebbFormando||0)+1;
+    this.hebbForm.push(e); this.hebbStats.formadas++; this.wChanged.add(e);
+    this.pruneLog.push({t:Math.round(t), kind:'aresta em formação', id:e.id, from:a.id, to:b.id, d:e.d});
+  }
+  hebbVerifica(t){
+    this.hebbUltVerif=t; const p=this.p, fica=[];
+    for(const e of this.hebbForm){ const h=e.hebb; if(h.estado!==0) continue;
+      if(e.diedAt!==Infinity){ e.to.hebbFormando--; continue; }
+      h.rec*=Math.pow(0.5,(t-h.t)/this.hHlRec); h.t=t;
+      if(h.rec<p.hebbRecolherAbaixo){   // recolhe: o "disparou junto" não se repetiu o bastante
+        h.estado=2; e.diedAt=t; e.from.out=e.from.out.filter(x=>x!==e); e.to.in=e.to.in.filter(x=>x!==e); e.to.hebbFormando--;
+        const r=this.hebbPar.get(e.from.id*65536+e.to.id); if(r){ r.ex=0; r.e=null; r.r=0; r.t=t; }
+        this.hebbStats.recolhidas++; this.pruneLog.push({t:Math.round(t), kind:'aresta recolhida', id:e.id, from:e.from.id, to:e.to.id});
+      } else if(t-h.nasceu>=this.hFechar){   // fecha: virou aresta comum (reforço, decaimento e poda normais)
+        h.estado=1; h.fechou=t; e.to.hebbFormando--; this.hebbStats.fechadas++;
+        this.pruneLog.push({t:Math.round(t), kind:'aresta fechada', id:e.id, from:e.from.id, to:e.to.id});
+      } else fica.push(e);
+    }
+    this.hebbForm=fica;
+    // rastros que sumiram não precisam ser guardados
+    if(this.hebbPar.size>1000) for(const [k,r] of this.hebbPar) if(!r.ex && r.r*Math.pow(0.5,(t-r.t)/this.hHlR)<0.05) this.hebbPar.delete(k);
   }
   // ---- MARCAPASSO DE RECURSOS (v0.11) ----
   // Fora do Sdom, com ritmo próprio. A cada batida entrega recurso operacional às reservas
