@@ -8,6 +8,7 @@ This directory does not implement the organism, its creator process, its temporo
 - Auth: Neon Managed Better Auth, Google OAuth with shared **development** credentials.
 - Data: Neon Data API + PostgreSQL RLS. Only the `authenticated` role has permissions on `clear_runs` and `clear_chunks`.
 - The Google auth trusted origin currently includes `https://paulosince.github.io`; no production custom OAuth credentials configured.
+- A Neon-managed `auth` schema permissions issue was reproduced. Migration 003 attempted a grant that Neon silently ignored; migration 004 applied the working owner-view-based subject lookup. This is documented at https://github.com/neondatabase/pg_session_jwt/issues/51. Never treat migration 003 alone as a fix.
 
 ## Why this differs from Viaggio
 The Viaggio prototype needed identity translation and even separate Neon projects per user. The CLEAR lab has no legacy identities or migration. It uses one database with RLS by researcher id. The useful pattern retained is **IndexedDB -> durable outbox -> authenticated Data API**.
@@ -46,4 +47,4 @@ No credentials belong in the client. Public Auth and Data API HTTPS endpoints ar
 - Do not merge this branch into main until two-account RLS testing and browser login smoke tests pass.
 
 ## Database
-`../db/migrations/20261104_001_auth_runs_chunks.sql` has been applied to the dedicated Neon database. Do not reapply it indiscriminately. It contains read/insert policies scoped to the JWT subject and write protection for closed runs.
+All four migrations in `../db/migrations/` have been applied to the dedicated Neon database. Do not reapply them indiscriminately. Verified as the `authenticated` role without JWT: SELECT sees zero runs, INSERT is denied by RLS. Browser Google OAuth and positive two-researcher isolation tests remain pending. GitHub Actions infrastructure tests passed.
