@@ -70,6 +70,17 @@ topo diz qual é o caso. (Até a v0.12 havia um defeito: um canal vazio era trat
 - Leitura (hipótese, não testada): a informação do ritmo entrou como arestas hebbianas em nós da batida que já existiam,
   em vez de nós próprios; e a criação parou cedo. Nenhuma aresta fechou (o prazo é de 4 h; o experimento durou 25 min).
 
+### Controle longo: 6 h de coração isolado (resultados em `experimentos/resultados/`)
+
+- Mesmo protocolo, 288 ciclos (6 h de vida do robô); seletividade medida só na última hora. 3 sementes com as fibras do
+  ritmo, 1 sem.
+- **Critério: não atingido em nenhuma** (zero nós seletivos ao coração alto). A pista do teste curto não se repetiu.
+- O corpo sozinho continua criando nós por horas (59, 101 e 88 nós com o ritmo; 82 sem) e as arestas hebbianas começam a
+  fechar depois de 4 h (336, 577 e 448 fechadas). Todos os nós têm, na origem, todas as fibras do corpo misturadas.
+- **Fenômeno novo**: em todas as sementes com o ritmo, 7–8 nós disparam 16–87 vezes por segundo, enquanto o coração bate
+  1,2–2,6 vezes por segundo: ~26 disparos internos por batida, proporcionais ao ritmo. Atividade gerada dentro do Sdom a
+  partir de cada batida. Ainda não verificado se continua entre as batidas ou se o coração parar (atividade que se sustenta).
+
 ## Silêncio barato (v0.20.2)
 
 - Em silêncio, o robô gastava ~4× mais processador que com som. Causa: os estados dos filtros da cóclea decaíam até números

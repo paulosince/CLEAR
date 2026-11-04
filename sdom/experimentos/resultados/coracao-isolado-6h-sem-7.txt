@@ -1,0 +1,8 @@
+  1.0 h de robô · Sdom 9 nós · em formação 21 · fechadas 0 · recolhidas 0 · 1.4 min de processador
+  2.0 h de robô · Sdom 15 nós · em formação 39 · fechadas 0 · recolhidas 0 · 2.7 min de processador
+  3.0 h de robô · Sdom 40 nós · em formação 232 · fechadas 0 · recolhidas 0 · 4.2 min de processador
+  4.0 h de robô · Sdom 78 nós · em formação 528 · fechadas 0 · recolhidas 0 · 6.6 min de processador
+  5.0 h de robô · Sdom 79 nós · em formação 537 · fechadas 21 · recolhidas 0 · 9.7 min de processador
+  6.0 h de robô · Sdom 82 nós · em formação 560 · fechadas 39 · recolhidas 1 · 12.8 min de processador
+semente 7 · 288 ciclos (analisados os últimos 48) · SEM fibras do ritmo · Sdom 82 nós (todos sem som) · com ritmo na origem 0 · seletivos ao coração alto 0 · arestas em formação 560 · fechadas 39
+

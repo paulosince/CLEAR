@@ -1,0 +1,22 @@
+  1.0 h de robô · Sdom 16 nós · em formação 68 · fechadas 0 · recolhidas 0 · 1.4 min de processador
+  2.0 h de robô · Sdom 68 nós · em formação 456 · fechadas 0 · recolhidas 0 · 3.8 min de processador
+  3.0 h de robô · Sdom 76 nós · em formação 496 · fechadas 0 · recolhidas 0 · 6.9 min de processador
+  4.0 h de robô · Sdom 82 nós · em formação 544 · fechadas 0 · recolhidas 0 · 10.1 min de processador
+  5.0 h de robô · Sdom 82 nós · em formação 511 · fechadas 68 · recolhidas 5 · 13.4 min de processador
+  6.0 h de robô · Sdom 88 nós · em formação 500 · fechadas 448 · recolhidas 8 · 16.7 min de processador
+semente 23 · 288 ciclos (analisados os últimos 48) · COM fibras do ritmo · Sdom 88 nós (todos sem som) · com ritmo na origem 88 · seletivos ao coração alto 0 · arestas em formação 500 · fechadas 448
+  #264 origem {batida,nivel,ritmo,inspira,expira,residuo} /s: subida 2.56 alto 2.57 descida 1.24 repouso 1.25
+  #265 origem {nivel,ritmo,batida,inspira,residuo,expira} /s: subida 2.56 alto 2.57 descida 1.24 repouso 1.25
+  #266 origem {expira,ritmo,nivel,batida,residuo,inspira} /s: subida 46.04 alto 46.64 descida 22.47 repouso 22.51
+  #267 origem {ritmo,nivel,batida,expira,residuo,inspira} /s: subida 5.13 alto 5.13 descida 2.48 repouso 2.49
+  #268 origem {expira,inspira,residuo,batida,nivel,ritmo} /s: subida 33.43 alto 33.63 descida 16.31 repouso 16.29
+  #269 origem {inspira,nivel,batida,residuo,expira,ritmo} /s: subida 49.43 alto 49.68 descida 24.12 repouso 24.07
+  #270 origem {inspira,ritmo,nivel,batida,expira,residuo} /s: subida 0.00 alto 0.00 descida 0.00 repouso 0.00
+  #271 origem {inspira,expira,residuo,nivel,ritmo,batida} /s: subida 33.07 alto 33.24 descida 16.13 repouso 16.11
+  #272 origem {ritmo,inspira,expira,residuo,batida,nivel} /s: subida 26.42 alto 26.53 descida 12.88 repouso 12.87
+  #273 origem {expira,inspira,nivel,batida,residuo,ritmo} /s: subida 0.00 alto 0.00 descida 0.00 repouso 0.00
+  #274 origem {inspira,nivel,batida,ritmo,residuo,expira} /s: subida 38.51 alto 38.70 descida 18.81 repouso 18.79
+  #275 origem {expira,inspira,nivel,batida,residuo,ritmo} /s: subida 0.00 alto 0.00 descida 0.00 repouso 0.00
+  #276 origem {expira,inspira,nivel,batida,ritmo,residuo} /s: subida 36.99 alto 37.20 descida 18.07 repouso 18.03
+  #277 origem {inspira,nivel,batida,ritmo,residuo,expira} /s: subida 0.00 alto 0.00 descida 0.00 repouso 0.00
+  #278 origem {expira,inspira,nivel,batida,ritmo,residuo} /s: subida 34.39 alto 34.56 descida 16.78 repouso 16.75
